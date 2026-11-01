@@ -16,6 +16,10 @@ Está alojada en GitHub Pages y guarda los datos en Supabase.
 | `vendor/` | Librería de Supabase |
 | `supabase-setup.sql` | Crea las tablas, los roles (dueña, capitanas, jugadoras), las solicitudes de acceso y las reglas de seguridad |
 | `supabase-owner.sql` | Te hace dueña de la web (se ejecuta una vez) |
+| `supabase-extras.sql` | Disponibilidad y coches, quedada, clasificación, suscripción al calendario y última visita |
+| `supabase/functions/calendar/` | Función que genera el calendario personal (.ics) de cada jugadora |
+| `404.html` | Página de error con el estilo de la web |
+| `.github/workflows/supabase-keepalive.yml` | Mantiene Supabase activo mientras haya visitas en los últimos 3 meses |
 | `supabase-rivals.sql` | Jugadoras de los equipos rivales (de MijnKNLTB) para elegir contra quién se jugó |
 | `supabase-reset-password.sql` | Pone una contraseña provisional a una jugadora que la ha olvidado |
 
@@ -59,7 +63,8 @@ La política de privacidad está en la propia web (`#privacidad`, enlazada en el
 
 ## Ten en cuenta
 
-- El plan gratuito de Supabase pausa el proyecto si pasa una semana sin que nadie use la web. Se reactiva desde el panel de Supabase con el botón **Restore project**.
+- El plan gratuito de Supabase pausa el proyecto tras 7 días sin uso. El proceso «Mantener Supabase activo» (GitHub Actions, cada lunes) lo evita mientras haya habido visitas en los últimos 90 días; si pasan más de 3 meses sin visitas, se desactiva y Supabase se pausa. Para volver: Supabase → **Restore project** y GitHub → Actions → «Mantener Supabase activo» → **Enable workflow**.
+- La web no aparece en Google (`noindex`).
 - La clave de `config.js` es la pública (publishable/anon). Nunca pongas ahí la clave secreta ni la `service_role`.
 
 Banderas: [Vexillo](https://github.com/kreativekorp/vexillo) (MPL-2.0), [region-flags](https://github.com/fonttools/region-flags), regiones de [country-region-data](https://github.com/country-regions/country-region-data) (MIT), [supabase-js](https://github.com/supabase/supabase-js) (MIT).

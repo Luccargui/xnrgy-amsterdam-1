@@ -1,0 +1,56 @@
+# Mantiene activo el proyecto de Supabase mientras la web tenga visitas.
+#
+# El plan gratuito de Supabase pausa el proyecto tras 7 días sin uso.
+# Cada lunes este proceso mira cuándo fue la última visita a la web:
+#   · Si fue hace 90 días o menos, hace una consulta (eso cuenta como uso)
+#     y Supabase sigue activo.
+#   · Si fue hace más de 90 días (unos 3 meses), se desactiva a sí mismo y
+#     deja que Supabase se pause unos días después.
+# Para volver a activarlo: Supabase → Restore project, y en GitHub →
+# Actions → «Mantener Supabase activo» → Enable workflow.
+name: Mantener Supabase activo
+
+on:
+  schedule:
+    - cron: "23 7 * * 1"   # cada lunes a las 07:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Comprobar la última visita
+        id: check
+        run: |
+          URL=$(grep -o 'https://[a-z0-9]*\.supabase\.co' config.js | head -1)
+          KEY=$(grep -o 'sb_publishable_[A-Za-z0-9_-]*' config.js | head -1)
+          BODY=$(curl -sS --fail "$URL/rest/v1/site_activity?select=last_visit&id=eq.1" -H "apikey: $KEY" -H "Authorization: Bearer $KEY")
+          DAYS=$(echo "$BODY" | python3 -c "import sys, json, datetime as d; v=json.load(sys.stdin)[0]['last_visit']; t=d.datetime.fromisoformat(v.replace('Z','+00:00')); print((d.datetime.now(d.timezone.utc)-t).days)")
+          echo "Última visita hace $DAYS días"
+          echo "days=$DAYS" >> "$GITHUB_OUTPUT"
+
+      - name: Seguir activo (visitas en los últimos 90 días)
+        if: steps.check.outputs.days <= 90
+        run: |
+          # GitHub desactiva las tareas programadas de repositorios sin cambios en 60 días:
+          # un pequeño registro semanal lo evita.
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > .github/keepalive.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/keepalive.txt
+          git commit -m "Supabase activo: última visita hace ${{ steps.check.outputs.days }} días [skip ci]" || true
+          git push
+
+      - name: Dejar que Supabase se pause (más de 90 días sin visitas)
+        if: steps.check.outputs.days > 90
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Más de 3 meses sin visitas: se desactiva este proceso y Supabase se pausará en unos días."
+          gh workflow disable "Mantener Supabase activo" --repo "${{ github.repository }}"
