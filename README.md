@@ -30,19 +30,24 @@ Ajustes necesarios en Supabase → **Authentication**:
 
 Abre `supabase-reset-password.sql`, cambia el email y la contraseña, pégalo en **SQL Editor** y pulsa **Run**.
 
-## Capitanas y privacidad
+## Roles y privacidad
 
-En la web, con tu sesión iniciada, ve a **Alineaciones → Capitanas** y marca a Irviani y a Roseline cuando estén aprobadas y tengan perfil.
+- **Administradora:** Lucía.
+- **Capitana:** Rose. Solo la administradora puede cambiar quién es la capitana.
+- **Managers:** Irviani y quien nombréis. Tienen los mismos permisos que la capitana.
 
-| | Dueña (Lucía) | Capitanas | Jugadoras |
+En la web, ve a **Alineaciones → Equipo y roles** para cambiar el rol de cada jugadora.
+
+| | Administradora | Capitana y managers | Jugadoras |
 |---|---|---|---|
 | Aprobar cuentas nuevas | Sí | Sí | No |
 | Hacer alineaciones y apuntar resultados | Sí | Sí | No |
+| Nombrar o quitar managers | Sí | Sí | No |
+| Nombrar a la capitana | Sí | No | No |
 | Ver foto, banderas, nombre, lado y mano de todas | Sí | Sí | Sí |
 | Ver teléfono, email y nº KNLTB de todas | Sí | Sí | Solo los suyos |
-| Nombrar o quitar capitanas | Sí | No | No |
 
-La base de datos guarda el teléfono, el email y el número KNLTB en una tabla aparte (`player_contacts`) que solo pueden leer la propia jugadora, la dueña y las capitanas.
+El teléfono, el email y el número KNLTB se guardan en una tabla aparte (`player_contacts`) que solo pueden leer la propia jugadora, la administradora, la capitana y las managers.
 
 ## Ten en cuenta
 

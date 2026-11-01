@@ -6,10 +6,12 @@
 --  Cómo funciona el acceso:
 --   · Cualquiera puede crearse una cuenta desde la web, pero no ve nada
 --     privado hasta que la dueña o una capitana la aprueba.
---   · Roles: owner (dueña de la web), captain (capitanas), player (jugadoras).
---   · Dueña y capitanas aprueban cuentas, hacen alineaciones y ven los datos
---     de contacto de todas. Las jugadoras ven de las demás solo la foto, las
---     banderas, el nombre, el lado de la pista y la mano.
+--   · Roles: owner (dueña de la web), captain (capitana), manager, player (jugadora).
+--   · Dueña, capitana y managers aprueban cuentas, hacen alineaciones y ven
+--     los datos de contacto de todas. También pueden nombrar managers.
+--     Solo la dueña nombra a la capitana.
+--   · Las jugadoras ven de las demás solo la foto, las banderas, el nombre,
+--     el lado de la pista y la mano.
 -- ═══════════════════════════════════════════════════════════════════
 
 -- 1. Perfiles de las jugadoras (uno por cuenta) ------------------------
@@ -51,7 +53,7 @@ create table if not exists public.team_roles (
   role    text not null
 );
 alter table public.team_roles drop constraint if exists team_roles_role_check;
-alter table public.team_roles add constraint team_roles_role_check check (role in ('owner', 'captain', 'player'));
+alter table public.team_roles add constraint team_roles_role_check check (role in ('owner', 'captain', 'manager', 'player'));
 
 -- 3. Solicitudes de acceso de las cuentas nuevas -----------------------
 create table if not exists public.join_requests (
@@ -106,9 +108,9 @@ drop policy if exists "players_insert" on public.players;
 drop policy if exists "players_update" on public.players;
 drop policy if exists "players_delete" on public.players;
 create policy "players_select" on public.players for select to authenticated
-  using (private.has_role(array['owner', 'captain', 'player']));
+  using (private.has_role(array['owner', 'captain', 'manager', 'player']));
 create policy "players_insert" on public.players for insert to authenticated
-  with check (id = (select auth.uid()) and private.has_role(array['owner', 'captain', 'player']));
+  with check (id = (select auth.uid()) and private.has_role(array['owner', 'captain', 'manager', 'player']));
 create policy "players_update" on public.players for update to authenticated
   using (id = (select auth.uid()) or private.has_role(array['owner']))
   with check (id = (select auth.uid()) or private.has_role(array['owner']));
@@ -121,9 +123,9 @@ drop policy if exists "contacts_insert" on public.player_contacts;
 drop policy if exists "contacts_update" on public.player_contacts;
 drop policy if exists "contacts_delete" on public.player_contacts;
 create policy "contacts_select" on public.player_contacts for select to authenticated
-  using (id = (select auth.uid()) or private.has_role(array['owner', 'captain']));
+  using (id = (select auth.uid()) or private.has_role(array['owner', 'captain', 'manager']));
 create policy "contacts_insert" on public.player_contacts for insert to authenticated
-  with check (id = (select auth.uid()) and private.has_role(array['owner', 'captain', 'player']));
+  with check (id = (select auth.uid()) and private.has_role(array['owner', 'captain', 'manager', 'player']));
 create policy "contacts_update" on public.player_contacts for update to authenticated
   using (id = (select auth.uid()) or private.has_role(array['owner']))
   with check (id = (select auth.uid()) or private.has_role(array['owner']));
@@ -131,24 +133,31 @@ create policy "contacts_delete" on public.player_contacts for delete to authenti
   using (private.has_role(array['owner']));
 
 -- Roles: cada una ve el suyo y las aprobadas ven todos.
--- Dueña y capitanas aprueban jugadoras; solo la dueña nombra o quita capitanas.
+-- Dueña, capitana y managers aprueban jugadoras y nombran managers;
+-- solo la dueña nombra o quita a la capitana.
 drop policy if exists "roles_select" on public.team_roles;
 drop policy if exists "roles_insert" on public.team_roles;
 drop policy if exists "roles_update" on public.team_roles;
 drop policy if exists "roles_delete" on public.team_roles;
 create policy "roles_select" on public.team_roles for select to authenticated
-  using (user_id = (select auth.uid()) or private.has_role(array['owner', 'captain', 'player']));
+  using (user_id = (select auth.uid()) or private.has_role(array['owner', 'captain', 'manager', 'player']));
 create policy "roles_insert" on public.team_roles for insert to authenticated
   with check (
-    (role = 'player' and private.has_role(array['owner', 'captain']))
+    (role in ('player', 'manager') and private.has_role(array['owner', 'captain', 'manager']))
     or (role = 'captain' and private.has_role(array['owner']))
   );
 create policy "roles_update" on public.team_roles for update to authenticated
-  using (role in ('player', 'captain') and private.has_role(array['owner']))
-  with check (role in ('player', 'captain') and private.has_role(array['owner']));
+  using (
+    (role in ('player', 'manager') and private.has_role(array['owner', 'captain', 'manager']))
+    or (role in ('player', 'manager', 'captain') and private.has_role(array['owner']))
+  )
+  with check (
+    (role in ('player', 'manager') and private.has_role(array['owner', 'captain', 'manager']))
+    or (role in ('player', 'manager', 'captain') and private.has_role(array['owner']))
+  );
 create policy "roles_delete" on public.team_roles for delete to authenticated
   using (
-    (role = 'player' and private.has_role(array['owner', 'captain']))
+    (role in ('player', 'manager') and private.has_role(array['owner', 'captain', 'manager']))
     or (role = 'captain' and private.has_role(array['owner']))
   );
 
@@ -159,13 +168,13 @@ drop policy if exists "requests_insert" on public.join_requests;
 drop policy if exists "requests_update" on public.join_requests;
 drop policy if exists "requests_delete" on public.join_requests;
 create policy "requests_select" on public.join_requests for select to authenticated
-  using (user_id = (select auth.uid()) or private.has_role(array['owner', 'captain']));
+  using (user_id = (select auth.uid()) or private.has_role(array['owner', 'captain', 'manager']));
 create policy "requests_insert" on public.join_requests for insert to authenticated
   with check (user_id = (select auth.uid()));
 create policy "requests_update" on public.join_requests for update to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 create policy "requests_delete" on public.join_requests for delete to authenticated
-  using (user_id = (select auth.uid()) or private.has_role(array['owner', 'captain']));
+  using (user_id = (select auth.uid()) or private.has_role(array['owner', 'captain', 'manager']));
 
 -- Jornadas: cualquiera ve los resultados del equipo (la web es pública);
 -- solo la dueña y las capitanas hacen alineaciones y apuntan resultados.
@@ -174,10 +183,10 @@ drop policy if exists "rounds_insert" on public.rounds;
 drop policy if exists "rounds_update" on public.rounds;
 create policy "rounds_select" on public.rounds for select to anon, authenticated using (true);
 create policy "rounds_insert" on public.rounds for insert to authenticated
-  with check (private.has_role(array['owner', 'captain']));
+  with check (private.has_role(array['owner', 'captain', 'manager']));
 create policy "rounds_update" on public.rounds for update to authenticated
-  using (private.has_role(array['owner', 'captain']))
-  with check (private.has_role(array['owner', 'captain']));
+  using (private.has_role(array['owner', 'captain', 'manager']))
+  with check (private.has_role(array['owner', 'captain', 'manager']));
 
 -- 7. Permisos de la API ------------------------------------------------
 revoke all on public.players, public.player_contacts, public.team_roles, public.join_requests from anon;
