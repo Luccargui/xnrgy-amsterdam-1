@@ -512,7 +512,6 @@ footer { padding: 36px 0 44px; }
         </svg>
       </div>
     </div>
-    <p class="credits"><span data-i18n="foot.flags"></span> <a href="https://github.com/kreativekorp/vexillo">Vexillo</a> (MPL-2.0) · <a href="https://github.com/fonttools/region-flags">region-flags</a> · <a href="https://github.com/country-regions/country-region-data">country-region-data</a> (MIT)</p>
   </div>
 </footer>
 
@@ -1724,7 +1723,7 @@ function setSession(session) {
   if (!uid) { state.editing = false; state.needPassword = false; formMounted = false; }
   if (changed) { formMounted = false; loadData(); }
 }
-var APP_VERSION = "2026-11-01-12";
+var APP_VERSION = "2026-11-01-13";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
