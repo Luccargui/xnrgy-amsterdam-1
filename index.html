@@ -140,6 +140,10 @@ input[type=text], input[type=tel], input[type=email], input[type=password], sele
 input:focus, select:focus { border-color: var(--text); outline: none; }
 input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--loss); }
 .hint { font-size: 13px; color: var(--muted); }
+.opt { font-weight: 500; letter-spacing: .04em; text-transform: none; font-family: var(--body); font-size: 12px; }
+.danger { border-color: var(--loss); color: var(--loss); }
+.danger.solid { background: var(--loss); color: #000; }
+.cal-btns { display: flex; gap: 8px; flex-wrap: wrap; grid-column: 1 / -1; }
 .err { font-size: 13px; color: var(--loss); min-height: 0; }
 fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
 .choices { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -418,7 +422,7 @@ footer { padding: 36px 0 44px; }
   </div>
 </footer>
 
-<script src="config.js?v=2"></script>
+<script src="config.js?v=3"></script>
 <script src="vendor/supabase-2.118.0.js"></script>
 <script>
 "use strict";
@@ -431,7 +435,7 @@ var I18N = {
     "today": "Hoy", "tomorrow": "Mañana", "inDays": "En {n} días",
     "round": "Jornada", "home": "En casa", "away": "Fuera", "tbc": "Por confirmar", "hour": "h",
     "route": "Cómo llegar", "venue": "Sede",
-    "su.tabLogin": "Entrar", "su.tabSignup": "Crear cuenta", "su.first": "Nombre", "su.last": "Apellidos", "su.submit": "Crear cuenta", "su.sending": "Creando la cuenta…", "su.exists": "Ya hay una cuenta con ese email. Entra con tu contraseña.", "su.errEmail": "Escribe un email válido.", "su.errName": "Escribe tu nombre y tus apellidos.", "su.confirm": "Te hemos enviado un email para confirmar la cuenta. Ábrelo y después entra aquí.", "su.intro": "Crea tu cuenta con tu email y una contraseña. Lucía o la capitana la aprobarán y entonces podrás rellenar tu perfil.", "pend.t": "Tu cuenta está pendiente de aprobación", "pend.p": "Lucía o la capitana tienen que aprobarla. En cuanto lo hagan, al volver a esta página podrás rellenar tu perfil y ver tus partidos.", "pend.send": "Enviar solicitud", "pend.sent": "Solicitud enviada", "pend.check": "Comprobar de nuevo", "req.title": "Solicitudes de acceso", "req.none": "No hay solicitudes pendientes.", "req.approve": "Aprobar", "req.reject": "Rechazar", "req.hint": "Aprueba solo a jugadoras del equipo: al aprobarlas verán los datos de contacto de todas.", "role.owner": "Administradora", "role.captain": "Capitana", "role.manager": "Manager", "role.player": "Jugadora", "adm.roleOf": "Rol de", "login.email": "Email", "login.password": "Contraseña", "login.submit": "Entrar", "login.forgot": "¿Has olvidado tu contraseña? Pídele a Lucía que te ponga una provisional.", "login.forgotHint": "Escribe tu email arriba y pulsa aquí: te enviaremos un enlace para crear una nueva.", "login.sending": "Entrando…", "login.err": "Email o contraseña incorrectos.", "login.errNet": "No se ha podido conectar. Comprueba tu conexión e inténtalo de nuevo.", "login.needEmail": "Escribe primero tu email.", "login.resetSent": "Si ese email tiene cuenta, te hemos enviado un enlace para crear una contraseña nueva. Mira también en spam.", "pw.title": "Cambia tu contraseña", "pw.p": "Elige la contraseña con la que entrarás a partir de ahora.", "pw.new": "Contraseña nueva", "pw.repeat": "Repite la contraseña", "pw.save": "Guardar contraseña", "pw.errLen": "Usa al menos 8 caracteres.", "pw.errMatch": "Las contraseñas no coinciden.", "pw.saved": "Contraseña guardada.", "logout": "Cerrar sesión", "cfg.missing": "La web todavía no está conectada a la base de datos. Falta rellenar config.js.", "pl.locked": "Inicia sesión para ver la plantilla completa.", "cal.locked": "Inicia sesión para ver la alineación.", "pw.change": "Cambiar contraseña", "me.title": "Mi perfil", "me.loading": "Cargando tus datos…",
+    "su.tabLogin": "Entrar", "su.tabSignup": "Crear cuenta", "su.first": "Nombre", "su.last": "Apellidos", "su.submit": "Crear cuenta", "su.sending": "Creando la cuenta…", "su.exists": "Ya hay una cuenta con ese email. Entra con tu contraseña.", "su.errEmail": "Escribe un email válido.", "su.errName": "Escribe tu nombre y tus apellidos.", "su.confirm": "Te hemos enviado un email para confirmar la cuenta. Ábrelo y después entra aquí.", "su.intro": "Crea tu cuenta con tu email y una contraseña. Lucía o la capitana la aprobarán y entonces podrás rellenar tu perfil.", "pend.t": "Tu cuenta está pendiente de aprobación", "pend.p": "Lucía o la capitana tienen que aprobarla. En cuanto lo hagan, al volver a esta página podrás rellenar tu perfil y ver tus partidos.", "pend.send": "Enviar solicitud", "pend.sent": "Solicitud enviada", "pend.check": "Comprobar de nuevo", "req.title": "Solicitudes de acceso", "req.none": "No hay solicitudes pendientes.", "req.approve": "Aprobar", "req.reject": "Rechazar", "req.hint": "Aprueba solo a jugadoras del equipo: al aprobarlas verán los datos de contacto de todas.", "role.owner": "Administradora", "role.captain": "Capitana", "role.manager": "Manager", "role.player": "Jugadora", "adm.roleOf": "Rol de", "f.optional": "opcional", "f.birthday": "Cumpleaños", "f.errBirthday": "Escribe una fecha válida.", "cal.google": "Google Calendar", "cal.apple": "Apple / Outlook (.ics)", "cal.all": "Añadir todos al calendario (.ics)", "cal.hint": "Añade tus partidos a tu calendario. En iPhone y Mac, el archivo .ics se abre directamente en Calendario.", "ev.title": "Pádel {slot} · XNRGY vs {rival}", "ev.tbc": "Hora por confirmar.", "del.btn": "Borrar mi cuenta", "del.t": "¿Seguro que quieres borrar tu cuenta?", "del.p": "Se borrarán tu perfil, tu foto y tus datos de contacto, y no podrás volver a entrar con esta cuenta. No se puede deshacer.", "del.yes": "Sí, borrar mi cuenta", "del.done": "Tu cuenta se ha borrado.", "del.owner": "Como administradora, tu cuenta no se puede borrar desde aquí.", "login.email": "Email", "login.password": "Contraseña", "login.submit": "Entrar", "login.forgot": "¿Has olvidado tu contraseña? Pídele a Lucía que te ponga una provisional.", "login.forgotHint": "Escribe tu email arriba y pulsa aquí: te enviaremos un enlace para crear una nueva.", "login.sending": "Entrando…", "login.err": "Email o contraseña incorrectos.", "login.errNet": "No se ha podido conectar. Comprueba tu conexión e inténtalo de nuevo.", "login.needEmail": "Escribe primero tu email.", "login.resetSent": "Si ese email tiene cuenta, te hemos enviado un enlace para crear una contraseña nueva. Mira también en spam.", "pw.title": "Cambia tu contraseña", "pw.p": "Elige la contraseña con la que entrarás a partir de ahora.", "pw.new": "Contraseña nueva", "pw.repeat": "Repite la contraseña", "pw.save": "Guardar contraseña", "pw.errLen": "Usa al menos 8 caracteres.", "pw.errMatch": "Las contraseñas no coinciden.", "pw.saved": "Contraseña guardada.", "logout": "Cerrar sesión", "cfg.missing": "La web todavía no está conectada a la base de datos. Falta rellenar config.js.", "pl.locked": "Inicia sesión para ver la plantilla completa.", "cal.locked": "Inicia sesión para ver la alineación.", "pw.change": "Cambiar contraseña", "me.title": "Mi perfil", "me.loading": "Cargando tus datos…",
     "me.slow": "Los datos tardan en llegar. Comprueba tu conexión; la página seguirá intentándolo.",
     "me.noaccess.t": "Entra para ver tu perfil y tus partidos",
     "me.noaccess.p": "Entra con tu email y tu contraseña. Si es tu primera vez, crea tu cuenta.",
@@ -475,7 +479,7 @@ var I18N = {
     "today": "Today", "tomorrow": "Tomorrow", "inDays": "In {n} days",
     "round": "Round", "home": "Home", "away": "Away", "tbc": "To be confirmed", "hour": "",
     "route": "Directions", "venue": "Venue",
-    "su.tabLogin": "Sign in", "su.tabSignup": "Create account", "su.first": "First name", "su.last": "Last name", "su.submit": "Create account", "su.sending": "Creating your account…", "su.exists": "There is already an account with that email. Sign in with your password.", "su.errEmail": "Enter a valid email.", "su.errName": "Enter your first and last name.", "su.confirm": "We have sent you an email to confirm your account. Open it and then sign in here.", "su.intro": "Create your account with your email and a password. Lucía or the captain will approve it and then you can fill in your profile.", "pend.t": "Your account is waiting for approval", "pend.p": "Lucía or the captain needs to approve it. Once they do, come back to this page to fill in your profile and see your matches.", "pend.send": "Send request", "pend.sent": "Request sent", "pend.check": "Check again", "req.title": "Access requests", "req.none": "No pending requests.", "req.approve": "Approve", "req.reject": "Reject", "req.hint": "Only approve team players: once approved they can see everyone's contact details.", "role.owner": "Admin", "role.captain": "Captain", "role.manager": "Manager", "role.player": "Player", "adm.roleOf": "Role of", "login.email": "Email", "login.password": "Password", "login.submit": "Sign in", "login.forgot": "Forgot your password? Ask Lucía to set a temporary one for you.", "login.forgotHint": "Type your email above and press here: we will send you a link to create a new one.", "login.sending": "Signing in…", "login.err": "Wrong email or password.", "login.errNet": "Could not connect. Check your connection and try again.", "login.needEmail": "Type your email first.", "login.resetSent": "If that email has an account, we have sent you a link to create a new password. Check your spam folder too.", "pw.title": "Change your password", "pw.p": "Choose the password you will use to sign in from now on.", "pw.new": "New password", "pw.repeat": "Repeat password", "pw.save": "Save password", "pw.errLen": "Use at least 8 characters.", "pw.errMatch": "The passwords do not match.", "pw.saved": "Password saved.", "logout": "Sign out", "cfg.missing": "The site is not connected to the database yet. config.js still needs to be filled in.", "pl.locked": "Sign in to see the full squad.", "cal.locked": "Sign in to see the line-up.", "pw.change": "Change password", "me.title": "My profile", "me.loading": "Loading your details…",
+    "su.tabLogin": "Sign in", "su.tabSignup": "Create account", "su.first": "First name", "su.last": "Last name", "su.submit": "Create account", "su.sending": "Creating your account…", "su.exists": "There is already an account with that email. Sign in with your password.", "su.errEmail": "Enter a valid email.", "su.errName": "Enter your first and last name.", "su.confirm": "We have sent you an email to confirm your account. Open it and then sign in here.", "su.intro": "Create your account with your email and a password. Lucía or the captain will approve it and then you can fill in your profile.", "pend.t": "Your account is waiting for approval", "pend.p": "Lucía or the captain needs to approve it. Once they do, come back to this page to fill in your profile and see your matches.", "pend.send": "Send request", "pend.sent": "Request sent", "pend.check": "Check again", "req.title": "Access requests", "req.none": "No pending requests.", "req.approve": "Approve", "req.reject": "Reject", "req.hint": "Only approve team players: once approved they can see everyone's contact details.", "role.owner": "Admin", "role.captain": "Captain", "role.manager": "Manager", "role.player": "Player", "adm.roleOf": "Role of", "f.optional": "optional", "f.birthday": "Birthday", "f.errBirthday": "Enter a valid date.", "cal.google": "Google Calendar", "cal.apple": "Apple / Outlook (.ics)", "cal.all": "Add all to calendar (.ics)", "cal.hint": "Add your matches to your calendar. On iPhone and Mac the .ics file opens straight in Calendar.", "ev.title": "Padel {slot} · XNRGY vs {rival}", "ev.tbc": "Time to be confirmed.", "del.btn": "Delete my account", "del.t": "Are you sure you want to delete your account?", "del.p": "Your profile, photo and contact details will be deleted and you will not be able to sign in with this account again. This cannot be undone.", "del.yes": "Yes, delete my account", "del.done": "Your account has been deleted.", "del.owner": "As the admin, your account cannot be deleted from here.", "login.email": "Email", "login.password": "Password", "login.submit": "Sign in", "login.forgot": "Forgot your password? Ask Lucía to set a temporary one for you.", "login.forgotHint": "Type your email above and press here: we will send you a link to create a new one.", "login.sending": "Signing in…", "login.err": "Wrong email or password.", "login.errNet": "Could not connect. Check your connection and try again.", "login.needEmail": "Type your email first.", "login.resetSent": "If that email has an account, we have sent you a link to create a new password. Check your spam folder too.", "pw.title": "Change your password", "pw.p": "Choose the password you will use to sign in from now on.", "pw.new": "New password", "pw.repeat": "Repeat password", "pw.save": "Save password", "pw.errLen": "Use at least 8 characters.", "pw.errMatch": "The passwords do not match.", "pw.saved": "Password saved.", "logout": "Sign out", "cfg.missing": "The site is not connected to the database yet. config.js still needs to be filled in.", "pl.locked": "Sign in to see the full squad.", "cal.locked": "Sign in to see the line-up.", "pw.change": "Change password", "me.title": "My profile", "me.loading": "Loading your details…",
     "me.slow": "Your details are taking a while. Check your connection; the page will keep trying.",
     "me.noaccess.t": "Sign in to see your profile and your matches",
     "me.noaccess.p": "Sign in with your email and password. First time here? Create your account.",
@@ -519,7 +523,7 @@ var I18N = {
     "today": "Bugün", "tomorrow": "Yarın", "inDays": "{n} gün sonra",
     "round": "Hafta", "home": "İç saha", "away": "Deplasman", "tbc": "Belli değil", "hour": "",
     "route": "Yol tarifi", "venue": "Saha",
-    "su.tabLogin": "Giriş yap", "su.tabSignup": "Hesap oluştur", "su.first": "Ad", "su.last": "Soyad", "su.submit": "Hesap oluştur", "su.sending": "Hesap oluşturuluyor…", "su.exists": "Bu e-posta ile zaten bir hesap var. Şifrenle giriş yap.", "su.errEmail": "Geçerli bir e-posta yaz.", "su.errName": "Adını ve soyadını yaz.", "su.confirm": "Hesabını onaylaman için bir e-posta gönderdik. Aç ve sonra buradan giriş yap.", "su.intro": "E-postan ve bir şifreyle hesabını oluştur. Lucía veya kaptan onayladığında profilini doldurabileceksin.", "pend.t": "Hesabın onay bekliyor", "pend.p": "Lucía veya kaptanın hesabını onaylaması gerekiyor. Onaylandığında bu sayfaya dönüp profilini doldurabilir ve maçlarını görebilirsin.", "pend.send": "İstek gönder", "pend.sent": "İstek gönderildi", "pend.check": "Tekrar kontrol et", "req.title": "Erişim istekleri", "req.none": "Bekleyen istek yok.", "req.approve": "Onayla", "req.reject": "Reddet", "req.hint": "Sadece takım oyuncularını onayla: onaylananlar herkesin iletişim bilgilerini görebilir.", "role.owner": "Yönetici", "role.captain": "Kaptan", "role.manager": "Menajer", "role.player": "Oyuncu", "adm.roleOf": "Rolü:", "login.email": "E-posta", "login.password": "Şifre", "login.submit": "Giriş yap", "login.forgot": "Şifreni mi unuttun? Lucía'dan sana geçici bir şifre vermesini iste.", "login.forgotHint": "Yukarıya e-postanı yaz ve buraya bas: yeni şifre oluşturman için bir bağlantı göndereceğiz.", "login.sending": "Giriş yapılıyor…", "login.err": "E-posta veya şifre yanlış.", "login.errNet": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.", "login.needEmail": "Önce e-postanı yaz.", "login.resetSent": "Bu e-postanın hesabı varsa yeni şifre oluşturman için bir bağlantı gönderdik. Spam klasörüne de bak.", "pw.title": "Şifreni değiştir", "pw.p": "Bundan sonra giriş yaparken kullanacağın şifreyi seç.", "pw.new": "Yeni şifre", "pw.repeat": "Şifreyi tekrar yaz", "pw.save": "Şifreyi kaydet", "pw.errLen": "En az 8 karakter kullan.", "pw.errMatch": "Şifreler eşleşmiyor.", "pw.saved": "Şifre kaydedildi.", "logout": "Çıkış yap", "cfg.missing": "Site henüz veritabanına bağlı değil. config.js dosyasının doldurulması gerekiyor.", "pl.locked": "Kadronun tamamını görmek için giriş yap.", "cal.locked": "Kadroyu görmek için giriş yap.", "pw.change": "Şifreyi değiştir", "me.title": "Profilim", "me.loading": "Bilgilerin yükleniyor…",
+    "su.tabLogin": "Giriş yap", "su.tabSignup": "Hesap oluştur", "su.first": "Ad", "su.last": "Soyad", "su.submit": "Hesap oluştur", "su.sending": "Hesap oluşturuluyor…", "su.exists": "Bu e-posta ile zaten bir hesap var. Şifrenle giriş yap.", "su.errEmail": "Geçerli bir e-posta yaz.", "su.errName": "Adını ve soyadını yaz.", "su.confirm": "Hesabını onaylaman için bir e-posta gönderdik. Aç ve sonra buradan giriş yap.", "su.intro": "E-postan ve bir şifreyle hesabını oluştur. Lucía veya kaptan onayladığında profilini doldurabileceksin.", "pend.t": "Hesabın onay bekliyor", "pend.p": "Lucía veya kaptanın hesabını onaylaması gerekiyor. Onaylandığında bu sayfaya dönüp profilini doldurabilir ve maçlarını görebilirsin.", "pend.send": "İstek gönder", "pend.sent": "İstek gönderildi", "pend.check": "Tekrar kontrol et", "req.title": "Erişim istekleri", "req.none": "Bekleyen istek yok.", "req.approve": "Onayla", "req.reject": "Reddet", "req.hint": "Sadece takım oyuncularını onayla: onaylananlar herkesin iletişim bilgilerini görebilir.", "role.owner": "Yönetici", "role.captain": "Kaptan", "role.manager": "Menajer", "role.player": "Oyuncu", "adm.roleOf": "Rolü:", "f.optional": "isteğe bağlı", "f.birthday": "Doğum günü", "f.errBirthday": "Geçerli bir tarih yaz.", "cal.google": "Google Takvim", "cal.apple": "Apple / Outlook (.ics)", "cal.all": "Hepsini takvime ekle (.ics)", "cal.hint": "Maçlarını takvimine ekle. iPhone ve Mac'te .ics dosyası doğrudan Takvim'de açılır.", "ev.title": "Padel {slot} · XNRGY - {rival}", "ev.tbc": "Saat henüz belli değil.", "del.btn": "Hesabımı sil", "del.t": "Hesabını silmek istediğinden emin misin?", "del.p": "Profilin, fotoğrafın ve iletişim bilgilerin silinecek ve bu hesapla bir daha giriş yapamayacaksın. Geri alınamaz.", "del.yes": "Evet, hesabımı sil", "del.done": "Hesabın silindi.", "del.owner": "Yönetici olarak hesabın buradan silinemez.", "login.email": "E-posta", "login.password": "Şifre", "login.submit": "Giriş yap", "login.forgot": "Şifreni mi unuttun? Lucía'dan sana geçici bir şifre vermesini iste.", "login.forgotHint": "Yukarıya e-postanı yaz ve buraya bas: yeni şifre oluşturman için bir bağlantı göndereceğiz.", "login.sending": "Giriş yapılıyor…", "login.err": "E-posta veya şifre yanlış.", "login.errNet": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.", "login.needEmail": "Önce e-postanı yaz.", "login.resetSent": "Bu e-postanın hesabı varsa yeni şifre oluşturman için bir bağlantı gönderdik. Spam klasörüne de bak.", "pw.title": "Şifreni değiştir", "pw.p": "Bundan sonra giriş yaparken kullanacağın şifreyi seç.", "pw.new": "Yeni şifre", "pw.repeat": "Şifreyi tekrar yaz", "pw.save": "Şifreyi kaydet", "pw.errLen": "En az 8 karakter kullan.", "pw.errMatch": "Şifreler eşleşmiyor.", "pw.saved": "Şifre kaydedildi.", "logout": "Çıkış yap", "cfg.missing": "Site henüz veritabanına bağlı değil. config.js dosyasının doldurulması gerekiyor.", "pl.locked": "Kadronun tamamını görmek için giriş yap.", "cal.locked": "Kadroyu görmek için giriş yap.", "pw.change": "Şifreyi değiştir", "me.title": "Profilim", "me.loading": "Bilgilerin yükleniyor…",
     "me.slow": "Bilgiler gecikiyor. Bağlantını kontrol et; sayfa denemeye devam edecek.",
     "me.noaccess.t": "Profilini ve maçlarını görmek için giriş yap",
     "me.noaccess.p": "E-postan ve şifrenle giriş yap. İlk kez geliyorsan hesabını oluştur.",
@@ -563,7 +567,7 @@ var I18N = {
     "today": "Vandaag", "tomorrow": "Morgen", "inDays": "Over {n} dagen",
     "round": "Ronde", "home": "Thuis", "away": "Uit", "tbc": "Nog niet bekend", "hour": "uur",
     "route": "Route", "venue": "Speellocatie",
-    "su.tabLogin": "Inloggen", "su.tabSignup": "Account aanmaken", "su.first": "Voornaam", "su.last": "Achternaam", "su.submit": "Account aanmaken", "su.sending": "Account wordt aangemaakt…", "su.exists": "Er bestaat al een account met dit e-mailadres. Log in met je wachtwoord.", "su.errEmail": "Vul een geldig e-mailadres in.", "su.errName": "Vul je voor- en achternaam in.", "su.confirm": "We hebben je een e-mail gestuurd om je account te bevestigen. Open die en log daarna hier in.", "su.intro": "Maak je account aan met je e-mailadres en een wachtwoord. Lucía of de aanvoerder keurt het goed en daarna kun je je profiel invullen.", "pend.t": "Je account wacht op goedkeuring", "pend.p": "Lucía of de aanvoerder moet je account goedkeuren. Daarna kun je op deze pagina je profiel invullen en je wedstrijden zien.", "pend.send": "Verzoek versturen", "pend.sent": "Verzoek verstuurd", "pend.check": "Opnieuw controleren", "req.title": "Toegangsverzoeken", "req.none": "Geen openstaande verzoeken.", "req.approve": "Goedkeuren", "req.reject": "Afwijzen", "req.hint": "Keur alleen speelsters van het team goed: na goedkeuring zien ze de contactgegevens van iedereen.", "role.owner": "Beheerder", "role.captain": "Aanvoerder", "role.manager": "Manager", "role.player": "Speelster", "adm.roleOf": "Rol van", "login.email": "E-mail", "login.password": "Wachtwoord", "login.submit": "Inloggen", "login.forgot": "Wachtwoord vergeten? Vraag Lucía om een tijdelijk wachtwoord.", "login.forgotHint": "Vul hierboven je e-mailadres in en klik hier: we sturen je een link om een nieuw wachtwoord te maken.", "login.sending": "Bezig met inloggen…", "login.err": "Onjuist e-mailadres of wachtwoord.", "login.errNet": "Geen verbinding. Controleer je internet en probeer het opnieuw.", "login.needEmail": "Vul eerst je e-mailadres in.", "login.resetSent": "Als dit e-mailadres een account heeft, hebben we je een link gestuurd om een nieuw wachtwoord te maken. Kijk ook in je spam.", "pw.title": "Wijzig je wachtwoord", "pw.p": "Kies het wachtwoord waarmee je voortaan inlogt.", "pw.new": "Nieuw wachtwoord", "pw.repeat": "Herhaal wachtwoord", "pw.save": "Wachtwoord opslaan", "pw.errLen": "Gebruik minstens 8 tekens.", "pw.errMatch": "De wachtwoorden komen niet overeen.", "pw.saved": "Wachtwoord opgeslagen.", "logout": "Uitloggen", "cfg.missing": "De site is nog niet verbonden met de database. config.js moet nog worden ingevuld.", "pl.locked": "Log in om de volledige selectie te zien.", "cal.locked": "Log in om de opstelling te zien.", "pw.change": "Wachtwoord wijzigen", "me.title": "Mijn profiel", "me.loading": "Je gegevens worden geladen…",
+    "su.tabLogin": "Inloggen", "su.tabSignup": "Account aanmaken", "su.first": "Voornaam", "su.last": "Achternaam", "su.submit": "Account aanmaken", "su.sending": "Account wordt aangemaakt…", "su.exists": "Er bestaat al een account met dit e-mailadres. Log in met je wachtwoord.", "su.errEmail": "Vul een geldig e-mailadres in.", "su.errName": "Vul je voor- en achternaam in.", "su.confirm": "We hebben je een e-mail gestuurd om je account te bevestigen. Open die en log daarna hier in.", "su.intro": "Maak je account aan met je e-mailadres en een wachtwoord. Lucía of de aanvoerder keurt het goed en daarna kun je je profiel invullen.", "pend.t": "Je account wacht op goedkeuring", "pend.p": "Lucía of de aanvoerder moet je account goedkeuren. Daarna kun je op deze pagina je profiel invullen en je wedstrijden zien.", "pend.send": "Verzoek versturen", "pend.sent": "Verzoek verstuurd", "pend.check": "Opnieuw controleren", "req.title": "Toegangsverzoeken", "req.none": "Geen openstaande verzoeken.", "req.approve": "Goedkeuren", "req.reject": "Afwijzen", "req.hint": "Keur alleen speelsters van het team goed: na goedkeuring zien ze de contactgegevens van iedereen.", "role.owner": "Beheerder", "role.captain": "Aanvoerder", "role.manager": "Manager", "role.player": "Speelster", "adm.roleOf": "Rol van", "f.optional": "optioneel", "f.birthday": "Verjaardag", "f.errBirthday": "Vul een geldige datum in.", "cal.google": "Google Agenda", "cal.apple": "Apple / Outlook (.ics)", "cal.all": "Alles toevoegen aan agenda (.ics)", "cal.hint": "Zet je wedstrijden in je agenda. Op iPhone en Mac opent het .ics-bestand direct in Agenda.", "ev.title": "Padel {slot} · XNRGY - {rival}", "ev.tbc": "Tijd nog niet bekend.", "del.btn": "Mijn account verwijderen", "del.t": "Weet je zeker dat je je account wilt verwijderen?", "del.p": "Je profiel, foto en contactgegevens worden verwijderd en je kunt niet meer inloggen met dit account. Dit kan niet ongedaan worden gemaakt.", "del.yes": "Ja, verwijder mijn account", "del.done": "Je account is verwijderd.", "del.owner": "Als beheerder kun je je account hier niet verwijderen.", "login.email": "E-mail", "login.password": "Wachtwoord", "login.submit": "Inloggen", "login.forgot": "Wachtwoord vergeten? Vraag Lucía om een tijdelijk wachtwoord.", "login.forgotHint": "Vul hierboven je e-mailadres in en klik hier: we sturen je een link om een nieuw wachtwoord te maken.", "login.sending": "Bezig met inloggen…", "login.err": "Onjuist e-mailadres of wachtwoord.", "login.errNet": "Geen verbinding. Controleer je internet en probeer het opnieuw.", "login.needEmail": "Vul eerst je e-mailadres in.", "login.resetSent": "Als dit e-mailadres een account heeft, hebben we je een link gestuurd om een nieuw wachtwoord te maken. Kijk ook in je spam.", "pw.title": "Wijzig je wachtwoord", "pw.p": "Kies het wachtwoord waarmee je voortaan inlogt.", "pw.new": "Nieuw wachtwoord", "pw.repeat": "Herhaal wachtwoord", "pw.save": "Wachtwoord opslaan", "pw.errLen": "Gebruik minstens 8 tekens.", "pw.errMatch": "De wachtwoorden komen niet overeen.", "pw.saved": "Wachtwoord opgeslagen.", "logout": "Uitloggen", "cfg.missing": "De site is nog niet verbonden met de database. config.js moet nog worden ingevuld.", "pl.locked": "Log in om de volledige selectie te zien.", "cal.locked": "Log in om de opstelling te zien.", "pw.change": "Wachtwoord wijzigen", "me.title": "Mijn profiel", "me.loading": "Je gegevens worden geladen…",
     "me.slow": "Je gegevens laten op zich wachten. Controleer je verbinding; de pagina blijft het proberen.",
     "me.noaccess.t": "Log in om je profiel en je wedstrijden te zien",
     "me.noaccess.p": "Log in met je e-mailadres en wachtwoord. Eerste keer? Maak je account aan.",
@@ -758,7 +762,7 @@ function renderRounds() {
       if (pr[0] || pr[1]) anySet = true;
       var isMine = state.uid && (pr[0] === state.uid || pr[1] === state.uid);
       if (isMine) mine = true;
-      var names = [a ? fullName(a) : (pr[0] ? "?" : "—"), b ? fullName(b) : (pr[1] ? "?" : "—")].join(" / ");
+      var names = [a ? fullName(a) : "—", b ? fullName(b) : "—"].join(" / ");
       var rs = resultsOf(m.r)[i] || {}, rtxt = "";
       if (rs.won === true || rs.won === false) rtxt = '<span class="ddres ' + (rs.won ? "w" : "l") + '">' + esc(t(rs.won ? "res.w" : "res.l")) + (rs.score ? " · " + esc(rs.score) : "") + '</span>';
       return '<div class="dd' + (isMine ? " mine" : "") + '"><span class="tag">' + SLOTS[i] + '</span><span class="names">' + esc(names) + rtxt + '</span></div>';
@@ -791,6 +795,10 @@ function renderStandings() {
 }
 
 /* ───────────── Plantilla ───────────── */
+function bdayLabel(d, withYear) {
+  if (!d || !/^\d{4}-\d\d-\d\d$/.test(d)) return "";
+  try { return new Intl.DateTimeFormat(LOCALE[lang], withYear ? { day: "numeric", month: "long", year: "numeric" } : { day: "numeric", month: "long" }).format(parse(d)); } catch (e) { return d; }
+}
 function sideLabel(v) { return v ? t("side." + v) : ""; }
 function handLabel(v) { return v ? t("hand." + v) : ""; }
 function roleBadge(id) {
@@ -811,7 +819,8 @@ function renderPlayers() {
     var p = x.p;
     return '<article class="player"><div class="photo">' + photoHtml(p) + '</div>' + kitHtml(p, true) + '<div class="p-body">' +
       '<div><div class="p-name">' + esc(fullName(p)) + '</div>' + roleBadge(x.id) + '</div>' +
-      '<div class="p-chips"><span class="chip">' + esc(sideLabel(p.side)) + '</span><span class="chip">' + esc(handLabel(p.hand)) + '</span></div>' +
+      ((p.side || p.hand) ? '<div class="p-chips">' + (p.side ? '<span class="chip">' + esc(sideLabel(p.side)) + '</span>' : '') + (p.hand ? '<span class="chip">' + esc(handLabel(p.hand)) + '</span>' : '') + '</div>' : '') +
+      (p.birthday ? '<div class="p-contact"><span>' + esc(t("f.birthday")) + ': ' + esc(bdayLabel(p.birthday, false)) + '</span></div>' : '') +
       (p.phone ? '<div class="p-contact"><span>' + esc(p.phone) + '</span><span>' + esc(p.email) + '</span><span>KNLTB ' + esc(p.knltb) + '</span></div>' : '') +
       '</div></article>';
   });
@@ -855,8 +864,67 @@ function gameHtml(g, past) {
     '<div><div class="mm-title">' + SLOTS[g.i] + ' · ' + esc(t("me.vsTeam")) + ' ' + esc(rival) + '</div>' +
     '<div class="mm-meta">' + esc(t("round")) + ' ' + m.r + ' · <b>' + esc(fmtDate(m.date, true)) + '</b>' + (past ? '' : ' · <b>' + esc(timeStr(m)) + '</b>') + ' · ' + esc(isHome ? t("home") : t("away")) + ' · ' + esc(m.venue.name) + team + '</div></div>' +
     right +
-    '<div class="partner" style="grid-column:1/-1">' + (partner ? miniHtml(partner) + '<span><span class="label">' + esc(t("me.partner")) + '</span><br>' + esc(fullName(partner)) + ' · ' + esc(sideLabel(partner.side)) + '</span>' : '<span class="muted">' + esc(t("me.partnerTbc")) + '</span>') + '</div>' +
+    '<div class="partner" style="grid-column:1/-1">' + (partner ? miniHtml(partner) + '<span><span class="label">' + esc(t("me.partner")) + '</span><br>' + esc(fullName(partner)) + (partner.side ? ' · ' + esc(sideLabel(partner.side)) : '') + '</span>' : '<span class="muted">' + esc(t("me.partnerTbc")) + '</span>') + '</div>' +
+    (past ? '' : '<div class="cal-btns"><a class="btn small" href="' + esc(googleCalUrl(g)) + '" target="_blank" rel="noopener">' + esc(t("cal.google")) + '</a>' +
+      '<button type="button" class="btn small" data-ics="' + m.r + '-' + g.i + '">' + esc(t("cal.apple")) + '</button></div>') +
     '</div>';
+}
+
+/* ───────────── Partidos en el calendario (Google / Apple / Outlook) ───────────── */
+var MATCH_HOURS = 2; // duración aproximada de cada partido en el calendario
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+// Hora de Ámsterdam -> instante UTC (sirve también con el cambio de hora)
+function amsToUtc(dateStr, timeStr) {
+  var d = dateStr.split("-").map(Number), tm = timeStr.split(":").map(Number);
+  var guess = Date.UTC(d[0], d[1] - 1, d[2], tm[0], tm[1]);
+  var parts = {};
+  new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Amsterdam", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
+    .formatToParts(new Date(guess)).forEach(function (x) { parts[x.type] = x.value; });
+  var asAms = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour % 24, +parts.minute);
+  return new Date(guess - (asAms - guess));
+}
+function utcStamp(dt) { return dt.getUTCFullYear() + pad2(dt.getUTCMonth() + 1) + pad2(dt.getUTCDate()) + "T" + pad2(dt.getUTCHours()) + pad2(dt.getUTCMinutes()) + "00Z"; }
+function dayStamp(dateStr, plusDays) { var x = parse(dateStr); x.setDate(x.getDate() + (plusDays || 0)); return x.getFullYear() + pad2(x.getMonth() + 1) + pad2(x.getDate()); }
+function gameEvent(g) {
+  var m = g.m, partner = g.partnerId ? state.players[g.partnerId] : null, rival = m.home === US ? m.away : m.home;
+  var ev = {
+    uid: "xnrgy-r" + m.r + "-" + SLOTS[g.i].toLowerCase() + "-" + state.uid + "@luccargui.github.io",
+    title: t("ev.title", { slot: SLOTS[g.i], rival: rival }),
+    location: m.venue.name + ", " + m.venue.street + ", " + m.venue.city,
+    details: t("round") + " " + m.r + " · " + SLOTS[g.i] + " · " + (m.home === US ? t("home") : t("away")) + "\n" +
+      t("me.partner") + ": " + (partner ? fullName(partner) : t("me.partnerTbc")) + "\n" +
+      (m.time ? "" : t("ev.tbc") + "\n") + location.origin + location.pathname + "#perfil"
+  };
+  if (m.time) { var st = amsToUtc(m.date, m.time); ev.start = utcStamp(st); ev.end = utcStamp(new Date(st.getTime() + MATCH_HOURS * 3600000)); ev.allDay = false; }
+  else { ev.start = dayStamp(m.date); ev.end = dayStamp(m.date, 1); ev.allDay = true; }
+  return ev;
+}
+function googleCalUrl(g) {
+  var ev = gameEvent(g);
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(ev.title) +
+    "&dates=" + ev.start + "/" + ev.end + "&location=" + encodeURIComponent(ev.location) +
+    "&details=" + encodeURIComponent(ev.details.replace(/\\n/g, "\n")) + "&ctz=Europe/Amsterdam";
+}
+function icsEscape(x) { return String(x).replace(/\\n/g, "\n").replace(/[\\;,]/g, function (c) { return "\\" + c; }).replace(/\n/g, "\\n"); }
+function icsFold(line) { var out = [], i = 0; while (line.length - i > 73) { out.push((i ? " " : "") + line.slice(i, i + 73)); i += 73; } out.push((i ? " " : "") + line.slice(i)); return out.join("\r\n"); }
+function buildIcs(games) {
+  var now = utcStamp(new Date()), L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//XNRGY Amsterdam 1//Padel//ES", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:XNRGY Amsterdam 1"];
+  games.forEach(function (g) {
+    var ev = gameEvent(g);
+    L.push("BEGIN:VEVENT", "UID:" + ev.uid, "DTSTAMP:" + now,
+      ev.allDay ? "DTSTART;VALUE=DATE:" + ev.start : "DTSTART:" + ev.start,
+      ev.allDay ? "DTEND;VALUE=DATE:" + ev.end : "DTEND:" + ev.end,
+      "SUMMARY:" + icsEscape(ev.title), "LOCATION:" + icsEscape(ev.location), "DESCRIPTION:" + icsEscape(ev.details),
+      "BEGIN:VALARM", "TRIGGER:-PT2H", "ACTION:DISPLAY", "DESCRIPTION:" + icsEscape(ev.title), "END:VALARM", "END:VEVENT");
+  });
+  L.push("END:VCALENDAR");
+  return L.map(icsFold).join("\r\n") + "\r\n";
+}
+function downloadIcs(games, name) {
+  var blob = new Blob([buildIcs(games)], { type: "text/calendar;charset=utf-8" });
+  var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 function renderMe() {
   var root = document.getElementById("me-root");
@@ -884,25 +952,57 @@ function renderMe() {
   var won = gm.done.filter(function (g) { return g.rs.won === true; }).length, lost = gm.done.filter(function (g) { return g.rs.won === false; }).length;
   var gamesBlock =
     '<div class="stats"><div class="stat"><b>' + (won + lost) + '</b><span>' + esc(t("prof.played")) + '</span></div><div class="stat w"><b>' + won + '</b><span>' + esc(t("prof.won")) + '</span></div><div class="stat l"><b>' + lost + '</b><span>' + esc(t("prof.lost")) + '</span></div></div>' +
-    '<div class="p-sec"><h3>' + esc(t("prof.upcoming")) + '</h3>' + (gm.up.length ? gm.up.map(function (g) { return gameHtml(g, false); }).join("") : '<p class="muted" style="margin:0">' + esc(t("prof.noUpcoming")) + '</p>') + '</div>' +
+    '<div class="p-sec"><div class="admin-head"><h3>' + esc(t("prof.upcoming")) + '</h3>' + (gm.up.length > 1 ? '<button type="button" class="btn small solid" id="ics-all">' + esc(t("cal.all")) + '</button>' : '') + '</div>' +
+      (gm.up.length ? '<p class="hint" style="margin:0">' + esc(t("cal.hint")) + '</p>' + gm.up.map(function (g) { return gameHtml(g, false); }).join("") : '<p class="muted" style="margin:0">' + esc(t("prof.noUpcoming")) + '</p>') + '</div>' +
     '<div class="p-sec"><h3>' + esc(t("prof.results")) + '</h3>' + (gm.done.length ? gm.done.slice().reverse().map(function (g) { return gameHtml(g, true); }).join("") : '<p class="muted" style="margin:0">' + esc(t("prof.noResults")) + '</p>') + '</div>';
   root.innerHTML = '<div class="panel"><div class="me-grid">' +
     '<div class="me-side"><div class="card-photo"><div class="photo" style="border:0">' + photoHtml(me) + '</div>' + kitHtml(me, true) + '</div></div>' +
     '<div><h3>' + esc(fullName(me)) + '</h3>' +
       '<dl class="facts">' +
-        '<div><dt>' + esc(t("f.phone")) + '</dt><dd>' + esc(me.phone) + '</dd></div>' +
-        '<div><dt>' + esc(t("f.email")) + '</dt><dd>' + esc(me.email) + '</dd></div>' +
-        '<div><dt>' + esc(t("f.knltb")) + '</dt><dd>' + esc(me.knltb) + '</dd></div>' +
-        '<div><dt>' + esc(t("f.side")) + '</dt><dd>' + esc(sideLabel(me.side)) + '</dd></div>' +
-        '<div><dt>' + esc(t("f.hand")) + '</dt><dd>' + esc(handLabel(me.hand)) + '</dd></div>' +
+        '<div><dt>' + esc(t("f.birthday")) + '</dt><dd>' + esc(bdayLabel(me.birthday, true) || "—") + '</dd></div>' +
+        '<div><dt>' + esc(t("f.phone")) + '</dt><dd>' + esc(me.phone || "—") + '</dd></div>' +
+        '<div><dt>' + esc(t("f.email")) + '</dt><dd>' + esc(me.email || "—") + '</dd></div>' +
+        '<div><dt>' + esc(t("f.knltb")) + '</dt><dd>' + esc(me.knltb || "—") + '</dd></div>' +
+        '<div><dt>' + esc(t("f.side")) + '</dt><dd>' + esc(sideLabel(me.side) || "—") + '</dd></div>' +
+        '<div><dt>' + esc(t("f.hand")) + '</dt><dd>' + esc(handLabel(me.hand) || "—") + '</dd></div>' +
       '</dl>' +
       '<div class="form-actions" style="margin-top:20px"><button type="button" class="btn small" id="edit-btn">' + esc(t("me.edit")) + '</button>' +
         '<button type="button" class="btn small" id="pw-btn">' + esc(t("pw.change")) + '</button>' +
         '<button type="button" class="btn small" id="logout-btn">' + esc(t("logout")) + '</button></div>' +
+      '<div id="del-box" style="margin-top:16px">' + (state.isOwner ? '<p class="hint" style="margin:0">' + esc(t("del.owner")) + '</p>' : '<button type="button" class="btn small danger" id="del-btn">' + esc(t("del.btn")) + '</button>') + '</div>' +
     '</div></div></div>' + gamesBlock;
   document.getElementById("edit-btn").addEventListener("click", function () { state.editing = true; formMounted = false; renderMe(); });
   document.getElementById("pw-btn").addEventListener("click", function () { state.needPassword = true; renderMe(); });
   document.getElementById("logout-btn").addEventListener("click", function () { state.sb.auth.signOut(); });
+  var allBtn = document.getElementById("ics-all");
+  if (allBtn) allBtn.addEventListener("click", function () { downloadIcs(gm.up, "xnrgy-mis-partidos.ics"); });
+  document.querySelectorAll("[data-ics]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var k = b.getAttribute("data-ics").split("-").map(Number);
+      var g = gm.up.filter(function (x) { return x.m.r === k[0] && x.i === k[1]; })[0];
+      if (g) downloadIcs([g], "xnrgy-jornada-" + g.m.r + ".ics");
+    });
+  });
+  var delBtn = document.getElementById("del-btn");
+  if (delBtn) delBtn.addEventListener("click", function () {
+    var box = document.getElementById("del-box");
+    box.innerHTML = '<div class="notice" style="border-color:var(--loss)"><h3>' + esc(t("del.t")) + '</h3><p>' + esc(t("del.p")) + '</p>' +
+      '<div class="form-actions" style="margin-top:12px"><button type="button" class="btn small danger solid" id="del-yes">' + esc(t("del.yes")) + '</button>' +
+      '<button type="button" class="btn small" id="del-no">' + esc(t("f.cancel")) + '</button><span class="status" id="del-status" role="status" aria-live="polite"></span></div></div>';
+    document.getElementById("del-no").addEventListener("click", function () { renderMe(); });
+    document.getElementById("del-yes").addEventListener("click", function () {
+      var yes = document.getElementById("del-yes"); yes.disabled = true;
+      state.sb.rpc("delete_my_account").then(function (res) {
+        if (res.error) throw res.error;
+        return state.sb.auth.signOut();
+      }).then(function () {
+        document.getElementById("me-note").textContent = t("del.done");
+      }).catch(function (e) {
+        yes.disabled = false;
+        var st = document.getElementById("del-status"); st.textContent = t("f.errSave") + (e && e.message ? " (" + e.message + ")" : ""); st.className = "status bad";
+      });
+    });
+  });
 }
 
 /* ───────────── Inicio de sesión ───────────── */
@@ -1044,8 +1144,9 @@ function regionOptions(cc, sel, q) {
   return '<option value="">' + esc(t("f.choose")) + '</option>' + items.map(function (r) { return '<option value="' + esc(r[0]) + '"' + (r[0] === sel ? " selected" : "") + '>' + esc(r[1]) + '</option>'; }).join("");
 }
 function field(id, key, type, val, extra) {
-  return '<div class="field' + (extra && extra.full ? " full" : "") + '"><label for="f-' + id + '">' + esc(t(key)) + ' <span class="req" aria-hidden="true">*</span></label>' +
-    '<input type="' + type + '" id="f-' + id + '" name="' + id + '" value="' + esc(val || "") + '" required aria-describedby="e-' + id + (extra && extra.hint ? ' h-' + id : '') + '"' + (extra && extra.attrs || "") + '>' +
+  var req = !!(extra && extra.required);
+  return '<div class="field' + (extra && extra.full ? " full" : "") + '"><label for="f-' + id + '">' + esc(t(key)) + (req ? ' <span class="req" aria-hidden="true">*</span>' : ' <span class="opt">(' + esc(t("f.optional")) + ')</span>') + '</label>' +
+    '<input type="' + type + '" id="f-' + id + '" name="' + id + '" value="' + esc(val || "") + '"' + (req ? ' required' : '') + ' aria-describedby="e-' + id + (extra && extra.hint ? ' h-' + id : '') + '"' + (extra && extra.attrs || "") + '>' +
     (extra && extra.hint ? '<span class="hint" id="h-' + id + '">' + esc(t(extra.hint)) + '</span>' : '') +
     '<span class="err" id="e-' + id + '"></span></div>';
 }
@@ -1062,21 +1163,21 @@ function mountForm(me) {
       '<button type="button" class="btn small" id="pf-photo-rm">' + esc(t("f.photoRemove")) + '</button>' +
       '<span class="hint">' + esc(t("f.photoHint")) + '</span><span class="err" id="e-photo"></span></div></div></div>' +
     '<div class="form-grid">' +
-      field("first", "f.first", "text", me.firstName, { attrs: ' autocomplete="given-name" maxlength="60"' }) +
-      field("last", "f.last", "text", me.lastName, { attrs: ' autocomplete="family-name" maxlength="80"' }) +
+      field("first", "f.first", "text", me.firstName, { required: true, attrs: ' autocomplete="given-name" maxlength="60"' }) +
+      field("last", "f.last", "text", me.lastName, { required: true, attrs: ' autocomplete="family-name" maxlength="80"' }) +
       '<div class="field"><label for="f-country">' + esc(t("f.country")) + ' <span class="req" aria-hidden="true">*</span></label>' +
-        '<input type="search" class="opt-search" id="s-country" autocomplete="off" placeholder="' + esc(t("f.searchCountry")) + '" aria-label="' + esc(t("f.searchCountry")) + '" aria-controls="f-country">' +
-        '<select id="f-country" name="country" required aria-describedby="e-country">' + countryOptions(me.country) + '</select><span class="err" id="e-country"></span></div>' +
+        '<input type="search" class="opt-search" id="s-country" autocomplete="xnrgy-search" placeholder="' + esc(t("f.searchCountry")) + '" aria-label="' + esc(t("f.searchCountry")) + '" aria-controls="f-country">' +
+        '<select id="f-country" name="xnrgy_bc" autocomplete="xnrgy-birth-country" required aria-describedby="e-country">' + countryOptions(me.country) + '</select><span class="err" id="e-country"></span></div>' +
       '<div class="field"><label for="f-region">' + esc(t("f.region")) + ' <span class="req" aria-hidden="true">*</span></label>' +
-        '<input type="search" class="opt-search" id="s-region" autocomplete="off" placeholder="' + esc(t("f.searchRegion")) + '" aria-label="' + esc(t("f.searchRegion")) + '" aria-controls="f-region">' +
-        '<select id="f-region" name="region" required aria-describedby="e-region">' + regionOptions(me.country, me.region) + '</select><span class="err" id="e-region"></span></div>' +
+        '<input type="search" class="opt-search" id="s-region" autocomplete="xnrgy-search" placeholder="' + esc(t("f.searchRegion")) + '" aria-label="' + esc(t("f.searchRegion")) + '" aria-controls="f-region">' +
+        '<select id="f-region" name="xnrgy_br" autocomplete="xnrgy-birth-region" required aria-describedby="e-region">' + regionOptions(me.country, me.region) + '</select><span class="err" id="e-region"></span></div>' +
       '<div class="field full"><span class="hint">' + esc(t("f.regionHint")) + '</span> <span class="hint" id="pf-flagnote"></span></div>' +
+      field("birthday", "f.birthday", "date", me.birthday, { attrs: ' autocomplete="bday" min="1930-01-01" max="2025-12-31"' }) +
       field("phone", "f.phone", "tel", me.phone, { attrs: ' autocomplete="tel" maxlength="25" placeholder="+31 6 12345678"' }) +
       field("email", "f.email", "email", me.email, { attrs: ' autocomplete="email" maxlength="120"' }) +
       field("knltb", "f.knltb", "text", me.knltb, { hint: "f.knltbHint", attrs: ' inputmode="numeric" maxlength="10"' }) +
-      '<div class="field"></div>' +
-      '<fieldset class="field" id="fs-side"><legend>' + esc(t("f.side")) + ' <span class="req" aria-hidden="true">*</span></legend>' + radios("side", ["left", "right", "any"], "side.", me.side) + '<span class="err" id="e-side"></span></fieldset>' +
-      '<fieldset class="field" id="fs-hand"><legend>' + esc(t("f.hand")) + ' <span class="req" aria-hidden="true">*</span></legend>' + radios("hand", ["right", "left", "both"], "hand.", me.hand) + '<span class="err" id="e-hand"></span></fieldset>' +
+      '<fieldset class="field" id="fs-side"><legend>' + esc(t("f.side")) + ' <span class="opt">(' + esc(t("f.optional")) + ')</span></legend>' + radios("side", ["left", "right", "any"], "side.", me.side) + '<span class="err" id="e-side"></span></fieldset>' +
+      '<fieldset class="field" id="fs-hand"><legend>' + esc(t("f.hand")) + ' <span class="opt">(' + esc(t("f.optional")) + ')</span></legend>' + radios("hand", ["right", "left", "both"], "hand.", me.hand) + '<span class="err" id="e-hand"></span></fieldset>' +
     '</div>' +
     '<div class="form-actions"><button type="submit" class="btn solid" id="pf-save">' + esc(t("f.save")) + '</button>' +
       (state.players[state.uid] ? '<button type="button" class="btn" id="pf-cancel">' + esc(t("f.cancel")) + '</button>' : '') +
@@ -1089,15 +1190,15 @@ function mountForm(me) {
     document.getElementById("pf-photo-rm").hidden = !formPhoto;
   }
   function paintFlags() {
-    var cc = f.country.value, rc = f.region.value, ri = cc ? regionInfo(cc, rc) : { name: "", hasFlag: true };
+    var cc = f.xnrgy_bc.value, rc = f.xnrgy_br.value, ri = cc ? regionInfo(cc, rc) : { name: "", hasFlag: true };
     document.getElementById("pf-kit").innerHTML = kitHtml({ country: cc, region: rc, regionName: ri.name, firstName: f.first.value, lastName: f.last.value }, false);
     document.getElementById("pf-flagnote").textContent = (cc && rc && !ri.hasFlag) ? t("f.noRegionFlag") : "";
   }
   paintPhoto(); paintFlags();
   f.first.addEventListener("input", function () { paintPhoto(); paintFlags(); }); f.last.addEventListener("input", function () { paintPhoto(); paintFlags(); });
   var sC = document.getElementById("s-country"), sR = document.getElementById("s-region");
-  function pickCountry() { sR.value = ""; f.region.innerHTML = regionOptions(f.country.value, ""); paintFlags(); }
-  f.country.addEventListener("change", pickCountry);
+  function pickCountry() { sR.value = ""; f.xnrgy_br.innerHTML = regionOptions(f.xnrgy_bc.value, ""); paintFlags(); }
+  f.xnrgy_bc.addEventListener("change", pickCountry);
   function wireSearch(input, select, build, onPick) {
     input.addEventListener("input", function () {
       var cur = select.value;
@@ -1114,9 +1215,9 @@ function mountForm(me) {
       } else if (ev.key === "ArrowDown") { ev.preventDefault(); select.focus(); }
     });
   }
-  wireSearch(sC, f.country, function (sel, q) { return countryOptions(sel, q); }, pickCountry);
-  wireSearch(sR, f.region, function (sel, q) { return regionOptions(f.country.value, sel, q); }, paintFlags);
-  f.region.addEventListener("change", paintFlags);
+  wireSearch(sC, f.xnrgy_bc, function (sel, q) { return countryOptions(sel, q); }, pickCountry);
+  wireSearch(sR, f.xnrgy_br, function (sel, q) { return regionOptions(f.xnrgy_bc.value, sel, q); }, paintFlags);
+  f.xnrgy_br.addEventListener("change", paintFlags);
   document.getElementById("pf-photo-rm").addEventListener("click", function () { formPhoto = null; paintPhoto(); });
   document.getElementById("f-photo").addEventListener("change", function (ev) {
     var file = ev.target.files && ev.target.files[0]; ev.target.value = "";
@@ -1157,19 +1258,20 @@ function saveProfile(f) {
   var v = {
     firstName: f.first.value.trim(), lastName: f.last.value.trim(), phone: f.phone.value.trim(), email: f.email.value.trim(),
     knltb: f.knltb.value.replace(/\s/g, ""), side: (f.querySelector('input[name=side]:checked') || {}).value || "",
-    hand: (f.querySelector('input[name=hand]:checked') || {}).value || "", country: f.country.value, region: f.region.value
+    hand: (f.querySelector('input[name=hand]:checked') || {}).value || "", country: f.xnrgy_bc.value, region: f.xnrgy_br.value,
+    birthday: f.birthday.value || ""
   };
   var bad = null;
   function check(id, ok, msg, el) { setErr(id, ok ? "" : msg, el); if (!ok && !bad) bad = el || document.getElementById("f-" + id); }
   check("first", !!v.firstName, t("f.errRequired"), f.first);
   check("last", !!v.lastName, t("f.errRequired"), f.last);
-  check("phone", v.phone.replace(/\D/g, "").length >= 9, v.phone ? t("f.errPhone") : t("f.errRequired"), f.phone);
-  check("email", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email), v.email ? t("f.errEmail") : t("f.errRequired"), f.email);
-  check("knltb", /^\d{6,10}$/.test(v.knltb), v.knltb ? t("f.errKnltb") : t("f.errRequired"), f.knltb);
-  check("side", !!v.side, t("f.errRequired"), f.querySelector('input[name=side]'));
-  check("hand", !!v.hand, t("f.errRequired"), f.querySelector('input[name=hand]'));
-  check("country", !!v.country, t("f.errRequired"), f.country);
-  check("region", !!v.region, t("f.errRequired"), f.region);
+  // Opcionales: solo se comprueban si están rellenos
+  check("birthday", !v.birthday || /^(19[3-9]\d|20[0-2]\d)-\d\d-\d\d$/.test(v.birthday), t("f.errBirthday"), f.birthday);
+  check("phone", !v.phone || (v.phone.replace(/\D/g, "").length >= 9 && v.phone.length <= 25), t("f.errPhone"), f.phone);
+  check("email", !v.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email), t("f.errEmail"), f.email);
+  check("knltb", !v.knltb || /^\d{6,10}$/.test(v.knltb), t("f.errKnltb"), f.knltb);
+  check("country", !!v.country, t("f.errRequired"), f.xnrgy_bc);
+  check("region", !!v.region, t("f.errRequired"), f.xnrgy_br);
   var st = document.getElementById("pf-status");
   if (bad) { st.textContent = t("f.errForm"); st.className = "status bad"; bad.focus(); return; }
   v.regionName = regionInfo(v.country, v.region).name;
@@ -1185,9 +1287,10 @@ function saveProfile(f) {
     state.players[state.uid] = v; state.editing = false; formMounted = false;
     renderAll();
     document.getElementById("me-note").textContent = t("f.saved");
-  }).catch(function () {
+  }).catch(function (e) {
     btn.disabled = false;
-    st.textContent = t("f.errSave"); st.className = "status bad";
+    // Mostrar el motivo técnico ayuda a arreglarlo si vuelve a pasar
+    st.textContent = t("f.errSave") + (e && (e.message || e.code) ? " (" + (e.code ? e.code + ": " : "") + (e.message || "") + ")" : ""); st.className = "status bad";
   });
 }
 
@@ -1353,14 +1456,14 @@ function loadRegions() {
 /* Columnas de Supabase (snake_case) <-> objetos de la página */
 function fromRow(r) {
   return { firstName: r.first_name, lastName: r.last_name, side: r.side, hand: r.hand,
-    country: r.country, region: r.region, regionName: r.region_name, photo: r.photo, updatedAt: r.updated_at };
+    country: r.country, region: r.region, regionName: r.region_name, photo: r.photo, birthday: r.birthday || "", updatedAt: r.updated_at };
 }
 function toRow(v) {
-  return { id: state.uid, first_name: v.firstName, last_name: v.lastName, side: v.side, hand: v.hand,
-    country: v.country, region: v.region, region_name: v.regionName || null, photo: v.photo || null, updated_at: v.updatedAt };
+  return { id: state.uid, first_name: v.firstName, last_name: v.lastName, side: v.side || null, hand: v.hand || null,
+    country: v.country, region: v.region, region_name: v.regionName || null, photo: v.photo || null, birthday: v.birthday || null, updated_at: v.updatedAt };
 }
 // Teléfono, email y KNLTB van aparte: solo los leen ella misma, la dueña y las capitanas
-function toContact(v) { return { id: state.uid, phone: v.phone, email: v.email, knltb: v.knltb, updated_at: v.updatedAt }; }
+function toContact(v) { return { id: state.uid, phone: v.phone || null, email: v.email || null, knltb: v.knltb || null, updated_at: v.updatedAt }; }
 var loading = null;
 function loadData() {
   if (loading) return loading;
@@ -1409,7 +1512,18 @@ function setSession(session) {
   if (!uid) { state.editing = false; state.needPassword = false; formMounted = false; }
   if (changed) { formMounted = false; loadData(); }
 }
+var APP_VERSION = "2026-11-01-6";
+function checkVersion() {
+  fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
+    v = (v || "").trim();
+    if (!v || v === APP_VERSION) return;
+    var key = "xnrgy-reloaded-" + v;
+    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); } catch (e) { return; }
+    location.reload();
+  }).catch(function () {});
+}
 function boot() {
+  checkVersion();
   // Enlace de invitación o de recuperación: pedir la contraseña nueva al entrar
   var h = location.hash || "", q = location.search || "";
   if (/type=(invite|recovery)/.test(h + q)) { state.needPassword = true; }

@@ -19,23 +19,31 @@ create table if not exists public.players (
   id          uuid primary key references auth.users (id) on delete cascade,
   first_name  text not null check (char_length(first_name) between 1 and 60),
   last_name   text not null check (char_length(last_name) between 1 and 80),
-  side        text not null check (side in ('left', 'right', 'any')),
-  hand        text not null check (hand in ('left', 'right', 'both')),
+  side        text check (side in ('left', 'right', 'any')),
+  hand        text check (hand in ('left', 'right', 'both')),
   country     text not null check (country ~ '^[A-Z]{2}$'),
   region      text not null check (char_length(region) between 1 and 10),
   region_name text check (char_length(region_name) <= 120),
   photo       text check (photo is null or (char_length(photo) <= 200000 and photo like 'data:image/%')),
+  birthday    date check (birthday between '1930-01-01' and '2025-12-31'),
   updated_at  timestamptz not null default now()
 );
+-- Instalaciones antiguas: lado y mano pasan a ser opcionales y se añade el cumpleaños
+alter table public.players alter column side drop not null;
+alter table public.players alter column hand drop not null;
+alter table public.players add column if not exists birthday date check (birthday between '1930-01-01' and '2025-12-31');
 
 -- 1b. Datos de contacto (solo los ven ella misma, la dueña y las capitanas)
 create table if not exists public.player_contacts (
   id         uuid primary key references public.players (id) on delete cascade,
-  phone      text not null check (char_length(phone) between 6 and 25),
-  email      text not null check (char_length(email) between 3 and 120),
-  knltb      text not null check (knltb ~ '^[0-9]{6,10}$'),
+  phone      text check (char_length(phone) between 6 and 25),
+  email      text check (char_length(email) between 3 and 120),
+  knltb      text check (knltb ~ '^[0-9]{6,10}$'),
   updated_at timestamptz not null default now()
 );
+alter table public.player_contacts alter column phone drop not null;
+alter table public.player_contacts alter column email drop not null;
+alter table public.player_contacts alter column knltb drop not null;
 -- Instalaciones antiguas guardaban el contacto dentro de players: se mueve aquí.
 do $$
 begin
@@ -188,7 +196,31 @@ create policy "rounds_update" on public.rounds for update to authenticated
   using (private.has_role(array['owner', 'captain', 'manager']))
   with check (private.has_role(array['owner', 'captain', 'manager']));
 
--- 7. Permisos de la API ------------------------------------------------
+-- 7. Borrar la propia cuenta --------------------------------------------
+--    Cada jugadora puede borrar su cuenta (y con ella su perfil, contacto,
+--    rol y solicitud). La administradora no puede borrarse desde la web.
+create or replace function public.delete_my_account()
+returns void
+language plpgsql security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'not signed in';
+  end if;
+  if exists (select 1 from public.team_roles where user_id = auth.uid() and role = 'owner') then
+    raise exception 'the owner account cannot be deleted from the web';
+  end if;
+  delete from auth.users where id = auth.uid();
+end;
+$$;
+revoke all on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;
+
+-- 8. Permisos de la API ------------------------------------------------
 revoke all on public.players, public.player_contacts, public.team_roles, public.join_requests from anon;
 grant select on public.rounds to anon;
 grant select, insert, update, delete on public.players, public.player_contacts, public.team_roles, public.join_requests, public.rounds to authenticated;
+
+-- Que la API vea los cambios de columnas al momento
+notify pgrst, 'reload schema';
