@@ -33,7 +33,7 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 
 /* Cabecera */
 header { position: sticky; top: 0; z-index: 10; background: rgba(10,10,10,.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
-.bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 64px; }
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; }
 .brand { display: flex; align-items: center; color: var(--text); flex: none; }
 .brand svg { width: 124px; height: auto; display: block; }
 nav { display: flex; gap: 20px; flex-wrap: wrap; }
@@ -43,7 +43,13 @@ nav a:hover { color: var(--text); }
 .account { display: flex; gap: 8px; flex: none; }
 .acc-btn { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; color: var(--text); border: 1px solid var(--line); padding: 7px 12px; }
 .acc-btn.solid { border-color: var(--text); }
-.acc-btn:hover, .acc-btn[aria-current="page"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.acc-btn { cursor: pointer; background: none; }
+.acc-btn:hover, .acc-btn[aria-current="page"], .acc-btn[aria-expanded="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.account { position: relative; }
+.acc-menu { position: absolute; right: 0; top: calc(100% + 8px); min-width: 270px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(0,0,0,.5); display: grid; padding: 6px; z-index: 20; }
+.acc-menu a, .acc-menu button { display: block; text-align: left; background: none; border: 0; color: var(--text); text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; padding: 11px 12px; cursor: pointer; }
+.acc-menu a:hover, .acc-menu button:hover, .acc-menu a:focus-visible, .acc-menu button:focus-visible { background: var(--text); color: var(--bg); outline: none; }
+.acc-menu button { border-top: 1px solid var(--line); color: var(--muted); }
 .profile-view { border-bottom: 0; min-height: 70vh; }
 .stats { display: flex; gap: 28px; flex-wrap: wrap; margin: 22px 0 0; }
 .stat b { display: block; font-family: var(--display); font-weight: 800; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -65,7 +71,7 @@ nav a:hover { color: var(--text); }
 /* Tipografía común */
 .kicker, .label { font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 .kicker { margin: 0 0 12px; font-weight: 600; font-size: 14px; }
-h1 { font-family: var(--display); font-weight: 800; text-transform: uppercase; font-size: clamp(56px, 10vw, 112px); line-height: .88; margin: 0; text-wrap: balance; }
+h1 { font-family: var(--display); font-weight: 800; text-transform: uppercase; font-size: clamp(40px, 11.5vw, 112px); line-height: .88; overflow-wrap: anywhere; margin: 0; text-wrap: balance; }
 h1 .num { -webkit-text-stroke: 2px var(--text); color: transparent; }
 h2 { font-family: var(--display); font-weight: 800; text-transform: uppercase; font-size: clamp(34px, 5vw, 48px); line-height: 1; margin: 0; text-wrap: balance; }
 h3 { font-family: var(--display); font-weight: 700; text-transform: uppercase; font-size: 24px; line-height: 1.1; margin: 0; }
@@ -233,7 +239,8 @@ td.team { font-family: var(--display); font-weight: 600; font-size: 18px; text-t
 tr.us td, tr.us td.pos { background: var(--text); color: var(--bg); }
 
 /* Jugadoras */
-.players { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.players { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 16px; }
+.hero-grid > *, .me-grid > *, .r-body > * { min-width: 0; }
 .player { border: 1px solid var(--line); background: var(--surface); display: grid; align-content: start; }
 .player .photo { border: 0; }
 .p-body { padding: 16px 18px 18px; display: grid; gap: 12px; }
@@ -259,7 +266,12 @@ footer { padding: 36px 0 44px; }
 .credits a { color: #8a8a8a; }
 
 @media (max-width: 900px) {
-  .bar nav { display: none; }
+  /* Menú de secciones en una segunda fila que se desliza */
+  .bar { flex-wrap: wrap; row-gap: 0; padding-top: 8px; }
+  .bar nav, .bar nav[hidden] { display: flex !important; order: 3; width: 100%; flex: none; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; gap: 22px; padding: 10px 0 12px; scrollbar-width: none; }
+  .bar nav::-webkit-scrollbar { display: none; }
+  section { scroll-margin-top: 112px; }
+  .hero { padding: 44px 0 40px; }
   .admin-round .admin-dd { grid-template-columns: 44px 1fr 1fr; }
   .admin-round .admin-dd input { grid-column: 2; }
   .admin-round .admin-dd .dd-out { grid-column: 3; }
@@ -272,9 +284,30 @@ footer { padding: 36px 0 44px; }
   .caret { display: none; }
 }
 @media (max-width: 560px) {
+  .acc-menu { position: fixed; left: 16px; right: 16px; top: 52px; min-width: 0; }
+  section { padding: 40px 0; }
+  .sec-head { margin-bottom: 18px; }
+  /* Plantilla: dos tarjetas por fila */
+  .players { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .p-body { padding: 10px 12px 14px; gap: 8px; }
+  .p-name { font-size: 17px; }
+  .player .photo .ini { font-size: 40px; }
+  .kit-cap { padding: 6px 10px 0; font-size: 11px; }
+  .p-chips .chip { font-size: 10px; padding: 3px 6px; }
+  .p-contact { font-size: 12px; }
+  /* Clasificación sin desplazamiento lateral */
+  table { min-width: 0; }
+  th, td { padding: 10px 6px; }
+  td.n, th.n { width: 34px; }
+  td.team { font-size: 15px; }
+  .cd-u b { font-size: 32px; }
+  .vs .team { font-size: 24px; }
+  .mm { grid-template-columns: 1fr; }
+  .mm > .btn, .mm > div[style*="justify-items:end"] { justify-self: start; justify-items: start !important; }
+  .stats { gap: 20px; }
   .bar { gap: 8px; }
   .acc-btn { padding: 6px 8px; font-size: 12px; letter-spacing: .06em; }
-  .acc-btn svg + span { display: none; }
+  .acc-btn svg + span, .acc-btn .chev { display: none; }
   .acc-btn { padding: 8px; }
   .langs button { padding: 6px 5px; font-size: 12px; }
   .brand svg { width: 86px; }
@@ -311,8 +344,13 @@ footer { padding: 36px 0 44px; }
       <a href="#club" data-i18n="nav.club"></a>
     </nav>
     <div class="account">
-      <a class="acc-btn" href="#alineaciones" id="nav-lineups" hidden><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="12" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M1.5 6.5h13M5 1v3M11 1v3" stroke="currentColor" stroke-width="1.6"/></svg><span data-i18n="nav.lineups"></span></a>
-      <a class="acc-btn solid" href="#perfil" id="nav-profile"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2 15c.6-3.2 3-5 6-5s5.4 1.8 6 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span data-i18n="nav.me"></span></a>
+      <button type="button" class="acc-btn solid" id="nav-profile" aria-haspopup="true" aria-expanded="false" aria-controls="acc-menu"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2 15c.6-3.2 3-5 6-5s5.4 1.8 6 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span data-i18n="nav.me"></span><svg class="chev" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+      <div class="acc-menu" id="acc-menu" role="menu" hidden>
+        <a role="menuitem" href="#perfil" data-i18n="menu.profile"></a>
+        <a role="menuitem" href="#mis-partidos" data-i18n="menu.matches"></a>
+        <a role="menuitem" href="#alineaciones" data-i18n="menu.lineups" id="menu-lineups" hidden></a>
+        <button type="button" role="menuitem" id="menu-logout" data-i18n="logout" hidden></button>
+      </div>
     </div>
     <div class="langs" role="group" aria-label="Idioma / Language / Dil / Taal">
       <button type="button" data-lang="es">ES</button>
@@ -457,7 +495,7 @@ var I18N = {
     "today": "Hoy", "tomorrow": "Mañana", "inDays": "En {n} días",
     "round": "Jornada", "home": "En casa", "away": "Fuera", "tbc": "Por confirmar", "hour": "h",
     "route": "Cómo llegar", "venue": "Sede",
-    "su.tabLogin": "Entrar", "su.tabSignup": "Crear cuenta", "su.first": "Nombre", "su.last": "Apellidos", "su.submit": "Crear cuenta", "su.sending": "Creando la cuenta…", "su.exists": "Ya hay una cuenta con ese email. Entra con tu contraseña.", "su.errEmail": "Escribe un email válido.", "su.errName": "Escribe tu nombre y tus apellidos.", "su.confirm": "Te hemos enviado un email para confirmar la cuenta. Ábrelo y después entra aquí.", "su.intro": "Crea tu cuenta con tu email y una contraseña. Lucía o la capitana la aprobarán y entonces podrás rellenar tu perfil.", "pend.t": "Tu cuenta está pendiente de aprobación", "pend.p": "Lucía o la capitana tienen que aprobarla. En cuanto lo hagan, al volver a esta página podrás rellenar tu perfil y ver tus partidos.", "pend.send": "Enviar solicitud", "pend.sent": "Solicitud enviada", "pend.check": "Comprobar de nuevo", "req.title": "Solicitudes de acceso", "req.none": "No hay solicitudes pendientes.", "req.approve": "Aprobar", "req.reject": "Rechazar", "req.hint": "Aprueba solo a jugadoras del equipo: al aprobarlas verán los datos de contacto de todas.", "role.owner": "Administradora", "role.captain": "Capitana", "role.manager": "Manager", "role.player": "Jugadora", "adm.roleOf": "Rol de", "f.optional": "opcional", "f.birthday": "Cumpleaños", "f.errBirthday": "Escribe una fecha válida.", "cal.google": "Google Calendar", "cal.apple": "Apple / Outlook (.ics)", "cal.all": "Añadir todos al calendario (.ics)", "cal.hint": "Añade tus partidos a tu calendario. En iPhone y Mac, el archivo .ics se abre directamente en Calendario.", "ev.title": "Pádel {slot} · XNRGY vs {rival}", "ev.tbc": "Hora por confirmar.", "del.btn": "Borrar mi cuenta", "del.t": "¿Seguro que quieres borrar tu cuenta?", "del.p": "Se borrarán tu perfil, tu foto y tus datos de contacto, y no podrás volver a entrar con esta cuenta. No se puede deshacer.", "del.yes": "Sí, borrar mi cuenta", "del.done": "Tu cuenta se ha borrado.", "del.owner": "Como administradora, tu cuenta no se puede borrar desde aquí.", "nav.lineups": "Alineaciones", "adm.plan": "Planificar alineaciones", "adm.back": "Volver a mi perfil", "cd.days": "días", "cd.hours": "horas", "cd.min": "min", "cd.sec": "seg", "cd.live": "¡Se está jugando!", "cd.today": "¡Hoy se juega!", "cd.tbc": "Hora por confirmar: cuenta hasta el día del partido.", "login.email": "Email", "login.password": "Contraseña", "login.submit": "Entrar", "login.forgot": "¿Has olvidado tu contraseña? Pídele a Lucía que te ponga una provisional.", "login.forgotHint": "Escribe tu email arriba y pulsa aquí: te enviaremos un enlace para crear una nueva.", "login.sending": "Entrando…", "login.err": "Email o contraseña incorrectos.", "login.errNet": "No se ha podido conectar. Comprueba tu conexión e inténtalo de nuevo.", "login.needEmail": "Escribe primero tu email.", "login.resetSent": "Si ese email tiene cuenta, te hemos enviado un enlace para crear una contraseña nueva. Mira también en spam.", "pw.title": "Cambia tu contraseña", "pw.p": "Elige la contraseña con la que entrarás a partir de ahora.", "pw.new": "Contraseña nueva", "pw.repeat": "Repite la contraseña", "pw.save": "Guardar contraseña", "pw.errLen": "Usa al menos 8 caracteres.", "pw.errMatch": "Las contraseñas no coinciden.", "pw.saved": "Contraseña guardada.", "logout": "Cerrar sesión", "cfg.missing": "La web todavía no está conectada a la base de datos. Falta rellenar config.js.", "pl.locked": "Inicia sesión para ver la plantilla completa.", "cal.locked": "Inicia sesión para ver la alineación.", "pw.change": "Cambiar contraseña", "me.title": "Mi perfil", "me.loading": "Cargando tus datos…",
+    "su.tabLogin": "Entrar", "su.tabSignup": "Crear cuenta", "su.first": "Nombre", "su.last": "Apellidos", "su.submit": "Crear cuenta", "su.sending": "Creando la cuenta…", "su.exists": "Ya hay una cuenta con ese email. Entra con tu contraseña.", "su.errEmail": "Escribe un email válido.", "su.errName": "Escribe tu nombre y tus apellidos.", "su.confirm": "Te hemos enviado un email para confirmar la cuenta. Ábrelo y después entra aquí.", "su.intro": "Crea tu cuenta con tu email y una contraseña. Lucía o la capitana la aprobarán y entonces podrás rellenar tu perfil.", "pend.t": "Tu cuenta está pendiente de aprobación", "pend.p": "Lucía o la capitana tienen que aprobarla. En cuanto lo hagan, al volver a esta página podrás rellenar tu perfil y ver tus partidos.", "pend.send": "Enviar solicitud", "pend.sent": "Solicitud enviada", "pend.check": "Comprobar de nuevo", "req.title": "Solicitudes de acceso", "req.none": "No hay solicitudes pendientes.", "req.approve": "Aprobar", "req.reject": "Rechazar", "req.hint": "Aprueba solo a jugadoras del equipo: al aprobarlas verán los datos de contacto de todas.", "role.owner": "Administradora", "role.captain": "Capitana", "role.manager": "Manager", "role.player": "Jugadora", "adm.roleOf": "Rol de", "f.optional": "opcional", "f.birthday": "Cumpleaños", "f.errBirthday": "Escribe una fecha válida.", "cal.google": "Google Calendar", "cal.apple": "Apple / Outlook (.ics)", "cal.all": "Añadir todos al calendario (.ics)", "cal.hint": "Añade tus partidos a tu calendario. En iPhone y Mac, el archivo .ics se abre directamente en Calendario.", "ev.title": "Pádel {slot} · XNRGY vs {rival}", "ev.tbc": "Hora por confirmar.", "del.btn": "Borrar mi cuenta", "del.t": "¿Seguro que quieres borrar tu cuenta?", "del.p": "Se borrarán tu perfil, tu foto y tus datos de contacto, y no podrás volver a entrar con esta cuenta. No se puede deshacer.", "del.yes": "Sí, borrar mi cuenta", "del.done": "Tu cuenta se ha borrado.", "del.owner": "Como administradora, tu cuenta no se puede borrar desde aquí.", "nav.lineups": "Alineaciones", "adm.plan": "Planificar alineaciones", "adm.back": "Volver a mi perfil", "cd.days": "días", "cd.hours": "horas", "cd.min": "min", "cd.sec": "seg", "cd.live": "¡Se está jugando!", "cd.today": "¡Hoy se juega!", "cd.tbc": "Hora por confirmar: cuenta hasta el día del partido.", "menu.profile": "Ver mi perfil", "menu.matches": "Ver mis próximos partidos", "menu.lineups": "Crear alineaciones", "login.email": "Email", "login.password": "Contraseña", "login.submit": "Entrar", "login.forgot": "¿Has olvidado tu contraseña? Pídele a Lucía que te ponga una provisional.", "login.forgotHint": "Escribe tu email arriba y pulsa aquí: te enviaremos un enlace para crear una nueva.", "login.sending": "Entrando…", "login.err": "Email o contraseña incorrectos.", "login.errNet": "No se ha podido conectar. Comprueba tu conexión e inténtalo de nuevo.", "login.needEmail": "Escribe primero tu email.", "login.resetSent": "Si ese email tiene cuenta, te hemos enviado un enlace para crear una contraseña nueva. Mira también en spam.", "pw.title": "Cambia tu contraseña", "pw.p": "Elige la contraseña con la que entrarás a partir de ahora.", "pw.new": "Contraseña nueva", "pw.repeat": "Repite la contraseña", "pw.save": "Guardar contraseña", "pw.errLen": "Usa al menos 8 caracteres.", "pw.errMatch": "Las contraseñas no coinciden.", "pw.saved": "Contraseña guardada.", "logout": "Cerrar sesión", "cfg.missing": "La web todavía no está conectada a la base de datos. Falta rellenar config.js.", "pl.locked": "Inicia sesión para ver la plantilla completa.", "cal.locked": "Inicia sesión para ver la alineación.", "pw.change": "Cambiar contraseña", "me.title": "Mi perfil", "me.loading": "Cargando tus datos…",
     "me.slow": "Los datos tardan en llegar. Comprueba tu conexión; la página seguirá intentándolo.",
     "me.noaccess.t": "Entra para ver tu perfil y tus partidos",
     "me.noaccess.p": "Entra con tu email y tu contraseña. Si es tu primera vez, crea tu cuenta.",
@@ -501,7 +539,7 @@ var I18N = {
     "today": "Today", "tomorrow": "Tomorrow", "inDays": "In {n} days",
     "round": "Round", "home": "Home", "away": "Away", "tbc": "To be confirmed", "hour": "",
     "route": "Directions", "venue": "Venue",
-    "su.tabLogin": "Sign in", "su.tabSignup": "Create account", "su.first": "First name", "su.last": "Last name", "su.submit": "Create account", "su.sending": "Creating your account…", "su.exists": "There is already an account with that email. Sign in with your password.", "su.errEmail": "Enter a valid email.", "su.errName": "Enter your first and last name.", "su.confirm": "We have sent you an email to confirm your account. Open it and then sign in here.", "su.intro": "Create your account with your email and a password. Lucía or the captain will approve it and then you can fill in your profile.", "pend.t": "Your account is waiting for approval", "pend.p": "Lucía or the captain needs to approve it. Once they do, come back to this page to fill in your profile and see your matches.", "pend.send": "Send request", "pend.sent": "Request sent", "pend.check": "Check again", "req.title": "Access requests", "req.none": "No pending requests.", "req.approve": "Approve", "req.reject": "Reject", "req.hint": "Only approve team players: once approved they can see everyone's contact details.", "role.owner": "Admin", "role.captain": "Captain", "role.manager": "Manager", "role.player": "Player", "adm.roleOf": "Role of", "f.optional": "optional", "f.birthday": "Birthday", "f.errBirthday": "Enter a valid date.", "cal.google": "Google Calendar", "cal.apple": "Apple / Outlook (.ics)", "cal.all": "Add all to calendar (.ics)", "cal.hint": "Add your matches to your calendar. On iPhone and Mac the .ics file opens straight in Calendar.", "ev.title": "Padel {slot} · XNRGY vs {rival}", "ev.tbc": "Time to be confirmed.", "del.btn": "Delete my account", "del.t": "Are you sure you want to delete your account?", "del.p": "Your profile, photo and contact details will be deleted and you will not be able to sign in with this account again. This cannot be undone.", "del.yes": "Yes, delete my account", "del.done": "Your account has been deleted.", "del.owner": "As the admin, your account cannot be deleted from here.", "nav.lineups": "Line-ups", "adm.plan": "Plan line-ups", "adm.back": "Back to my profile", "cd.days": "days", "cd.hours": "hours", "cd.min": "min", "cd.sec": "sec", "cd.live": "Playing now!", "cd.today": "Match day!", "cd.tbc": "Time to be confirmed: counting down to match day.", "login.email": "Email", "login.password": "Password", "login.submit": "Sign in", "login.forgot": "Forgot your password? Ask Lucía to set a temporary one for you.", "login.forgotHint": "Type your email above and press here: we will send you a link to create a new one.", "login.sending": "Signing in…", "login.err": "Wrong email or password.", "login.errNet": "Could not connect. Check your connection and try again.", "login.needEmail": "Type your email first.", "login.resetSent": "If that email has an account, we have sent you a link to create a new password. Check your spam folder too.", "pw.title": "Change your password", "pw.p": "Choose the password you will use to sign in from now on.", "pw.new": "New password", "pw.repeat": "Repeat password", "pw.save": "Save password", "pw.errLen": "Use at least 8 characters.", "pw.errMatch": "The passwords do not match.", "pw.saved": "Password saved.", "logout": "Sign out", "cfg.missing": "The site is not connected to the database yet. config.js still needs to be filled in.", "pl.locked": "Sign in to see the full squad.", "cal.locked": "Sign in to see the line-up.", "pw.change": "Change password", "me.title": "My profile", "me.loading": "Loading your details…",
+    "su.tabLogin": "Sign in", "su.tabSignup": "Create account", "su.first": "First name", "su.last": "Last name", "su.submit": "Create account", "su.sending": "Creating your account…", "su.exists": "There is already an account with that email. Sign in with your password.", "su.errEmail": "Enter a valid email.", "su.errName": "Enter your first and last name.", "su.confirm": "We have sent you an email to confirm your account. Open it and then sign in here.", "su.intro": "Create your account with your email and a password. Lucía or the captain will approve it and then you can fill in your profile.", "pend.t": "Your account is waiting for approval", "pend.p": "Lucía or the captain needs to approve it. Once they do, come back to this page to fill in your profile and see your matches.", "pend.send": "Send request", "pend.sent": "Request sent", "pend.check": "Check again", "req.title": "Access requests", "req.none": "No pending requests.", "req.approve": "Approve", "req.reject": "Reject", "req.hint": "Only approve team players: once approved they can see everyone's contact details.", "role.owner": "Admin", "role.captain": "Captain", "role.manager": "Manager", "role.player": "Player", "adm.roleOf": "Role of", "f.optional": "optional", "f.birthday": "Birthday", "f.errBirthday": "Enter a valid date.", "cal.google": "Google Calendar", "cal.apple": "Apple / Outlook (.ics)", "cal.all": "Add all to calendar (.ics)", "cal.hint": "Add your matches to your calendar. On iPhone and Mac the .ics file opens straight in Calendar.", "ev.title": "Padel {slot} · XNRGY vs {rival}", "ev.tbc": "Time to be confirmed.", "del.btn": "Delete my account", "del.t": "Are you sure you want to delete your account?", "del.p": "Your profile, photo and contact details will be deleted and you will not be able to sign in with this account again. This cannot be undone.", "del.yes": "Yes, delete my account", "del.done": "Your account has been deleted.", "del.owner": "As the admin, your account cannot be deleted from here.", "nav.lineups": "Line-ups", "adm.plan": "Plan line-ups", "adm.back": "Back to my profile", "cd.days": "days", "cd.hours": "hours", "cd.min": "min", "cd.sec": "sec", "cd.live": "Playing now!", "cd.today": "Match day!", "cd.tbc": "Time to be confirmed: counting down to match day.", "menu.profile": "View my profile", "menu.matches": "View my upcoming matches", "menu.lineups": "Create line-ups", "login.email": "Email", "login.password": "Password", "login.submit": "Sign in", "login.forgot": "Forgot your password? Ask Lucía to set a temporary one for you.", "login.forgotHint": "Type your email above and press here: we will send you a link to create a new one.", "login.sending": "Signing in…", "login.err": "Wrong email or password.", "login.errNet": "Could not connect. Check your connection and try again.", "login.needEmail": "Type your email first.", "login.resetSent": "If that email has an account, we have sent you a link to create a new password. Check your spam folder too.", "pw.title": "Change your password", "pw.p": "Choose the password you will use to sign in from now on.", "pw.new": "New password", "pw.repeat": "Repeat password", "pw.save": "Save password", "pw.errLen": "Use at least 8 characters.", "pw.errMatch": "The passwords do not match.", "pw.saved": "Password saved.", "logout": "Sign out", "cfg.missing": "The site is not connected to the database yet. config.js still needs to be filled in.", "pl.locked": "Sign in to see the full squad.", "cal.locked": "Sign in to see the line-up.", "pw.change": "Change password", "me.title": "My profile", "me.loading": "Loading your details…",
     "me.slow": "Your details are taking a while. Check your connection; the page will keep trying.",
     "me.noaccess.t": "Sign in to see your profile and your matches",
     "me.noaccess.p": "Sign in with your email and password. First time here? Create your account.",
@@ -545,7 +583,7 @@ var I18N = {
     "today": "Bugün", "tomorrow": "Yarın", "inDays": "{n} gün sonra",
     "round": "Hafta", "home": "İç saha", "away": "Deplasman", "tbc": "Belli değil", "hour": "",
     "route": "Yol tarifi", "venue": "Saha",
-    "su.tabLogin": "Giriş yap", "su.tabSignup": "Hesap oluştur", "su.first": "Ad", "su.last": "Soyad", "su.submit": "Hesap oluştur", "su.sending": "Hesap oluşturuluyor…", "su.exists": "Bu e-posta ile zaten bir hesap var. Şifrenle giriş yap.", "su.errEmail": "Geçerli bir e-posta yaz.", "su.errName": "Adını ve soyadını yaz.", "su.confirm": "Hesabını onaylaman için bir e-posta gönderdik. Aç ve sonra buradan giriş yap.", "su.intro": "E-postan ve bir şifreyle hesabını oluştur. Lucía veya kaptan onayladığında profilini doldurabileceksin.", "pend.t": "Hesabın onay bekliyor", "pend.p": "Lucía veya kaptanın hesabını onaylaması gerekiyor. Onaylandığında bu sayfaya dönüp profilini doldurabilir ve maçlarını görebilirsin.", "pend.send": "İstek gönder", "pend.sent": "İstek gönderildi", "pend.check": "Tekrar kontrol et", "req.title": "Erişim istekleri", "req.none": "Bekleyen istek yok.", "req.approve": "Onayla", "req.reject": "Reddet", "req.hint": "Sadece takım oyuncularını onayla: onaylananlar herkesin iletişim bilgilerini görebilir.", "role.owner": "Yönetici", "role.captain": "Kaptan", "role.manager": "Menajer", "role.player": "Oyuncu", "adm.roleOf": "Rolü:", "f.optional": "isteğe bağlı", "f.birthday": "Doğum günü", "f.errBirthday": "Geçerli bir tarih yaz.", "cal.google": "Google Takvim", "cal.apple": "Apple / Outlook (.ics)", "cal.all": "Hepsini takvime ekle (.ics)", "cal.hint": "Maçlarını takvimine ekle. iPhone ve Mac'te .ics dosyası doğrudan Takvim'de açılır.", "ev.title": "Padel {slot} · XNRGY - {rival}", "ev.tbc": "Saat henüz belli değil.", "del.btn": "Hesabımı sil", "del.t": "Hesabını silmek istediğinden emin misin?", "del.p": "Profilin, fotoğrafın ve iletişim bilgilerin silinecek ve bu hesapla bir daha giriş yapamayacaksın. Geri alınamaz.", "del.yes": "Evet, hesabımı sil", "del.done": "Hesabın silindi.", "del.owner": "Yönetici olarak hesabın buradan silinemez.", "nav.lineups": "Kadrolar", "adm.plan": "Kadroları planla", "adm.back": "Profilime dön", "cd.days": "gün", "cd.hours": "saat", "cd.min": "dk", "cd.sec": "sn", "cd.live": "Maç oynanıyor!", "cd.today": "Maç günü!", "cd.tbc": "Saat belli değil: maç gününe kadar sayıyor.", "login.email": "E-posta", "login.password": "Şifre", "login.submit": "Giriş yap", "login.forgot": "Şifreni mi unuttun? Lucía'dan sana geçici bir şifre vermesini iste.", "login.forgotHint": "Yukarıya e-postanı yaz ve buraya bas: yeni şifre oluşturman için bir bağlantı göndereceğiz.", "login.sending": "Giriş yapılıyor…", "login.err": "E-posta veya şifre yanlış.", "login.errNet": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.", "login.needEmail": "Önce e-postanı yaz.", "login.resetSent": "Bu e-postanın hesabı varsa yeni şifre oluşturman için bir bağlantı gönderdik. Spam klasörüne de bak.", "pw.title": "Şifreni değiştir", "pw.p": "Bundan sonra giriş yaparken kullanacağın şifreyi seç.", "pw.new": "Yeni şifre", "pw.repeat": "Şifreyi tekrar yaz", "pw.save": "Şifreyi kaydet", "pw.errLen": "En az 8 karakter kullan.", "pw.errMatch": "Şifreler eşleşmiyor.", "pw.saved": "Şifre kaydedildi.", "logout": "Çıkış yap", "cfg.missing": "Site henüz veritabanına bağlı değil. config.js dosyasının doldurulması gerekiyor.", "pl.locked": "Kadronun tamamını görmek için giriş yap.", "cal.locked": "Kadroyu görmek için giriş yap.", "pw.change": "Şifreyi değiştir", "me.title": "Profilim", "me.loading": "Bilgilerin yükleniyor…",
+    "su.tabLogin": "Giriş yap", "su.tabSignup": "Hesap oluştur", "su.first": "Ad", "su.last": "Soyad", "su.submit": "Hesap oluştur", "su.sending": "Hesap oluşturuluyor…", "su.exists": "Bu e-posta ile zaten bir hesap var. Şifrenle giriş yap.", "su.errEmail": "Geçerli bir e-posta yaz.", "su.errName": "Adını ve soyadını yaz.", "su.confirm": "Hesabını onaylaman için bir e-posta gönderdik. Aç ve sonra buradan giriş yap.", "su.intro": "E-postan ve bir şifreyle hesabını oluştur. Lucía veya kaptan onayladığında profilini doldurabileceksin.", "pend.t": "Hesabın onay bekliyor", "pend.p": "Lucía veya kaptanın hesabını onaylaması gerekiyor. Onaylandığında bu sayfaya dönüp profilini doldurabilir ve maçlarını görebilirsin.", "pend.send": "İstek gönder", "pend.sent": "İstek gönderildi", "pend.check": "Tekrar kontrol et", "req.title": "Erişim istekleri", "req.none": "Bekleyen istek yok.", "req.approve": "Onayla", "req.reject": "Reddet", "req.hint": "Sadece takım oyuncularını onayla: onaylananlar herkesin iletişim bilgilerini görebilir.", "role.owner": "Yönetici", "role.captain": "Kaptan", "role.manager": "Menajer", "role.player": "Oyuncu", "adm.roleOf": "Rolü:", "f.optional": "isteğe bağlı", "f.birthday": "Doğum günü", "f.errBirthday": "Geçerli bir tarih yaz.", "cal.google": "Google Takvim", "cal.apple": "Apple / Outlook (.ics)", "cal.all": "Hepsini takvime ekle (.ics)", "cal.hint": "Maçlarını takvimine ekle. iPhone ve Mac'te .ics dosyası doğrudan Takvim'de açılır.", "ev.title": "Padel {slot} · XNRGY - {rival}", "ev.tbc": "Saat henüz belli değil.", "del.btn": "Hesabımı sil", "del.t": "Hesabını silmek istediğinden emin misin?", "del.p": "Profilin, fotoğrafın ve iletişim bilgilerin silinecek ve bu hesapla bir daha giriş yapamayacaksın. Geri alınamaz.", "del.yes": "Evet, hesabımı sil", "del.done": "Hesabın silindi.", "del.owner": "Yönetici olarak hesabın buradan silinemez.", "nav.lineups": "Kadrolar", "adm.plan": "Kadroları planla", "adm.back": "Profilime dön", "cd.days": "gün", "cd.hours": "saat", "cd.min": "dk", "cd.sec": "sn", "cd.live": "Maç oynanıyor!", "cd.today": "Maç günü!", "cd.tbc": "Saat belli değil: maç gününe kadar sayıyor.", "menu.profile": "Profilimi gör", "menu.matches": "Yaklaşan maçlarımı gör", "menu.lineups": "Kadro oluştur", "login.email": "E-posta", "login.password": "Şifre", "login.submit": "Giriş yap", "login.forgot": "Şifreni mi unuttun? Lucía'dan sana geçici bir şifre vermesini iste.", "login.forgotHint": "Yukarıya e-postanı yaz ve buraya bas: yeni şifre oluşturman için bir bağlantı göndereceğiz.", "login.sending": "Giriş yapılıyor…", "login.err": "E-posta veya şifre yanlış.", "login.errNet": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.", "login.needEmail": "Önce e-postanı yaz.", "login.resetSent": "Bu e-postanın hesabı varsa yeni şifre oluşturman için bir bağlantı gönderdik. Spam klasörüne de bak.", "pw.title": "Şifreni değiştir", "pw.p": "Bundan sonra giriş yaparken kullanacağın şifreyi seç.", "pw.new": "Yeni şifre", "pw.repeat": "Şifreyi tekrar yaz", "pw.save": "Şifreyi kaydet", "pw.errLen": "En az 8 karakter kullan.", "pw.errMatch": "Şifreler eşleşmiyor.", "pw.saved": "Şifre kaydedildi.", "logout": "Çıkış yap", "cfg.missing": "Site henüz veritabanına bağlı değil. config.js dosyasının doldurulması gerekiyor.", "pl.locked": "Kadronun tamamını görmek için giriş yap.", "cal.locked": "Kadroyu görmek için giriş yap.", "pw.change": "Şifreyi değiştir", "me.title": "Profilim", "me.loading": "Bilgilerin yükleniyor…",
     "me.slow": "Bilgiler gecikiyor. Bağlantını kontrol et; sayfa denemeye devam edecek.",
     "me.noaccess.t": "Profilini ve maçlarını görmek için giriş yap",
     "me.noaccess.p": "E-postan ve şifrenle giriş yap. İlk kez geliyorsan hesabını oluştur.",
@@ -589,7 +627,7 @@ var I18N = {
     "today": "Vandaag", "tomorrow": "Morgen", "inDays": "Over {n} dagen",
     "round": "Ronde", "home": "Thuis", "away": "Uit", "tbc": "Nog niet bekend", "hour": "uur",
     "route": "Route", "venue": "Speellocatie",
-    "su.tabLogin": "Inloggen", "su.tabSignup": "Account aanmaken", "su.first": "Voornaam", "su.last": "Achternaam", "su.submit": "Account aanmaken", "su.sending": "Account wordt aangemaakt…", "su.exists": "Er bestaat al een account met dit e-mailadres. Log in met je wachtwoord.", "su.errEmail": "Vul een geldig e-mailadres in.", "su.errName": "Vul je voor- en achternaam in.", "su.confirm": "We hebben je een e-mail gestuurd om je account te bevestigen. Open die en log daarna hier in.", "su.intro": "Maak je account aan met je e-mailadres en een wachtwoord. Lucía of de aanvoerder keurt het goed en daarna kun je je profiel invullen.", "pend.t": "Je account wacht op goedkeuring", "pend.p": "Lucía of de aanvoerder moet je account goedkeuren. Daarna kun je op deze pagina je profiel invullen en je wedstrijden zien.", "pend.send": "Verzoek versturen", "pend.sent": "Verzoek verstuurd", "pend.check": "Opnieuw controleren", "req.title": "Toegangsverzoeken", "req.none": "Geen openstaande verzoeken.", "req.approve": "Goedkeuren", "req.reject": "Afwijzen", "req.hint": "Keur alleen speelsters van het team goed: na goedkeuring zien ze de contactgegevens van iedereen.", "role.owner": "Beheerder", "role.captain": "Aanvoerder", "role.manager": "Manager", "role.player": "Speelster", "adm.roleOf": "Rol van", "f.optional": "optioneel", "f.birthday": "Verjaardag", "f.errBirthday": "Vul een geldige datum in.", "cal.google": "Google Agenda", "cal.apple": "Apple / Outlook (.ics)", "cal.all": "Alles toevoegen aan agenda (.ics)", "cal.hint": "Zet je wedstrijden in je agenda. Op iPhone en Mac opent het .ics-bestand direct in Agenda.", "ev.title": "Padel {slot} · XNRGY - {rival}", "ev.tbc": "Tijd nog niet bekend.", "del.btn": "Mijn account verwijderen", "del.t": "Weet je zeker dat je je account wilt verwijderen?", "del.p": "Je profiel, foto en contactgegevens worden verwijderd en je kunt niet meer inloggen met dit account. Dit kan niet ongedaan worden gemaakt.", "del.yes": "Ja, verwijder mijn account", "del.done": "Je account is verwijderd.", "del.owner": "Als beheerder kun je je account hier niet verwijderen.", "nav.lineups": "Opstellingen", "adm.plan": "Opstellingen plannen", "adm.back": "Terug naar mijn profiel", "cd.days": "dagen", "cd.hours": "uur", "cd.min": "min", "cd.sec": "sec", "cd.live": "Nu bezig!", "cd.today": "Wedstrijddag!", "cd.tbc": "Tijd nog niet bekend: telt af tot de wedstrijddag.", "login.email": "E-mail", "login.password": "Wachtwoord", "login.submit": "Inloggen", "login.forgot": "Wachtwoord vergeten? Vraag Lucía om een tijdelijk wachtwoord.", "login.forgotHint": "Vul hierboven je e-mailadres in en klik hier: we sturen je een link om een nieuw wachtwoord te maken.", "login.sending": "Bezig met inloggen…", "login.err": "Onjuist e-mailadres of wachtwoord.", "login.errNet": "Geen verbinding. Controleer je internet en probeer het opnieuw.", "login.needEmail": "Vul eerst je e-mailadres in.", "login.resetSent": "Als dit e-mailadres een account heeft, hebben we je een link gestuurd om een nieuw wachtwoord te maken. Kijk ook in je spam.", "pw.title": "Wijzig je wachtwoord", "pw.p": "Kies het wachtwoord waarmee je voortaan inlogt.", "pw.new": "Nieuw wachtwoord", "pw.repeat": "Herhaal wachtwoord", "pw.save": "Wachtwoord opslaan", "pw.errLen": "Gebruik minstens 8 tekens.", "pw.errMatch": "De wachtwoorden komen niet overeen.", "pw.saved": "Wachtwoord opgeslagen.", "logout": "Uitloggen", "cfg.missing": "De site is nog niet verbonden met de database. config.js moet nog worden ingevuld.", "pl.locked": "Log in om de volledige selectie te zien.", "cal.locked": "Log in om de opstelling te zien.", "pw.change": "Wachtwoord wijzigen", "me.title": "Mijn profiel", "me.loading": "Je gegevens worden geladen…",
+    "su.tabLogin": "Inloggen", "su.tabSignup": "Account aanmaken", "su.first": "Voornaam", "su.last": "Achternaam", "su.submit": "Account aanmaken", "su.sending": "Account wordt aangemaakt…", "su.exists": "Er bestaat al een account met dit e-mailadres. Log in met je wachtwoord.", "su.errEmail": "Vul een geldig e-mailadres in.", "su.errName": "Vul je voor- en achternaam in.", "su.confirm": "We hebben je een e-mail gestuurd om je account te bevestigen. Open die en log daarna hier in.", "su.intro": "Maak je account aan met je e-mailadres en een wachtwoord. Lucía of de aanvoerder keurt het goed en daarna kun je je profiel invullen.", "pend.t": "Je account wacht op goedkeuring", "pend.p": "Lucía of de aanvoerder moet je account goedkeuren. Daarna kun je op deze pagina je profiel invullen en je wedstrijden zien.", "pend.send": "Verzoek versturen", "pend.sent": "Verzoek verstuurd", "pend.check": "Opnieuw controleren", "req.title": "Toegangsverzoeken", "req.none": "Geen openstaande verzoeken.", "req.approve": "Goedkeuren", "req.reject": "Afwijzen", "req.hint": "Keur alleen speelsters van het team goed: na goedkeuring zien ze de contactgegevens van iedereen.", "role.owner": "Beheerder", "role.captain": "Aanvoerder", "role.manager": "Manager", "role.player": "Speelster", "adm.roleOf": "Rol van", "f.optional": "optioneel", "f.birthday": "Verjaardag", "f.errBirthday": "Vul een geldige datum in.", "cal.google": "Google Agenda", "cal.apple": "Apple / Outlook (.ics)", "cal.all": "Alles toevoegen aan agenda (.ics)", "cal.hint": "Zet je wedstrijden in je agenda. Op iPhone en Mac opent het .ics-bestand direct in Agenda.", "ev.title": "Padel {slot} · XNRGY - {rival}", "ev.tbc": "Tijd nog niet bekend.", "del.btn": "Mijn account verwijderen", "del.t": "Weet je zeker dat je je account wilt verwijderen?", "del.p": "Je profiel, foto en contactgegevens worden verwijderd en je kunt niet meer inloggen met dit account. Dit kan niet ongedaan worden gemaakt.", "del.yes": "Ja, verwijder mijn account", "del.done": "Je account is verwijderd.", "del.owner": "Als beheerder kun je je account hier niet verwijderen.", "nav.lineups": "Opstellingen", "adm.plan": "Opstellingen plannen", "adm.back": "Terug naar mijn profiel", "cd.days": "dagen", "cd.hours": "uur", "cd.min": "min", "cd.sec": "sec", "cd.live": "Nu bezig!", "cd.today": "Wedstrijddag!", "cd.tbc": "Tijd nog niet bekend: telt af tot de wedstrijddag.", "menu.profile": "Mijn profiel bekijken", "menu.matches": "Mijn komende wedstrijden", "menu.lineups": "Opstellingen maken", "login.email": "E-mail", "login.password": "Wachtwoord", "login.submit": "Inloggen", "login.forgot": "Wachtwoord vergeten? Vraag Lucía om een tijdelijk wachtwoord.", "login.forgotHint": "Vul hierboven je e-mailadres in en klik hier: we sturen je een link om een nieuw wachtwoord te maken.", "login.sending": "Bezig met inloggen…", "login.err": "Onjuist e-mailadres of wachtwoord.", "login.errNet": "Geen verbinding. Controleer je internet en probeer het opnieuw.", "login.needEmail": "Vul eerst je e-mailadres in.", "login.resetSent": "Als dit e-mailadres een account heeft, hebben we je een link gestuurd om een nieuw wachtwoord te maken. Kijk ook in je spam.", "pw.title": "Wijzig je wachtwoord", "pw.p": "Kies het wachtwoord waarmee je voortaan inlogt.", "pw.new": "Nieuw wachtwoord", "pw.repeat": "Herhaal wachtwoord", "pw.save": "Wachtwoord opslaan", "pw.errLen": "Gebruik minstens 8 tekens.", "pw.errMatch": "De wachtwoorden komen niet overeen.", "pw.saved": "Wachtwoord opgeslagen.", "logout": "Uitloggen", "cfg.missing": "De site is nog niet verbonden met de database. config.js moet nog worden ingevuld.", "pl.locked": "Log in om de volledige selectie te zien.", "cal.locked": "Log in om de opstelling te zien.", "pw.change": "Wachtwoord wijzigen", "me.title": "Mijn profiel", "me.loading": "Je gegevens worden geladen…",
     "me.slow": "Je gegevens laten op zich wachten. Controleer je verbinding; de pagina blijft het proberen.",
     "me.noaccess.t": "Log in om je profiel en je wedstrijden te zien",
     "me.noaccess.p": "Log in met je e-mailadres en wachtwoord. Eerste keer? Maak je account aan.",
@@ -751,7 +789,7 @@ function paintStatic() {
   document.querySelectorAll(".langs button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang)); });
   document.getElementById("club-route").href = routeUrl(HOME_VENUE);
   document.getElementById("nav-profile").setAttribute("aria-label", t("nav.me"));
-  document.getElementById("nav-lineups").setAttribute("aria-label", t("nav.lineups"));
+
 }
 
 /* ───────────── Próximo partido ───────────── */
@@ -866,7 +904,7 @@ function renderPlayers() {
     return;
   }
   var list = sortedPlayers();
-  var registeredNames = list.map(function (x) { return fullName(x.p).toLowerCase(); });
+  var registeredNames = list.map(function (x) { return norm(fullName(x.p)); });
   var cards = list.map(function (x) {
     var p = x.p;
     return '<article class="player"><div class="photo">' + photoHtml(p) + '</div>' + kitHtml(p, true) + '<div class="p-body">' +
@@ -879,7 +917,8 @@ function renderPlayers() {
   // Jugadoras de la ficha KNLTB que aún no han rellenado su perfil
   KNLTB_PLAYERS.forEach(function (k) {
     var parts = k.name.split(" ");
-    var found = registeredNames.some(function (n) { return n.indexOf(parts[0].toLowerCase()) >= 0 && n.indexOf(parts[parts.length - 1].toLowerCase()) >= 0; });
+    // Se compara sin acentos (Lucia = Lucía) por nombre y primer apellido
+    var found = registeredNames.some(function (n) { return n.indexOf(norm(parts[0])) >= 0 && n.indexOf(norm(k.surname)) >= 0; });
     if (found) return;
     cards.push('<article class="player"><div class="photo"><span class="ini">' + esc(initials(parts[0], parts[1])) + '</span></div>' + kitHtml({ firstName: k.name.split(" ")[0], lastName: k.surname }, false) + '<div class="p-body">' +
       '<div><div class="p-name">' + esc(k.name) + '</div>' + (k.captain ? '<span class="badge">' + esc(t("pl.captain")) + '</span> ' : '') + '<span class="badge ghost">' + esc(t("pl.pending")) + '</span></div>' +
@@ -1004,7 +1043,7 @@ function renderMe() {
   var won = gm.done.filter(function (g) { return g.rs.won === true; }).length, lost = gm.done.filter(function (g) { return g.rs.won === false; }).length;
   var gamesBlock =
     '<div class="stats"><div class="stat"><b>' + (won + lost) + '</b><span>' + esc(t("prof.played")) + '</span></div><div class="stat w"><b>' + won + '</b><span>' + esc(t("prof.won")) + '</span></div><div class="stat l"><b>' + lost + '</b><span>' + esc(t("prof.lost")) + '</span></div></div>' +
-    '<div class="p-sec"><div class="admin-head"><h3>' + esc(t("prof.upcoming")) + '</h3>' + (gm.up.length > 1 ? '<button type="button" class="btn small solid" id="ics-all">' + esc(t("cal.all")) + '</button>' : '') + '</div>' +
+    '<div class="p-sec" id="mis-partidos" style="scroll-margin-top:80px"><div class="admin-head"><h3>' + esc(t("prof.upcoming")) + '</h3>' + (gm.up.length > 1 ? '<button type="button" class="btn small solid" id="ics-all">' + esc(t("cal.all")) + '</button>' : '') + '</div>' +
       (gm.up.length ? '<p class="hint" style="margin:0">' + esc(t("cal.hint")) + '</p>' + gm.up.map(function (g) { return gameHtml(g, false); }).join("") : '<p class="muted" style="margin:0">' + esc(t("prof.noUpcoming")) + '</p>') + '</div>' +
     '<div class="p-sec"><h3>' + esc(t("prof.results")) + '</h3>' + (gm.done.length ? gm.done.slice().reverse().map(function (g) { return gameHtml(g, true); }).join("") : '<p class="muted" style="margin:0">' + esc(t("prof.noResults")) + '</p>') + '</div>';
   root.innerHTML = '<div class="panel"><div class="me-grid">' +
@@ -1472,18 +1511,44 @@ function saveRound(r, el) {
 }
 
 /* ───────────── Render general ───────────── */
+/* Menú de la cuenta */
+function closeAccMenu() {
+  var m = document.getElementById("acc-menu"); if (!m || m.hidden) return;
+  m.hidden = true; document.getElementById("nav-profile").setAttribute("aria-expanded", "false");
+}
+(function () {
+  var btn = document.getElementById("nav-profile"), menu = document.getElementById("acc-menu");
+  btn.addEventListener("click", function (ev) {
+    ev.stopPropagation();
+    var open = menu.hidden;
+    menu.hidden = !open; btn.setAttribute("aria-expanded", String(open));
+    if (open) { var first = menu.querySelector("a:not([hidden]), button:not([hidden])"); if (first) first.focus(); }
+  });
+  document.addEventListener("click", function (ev) { if (!menu.hidden && !menu.contains(ev.target)) closeAccMenu(); });
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !menu.hidden) { closeAccMenu(); btn.focus(); } });
+  menu.addEventListener("click", function (ev) {
+    var a = ev.target.closest("a"); if (!a) return;
+    closeAccMenu();
+    // Si ya estás en esa dirección, vuelve a colocarte en su sitio
+    if (a.getAttribute("href") === location.hash) { ev.preventDefault(); window.dispatchEvent(new HashChangeEvent("hashchange")); }
+  });
+  document.getElementById("menu-logout").addEventListener("click", function () { closeAccMenu(); if (state.sb) state.sb.auth.signOut(); location.hash = "#perfil"; });
+})();
 function applyView() {
-  var view = location.hash === "#perfil" ? "profile" : (location.hash === "#alineaciones" && canManage()) ? "lineups" : "home";
+  var h = location.hash;
+  var view = (h === "#perfil" || h === "#mis-partidos") ? "profile" : (h === "#alineaciones" && canManage()) ? "lineups" : "home";
   document.querySelectorAll("[data-view]").forEach(function (el) { el.hidden = el.getAttribute("data-view") !== view; });
-  document.getElementById("nav-profile").setAttribute("aria-current", view === "profile" ? "page" : "false");
-  var nl = document.getElementById("nav-lineups");
-  nl.hidden = !canManage(); nl.setAttribute("aria-current", view === "lineups" ? "page" : "false");
+  document.getElementById("nav-profile").setAttribute("aria-current", view === "home" ? "false" : "page");
+  document.getElementById("menu-lineups").hidden = !canManage();
+  document.getElementById("menu-logout").hidden = !state.uid;
   document.getElementById("plan-btn").hidden = !canManage();
   return view;
 }
 window.addEventListener("hashchange", function () {
+  closeAccMenu();
   var view = applyView(); renderAdmin();
-  if (view === "profile" || view === "lineups") window.scrollTo(0, 0);
+  if (location.hash === "#mis-partidos") { var mp = document.getElementById("mis-partidos"); if (mp) mp.scrollIntoView(); else window.scrollTo(0, 0); }
+  else if (view === "profile" || view === "lineups") window.scrollTo(0, 0);
   else if (location.hash && location.hash !== "#inicio") { var el = document.querySelector(location.hash); if (el) el.scrollIntoView(); }
   else window.scrollTo(0, 0);
 });
@@ -1563,7 +1628,7 @@ function setSession(session) {
   if (!uid) { state.editing = false; state.needPassword = false; formMounted = false; }
   if (changed) { formMounted = false; loadData(); }
 }
-var APP_VERSION = "2026-11-01-9";
+var APP_VERSION = "2026-11-01-10";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
