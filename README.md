@@ -11,16 +11,20 @@ Está alojada en GitHub Pages y guarda los datos en Supabase.
 | `config.js` | Dirección y clave pública de Supabase |
 | `flags.json`, `regions.json` | Banderas y lista de regiones |
 | `vendor/` | Librería de Supabase |
-| `supabase-setup.sql` | Crea las tablas y las reglas de seguridad (se ejecuta una vez) |
+| `supabase-setup.sql` | Crea las tablas, los roles (dueña, capitanas, jugadoras), las solicitudes de acceso y las reglas de seguridad |
 | `supabase-owner.sql` | Te hace dueña de la web (se ejecuta una vez) |
 | `supabase-reset-password.sql` | Pone una contraseña provisional a una jugadora que la ha olvidado |
 
-## Cómo se da de alta a una jugadora
+## Cómo entra una jugadora nueva
 
-1. Supabase → **Authentication → Users → Add user → Create new user**.
-2. Escribe su email y una contraseña provisional, y marca **Auto Confirm User**.
-3. Pásale el enlace de la web, su email y la contraseña provisional.
-4. Ella entra en **Mi perfil**, rellena sus datos y cambia la contraseña.
+1. Abre la web, va a **Mi perfil → Crear cuenta** y pone su nombre, apellidos, email y contraseña.
+2. Su cuenta queda **pendiente**: no ve la plantilla ni los datos de contacto.
+3. Tú o una capitana la aprobáis en **Alineaciones → Solicitudes de acceso**.
+4. Al volver a entrar, ya puede rellenar su perfil y ver sus partidos.
+
+Ajustes necesarios en Supabase → **Authentication**:
+- **Allow new users to sign up**: activado.
+- **Confirm email**: desactivado. El servicio de email gratuito de Supabase solo envía correos a los miembros de tu cuenta de Supabase, así que la confirmación no les llegaría a las jugadoras.
 
 ## Si una jugadora olvida la contraseña
 
