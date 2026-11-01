@@ -456,7 +456,7 @@ var I18N = {
     "cal.title": "Calendario", "cal.note": "7 jornadas · 4 partidos de dobles (DD1–DD4) por jornada",
     "cal.lineup": "Alineación", "cal.noLineup": "La capitana aún no ha hecho la alineación.", "cal.you": "Juegas",
     "adm.title": "Alineaciones", "adm.note": "Solo lo ven las capitanas. Elige las parejas de cada jornada.",
-    "adm.managers": "Quién puede hacer alineaciones", "adm.managersHint": "Además de ti, marca a las capitanas. Solo puedes elegir jugadoras con perfil.",
+    "adm.managers": "Capitanas", "adm.managersHint": "Marca a las capitanas. Pueden aprobar cuentas nuevas, ver el teléfono, email y número KNLTB de todas, y hacer alineaciones. Solo puedes elegir jugadoras ya aprobadas y con perfil.",
     "adm.score": "Resultado (puntos)", "adm.us": "Nosotras", "adm.them": "Rival", "adm.save": "Guardar jornada",
     "adm.saved": "Jornada guardada.", "adm.dup": "Hay una jugadora repetida en la misma jornada.", "adm.pick": "— Jugadora —",
     "adm.empty": "Todavía no hay jugadoras registradas. En cuanto rellenen su perfil podrás elegirlas aquí.",
@@ -500,7 +500,7 @@ var I18N = {
     "cal.title": "Fixtures", "cal.note": "7 rounds · 4 doubles matches (DD1–DD4) per round",
     "cal.lineup": "Line-up", "cal.noLineup": "The captain has not set the line-up yet.", "cal.you": "You play",
     "adm.title": "Line-ups", "adm.note": "Only captains see this. Pick the pairs for each round.",
-    "adm.managers": "Who can set line-ups", "adm.managersHint": "Besides you, tick the captains. Only players with a profile can be chosen.",
+    "adm.managers": "Captains", "adm.managersHint": "Tick the captains. They can approve new accounts, see everyone\'s phone, email and KNLTB number, and set line-ups. Only approved players with a profile can be chosen.",
     "adm.score": "Result (points)", "adm.us": "Us", "adm.them": "Opponent", "adm.save": "Save round",
     "adm.saved": "Round saved.", "adm.dup": "A player appears twice in the same round.", "adm.pick": "— Player —",
     "adm.empty": "No players have registered yet. As soon as they fill in their profile you can pick them here.",
@@ -544,7 +544,7 @@ var I18N = {
     "cal.title": "Fikstür", "cal.note": "7 hafta · her hafta 4 çiftler maçı (DD1–DD4)",
     "cal.lineup": "Kadro", "cal.noLineup": "Kaptan henüz kadroyu belirlemedi.", "cal.you": "Oynuyorsun",
     "adm.title": "Kadrolar", "adm.note": "Bunu sadece kaptanlar görür. Her haftanın çiftlerini seç.",
-    "adm.managers": "Kadroyu kimler belirleyebilir", "adm.managersHint": "Sana ek olarak kaptanları işaretle. Sadece profili olan oyuncular seçilebilir.",
+    "adm.managers": "Kaptanlar", "adm.managersHint": "Kaptanları işaretle. Yeni hesapları onaylayabilir, herkesin telefonunu, e-postasını ve KNLTB numarasını görebilir ve kadro yapabilirler. Sadece onaylanmış ve profili olan oyuncular seçilebilir.",
     "adm.score": "Sonuç (puan)", "adm.us": "Biz", "adm.them": "Rakip", "adm.save": "Haftayı kaydet",
     "adm.saved": "Hafta kaydedildi.", "adm.dup": "Aynı haftada bir oyuncu iki kez seçilmiş.", "adm.pick": "— Oyuncu —",
     "adm.empty": "Henüz kayıtlı oyuncu yok. Profillerini doldurdukları anda burada seçebileceksin.",
@@ -588,7 +588,7 @@ var I18N = {
     "cal.title": "Programma", "cal.note": "7 ronden · 4 dubbelpartijen (DD1–DD4) per ronde",
     "cal.lineup": "Opstelling", "cal.noLineup": "De aanvoerder heeft de opstelling nog niet gemaakt.", "cal.you": "Jij speelt",
     "adm.title": "Opstellingen", "adm.note": "Alleen zichtbaar voor aanvoerders. Kies per ronde de koppels.",
-    "adm.managers": "Wie mag opstellingen maken", "adm.managersHint": "Vink naast jezelf de aanvoerders aan. Alleen speelsters met een profiel zijn te kiezen.",
+    "adm.managers": "Aanvoerders", "adm.managersHint": "Vink de aanvoerders aan. Zij kunnen nieuwe accounts goedkeuren, van iedereen telefoon, e-mail en KNLTB-nummer zien en opstellingen maken. Alleen goedgekeurde speelsters met een profiel zijn te kiezen.",
     "adm.score": "Uitslag (punten)", "adm.us": "Wij", "adm.them": "Tegenstander", "adm.save": "Ronde opslaan",
     "adm.saved": "Ronde opgeslagen.", "adm.dup": "Een speelster staat twee keer in dezelfde ronde.", "adm.pick": "— Speelster —",
     "adm.empty": "Er zijn nog geen speelsters geregistreerd. Zodra ze hun profiel invullen kun je ze hier kiezen.",
@@ -805,7 +805,7 @@ function renderPlayers() {
     return '<article class="player"><div class="photo">' + photoHtml(p) + '</div>' + kitHtml(p, true) + '<div class="p-body">' +
       '<div><div class="p-name">' + esc(fullName(p)) + '</div>' + (isCaptain(p) ? '<span class="badge">' + esc(t("pl.captain")) + '</span>' : '') + '</div>' +
       '<div class="p-chips"><span class="chip">' + esc(sideLabel(p.side)) + '</span><span class="chip">' + esc(handLabel(p.hand)) + '</span></div>' +
-      '<div class="p-contact"><span>' + esc(p.phone) + '</span><span>' + esc(p.email) + '</span><span>KNLTB ' + esc(p.knltb) + '</span></div>' +
+      (p.phone ? '<div class="p-contact"><span>' + esc(p.phone) + '</span><span>' + esc(p.email) + '</span><span>KNLTB ' + esc(p.knltb) + '</span></div>' : '') +
       '</div></article>';
   });
   // Jugadoras de la ficha KNLTB que aún no han rellenado su perfil
@@ -1172,6 +1172,9 @@ function saveProfile(f) {
   st.textContent = t("f.saving"); st.className = "status";
   state.sb.from("players").upsert(toRow(v)).then(function (res) {
     if (res.error) throw res.error;
+    return state.sb.from("player_contacts").upsert(toContact(v));
+  }).then(function (res) {
+    if (res.error) throw res.error;
     state.players[state.uid] = v; state.editing = false; formMounted = false;
     renderAll();
     document.getElementById("me-note").textContent = t("f.saved");
@@ -1328,19 +1331,21 @@ function loadRegions() {
 }
 /* Columnas de Supabase (snake_case) <-> objetos de la página */
 function fromRow(r) {
-  return { firstName: r.first_name, lastName: r.last_name, phone: r.phone, email: r.email, knltb: r.knltb, side: r.side, hand: r.hand,
+  return { firstName: r.first_name, lastName: r.last_name, side: r.side, hand: r.hand,
     country: r.country, region: r.region, regionName: r.region_name, photo: r.photo, updatedAt: r.updated_at };
 }
 function toRow(v) {
-  return { id: state.uid, first_name: v.firstName, last_name: v.lastName, phone: v.phone, email: v.email, knltb: v.knltb, side: v.side, hand: v.hand,
+  return { id: state.uid, first_name: v.firstName, last_name: v.lastName, side: v.side, hand: v.hand,
     country: v.country, region: v.region, region_name: v.regionName || null, photo: v.photo || null, updated_at: v.updatedAt };
 }
+// Teléfono, email y KNLTB van aparte: solo los leen ella misma, la dueña y las capitanas
+function toContact(v) { return { id: state.uid, phone: v.phone, email: v.email, knltb: v.knltb, updated_at: v.updatedAt }; }
 var loading = null;
 function loadData() {
   if (loading) return loading;
   var sb = state.sb;
   var reqs = [sb.from("rounds").select("*")];
-  if (state.uid) reqs.push(sb.from("players").select("*"), sb.from("team_roles").select("*"), sb.from("join_requests").select("*").order("created_at"));
+  if (state.uid) reqs.push(sb.from("players").select("*"), sb.from("team_roles").select("*"), sb.from("join_requests").select("*").order("created_at"), sb.from("player_contacts").select("*"));
   loading = Promise.all(reqs).then(function (res) {
     loading = null;
     if (res[0].error) throw res[0].error;
@@ -1351,6 +1356,8 @@ function loadData() {
       var roles = res[2].data || [];
       state.roles = {}; roles.forEach(function (x) { state.roles[x.user_id] = x.role; });
       var players = {}; (res[1].data || []).forEach(function (row) { if (state.roles[row.id]) players[row.id] = fromRow(row); });
+      var contacts = (res[4] && !res[4].error && res[4].data) || [];
+      contacts.forEach(function (c) { if (players[c.id]) { players[c.id].phone = c.phone; players[c.id].email = c.email; players[c.id].knltb = c.knltb; } });
       state.players = players;
       var reqRows = (res[3] && !res[3].error && res[3].data) || [];
       state.requests = reqRows.filter(function (x) { return x.user_id !== state.uid && !state.roles[x.user_id]; });
