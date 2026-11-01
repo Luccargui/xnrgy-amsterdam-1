@@ -39,18 +39,23 @@ create table if not exists public.rounds (
 );
 
 -- 4. ¿Tiene la persona conectada alguno de estos roles? ----------------
-create or replace function public.has_role(roles text[])
+--    Vive en un esquema privado para que no se pueda llamar desde la API.
+create schema if not exists private;
+revoke all on schema private from public, anon;
+grant usage on schema private to authenticated;
+create or replace function private.has_role(roles text[])
 returns boolean
 language sql stable security definer
-set search_path = public
+set search_path = ''
 as $$
   select exists (
     select 1 from public.team_roles
     where user_id = auth.uid() and role = any (roles)
   );
 $$;
-revoke all on function public.has_role(text[]) from public;
-grant execute on function public.has_role(text[]) to authenticated;
+revoke all on function private.has_role(text[]) from public, anon;
+grant execute on function private.has_role(text[]) to authenticated;
+drop function if exists public.has_role(text[]) cascade;
 
 -- 5. Reglas de seguridad (RLS) -----------------------------------------
 alter table public.players    enable row level security;
@@ -66,9 +71,9 @@ drop policy if exists "players_delete" on public.players;
 create policy "players_select" on public.players for select to authenticated using (true);
 create policy "players_insert" on public.players for insert to authenticated with check (id = auth.uid());
 create policy "players_update" on public.players for update to authenticated
-  using (id = auth.uid() or public.has_role(array['owner']))
-  with check (id = auth.uid() or public.has_role(array['owner']));
-create policy "players_delete" on public.players for delete to authenticated using (public.has_role(array['owner']));
+  using (id = (select auth.uid()) or private.has_role(array['owner']))
+  with check (id = (select auth.uid()) or private.has_role(array['owner']));
+create policy "players_delete" on public.players for delete to authenticated using (private.has_role(array['owner']));
 
 -- Roles: las del equipo los ven; solo la dueña nombra o quita capitanas.
 drop policy if exists "roles_select" on public.team_roles;
@@ -76,9 +81,9 @@ drop policy if exists "roles_insert" on public.team_roles;
 drop policy if exists "roles_delete" on public.team_roles;
 create policy "roles_select" on public.team_roles for select to authenticated using (true);
 create policy "roles_insert" on public.team_roles for insert to authenticated
-  with check (public.has_role(array['owner']) and role = 'captain');
+  with check (private.has_role(array['owner']) and role = 'captain');
 create policy "roles_delete" on public.team_roles for delete to authenticated
-  using (public.has_role(array['owner']) and role = 'captain');
+  using (private.has_role(array['owner']) and role = 'captain');
 
 -- Jornadas: cualquiera puede ver los resultados del equipo (la web es pública);
 -- solo la dueña y las capitanas hacen alineaciones y apuntan resultados.
@@ -87,10 +92,10 @@ drop policy if exists "rounds_insert" on public.rounds;
 drop policy if exists "rounds_update" on public.rounds;
 create policy "rounds_select" on public.rounds for select to anon, authenticated using (true);
 create policy "rounds_insert" on public.rounds for insert to authenticated
-  with check (public.has_role(array['owner', 'captain']));
+  with check (private.has_role(array['owner', 'captain']));
 create policy "rounds_update" on public.rounds for update to authenticated
-  using (public.has_role(array['owner', 'captain']))
-  with check (public.has_role(array['owner', 'captain']));
+  using (private.has_role(array['owner', 'captain']))
+  with check (private.has_role(array['owner', 'captain']));
 
 -- 6. Permisos de la API ------------------------------------------------
 revoke all on public.players, public.team_roles from anon;
