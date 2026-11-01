@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XNRGY Amsterdam 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Un solo mundo visual: negro con letras blancas, como la equipación. Bloques apilados, ancho máx. 1080. */
+  --bg: #0a0a0a;
+  --surface: #151515;
+  --line: #2a2a2a;
+  --text: #ffffff;
+  --muted: #9a9a9a;
+  --win: #7ee08a;
+  --loss: #ff8a7a;
+  --warn: #ffd166;
+  --display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+a { color: var(--text); }
+a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+[hidden] { display: none !important; }
+
+/* Cabecera */
+header { position: sticky; top: 0; z-index: 10; background: rgba(10,10,10,.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 64px; }
+.brand { display: flex; align-items: center; color: var(--text); flex: none; }
+.brand svg { width: 124px; height: auto; display: block; }
+nav { display: flex; gap: 20px; flex-wrap: wrap; }
+nav a { white-space: nowrap; font-family: var(--display); font-weight: 600; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; color: var(--muted); }
+nav a:hover, nav a[aria-current="page"] { color: var(--text); }
+.profile-view { border-bottom: 0; min-height: 70vh; }
+.stats { display: flex; gap: 28px; flex-wrap: wrap; margin: 22px 0 0; }
+.stat b { display: block; font-family: var(--display); font-weight: 800; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 13px; color: var(--muted); }
+.stat.w b { color: var(--win); } .stat.l b { color: var(--loss); }
+.res { font-family: var(--display); font-weight: 800; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; padding: 4px 10px; border: 1px solid currentColor; white-space: nowrap; }
+.res.w { color: var(--win); } .res.l { color: var(--loss); } .res.p { color: var(--muted); }
+.mm-score { font-family: var(--display); font-weight: 700; font-size: 20px; font-variant-numeric: tabular-nums; }
+.p-sec { margin-top: 40px; display: grid; gap: 12px; }
+.p-sec h3 { margin-bottom: 4px; }
+.dd .ddres { color: var(--muted); font-size: 14px; margin-left: 8px; white-space: nowrap; }
+.dd .ddres.w { color: var(--win); } .dd .ddres.l { color: var(--loss); }
+.admin-round .admin-dd { grid-template-columns: 44px 1fr 1fr 120px 130px; }
+.admin-dd input { width: 100%; }
+.langs { display: flex; border: 1px solid var(--line); flex: none; }
+.langs button { background: none; border: 0; color: var(--muted); font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .08em; padding: 6px 9px; cursor: pointer; }
+.langs button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+
+/* Tipografía común */
+.kicker, .label { font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.kicker { margin: 0 0 12px; font-weight: 600; font-size: 14px; }
+h1 { font-family: var(--display); font-weight: 800; text-transform: uppercase; font-size: clamp(56px, 10vw, 112px); line-height: .88; margin: 0; text-wrap: balance; }
+h1 .num { -webkit-text-stroke: 2px var(--text); color: transparent; }
+h2 { font-family: var(--display); font-weight: 800; text-transform: uppercase; font-size: clamp(34px, 5vw, 48px); line-height: 1; margin: 0; text-wrap: balance; }
+h3 { font-family: var(--display); font-weight: 700; text-transform: uppercase; font-size: 24px; line-height: 1.1; margin: 0; }
+.muted { color: var(--muted); }
+.fineprint { color: var(--muted); font-size: 14px; margin: 18px 0 0; max-width: 70ch; }
+
+/* Botones */
+.btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; padding: 11px 18px; border: 1px solid var(--text); background: none; color: var(--text); cursor: pointer; }
+.btn.solid { background: var(--text); color: var(--bg); }
+.btn.small { font-size: 13px; padding: 7px 12px; }
+.btn:hover { opacity: .85; }
+.btn:disabled { opacity: .4; cursor: default; }
+.route { font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
+
+/* Portada */
+.hero { padding: 64px 0 48px; border-bottom: 1px solid var(--line); }
+.hero-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 40px; align-items: end; }
+.division { margin: 20px 0 0; color: var(--muted); font-size: 17px; max-width: 46ch; }
+.division strong { color: var(--text); font-weight: 600; }
+.next { border: 1px solid var(--text); padding: 22px 24px; display: grid; gap: 14px; }
+.next-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.count { font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.vs { display: grid; gap: 4px; }
+.vs .team { font-family: var(--display); font-weight: 700; font-size: 28px; line-height: 1.05; text-transform: uppercase; }
+.vs .them { color: var(--muted); }
+.vs .sep { font-family: var(--display); font-size: 14px; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; }
+.next-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.next-meta b { color: var(--text); font-weight: 600; }
+
+/* Secciones */
+section { padding: 56px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 64px; }
+.sec-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.sec-note { color: var(--muted); font-size: 15px; margin: 0; }
+
+/* Zona de jugadoras */
+.panel { border: 1px solid var(--line); background: var(--surface); padding: 24px; }
+.notice { border-left: 3px solid var(--text); padding: 4px 0 4px 16px; max-width: 70ch; }
+.notice p { margin: 6px 0 0; color: var(--muted); }
+.me-grid { display: grid; grid-template-columns: 260px 1fr; gap: 32px; align-items: start; }
+.me-side { display: grid; gap: 14px; }
+.photo { width: 100%; aspect-ratio: 1; background: var(--bg); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; }
+.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo .ini { font-family: var(--display); font-weight: 800; font-size: 64px; }
+.kit { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; grid-template-rows: 100%; aspect-ratio: 4 / 1; background: var(--bg); border-top: 1px solid var(--line); overflow: hidden; }
+.kit img { width: 100%; height: 100%; min-height: 0; min-width: 0; display: block; object-fit: fill; }
+.kit.empty { background: repeating-linear-gradient(135deg, #111 0 8px, #161616 8px 16px); }
+.kit-cap { font-size: 12px; color: var(--muted); padding: 8px 12px 0; }
+.player .kit-cap + .p-body { padding-top: 8px; }
+.me-side .card-photo { border: 1px solid var(--line); }
+.flags { display: flex; gap: 14px; flex-wrap: wrap; }
+.flag { display: grid; gap: 4px; justify-items: start; max-width: 120px; }
+.flag img { width: 48px; height: 35px; display: block; }
+.flag .noflag { width: 48px; height: 35px; border: 1px dashed var(--line); border-radius: 6px; }
+.flag span { font-size: 12px; color: var(--muted); line-height: 1.3; }
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; margin: 18px 0 0; }
+.facts dt { font-family: var(--display); font-weight: 700; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.facts dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.my-matches { margin-top: 32px; display: grid; gap: 12px; }
+.mm { border: 1px solid var(--line); padding: 16px 18px; display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center; background: var(--bg); }
+.mm-title { font-family: var(--display); font-weight: 700; font-size: 20px; text-transform: uppercase; line-height: 1.15; }
+.mm-meta { color: var(--muted); font-size: 15px; font-variant-numeric: tabular-nums; }
+.mm-meta b { color: var(--text); font-weight: 600; }
+.partner { display: flex; align-items: center; gap: 10px; }
+.mini { width: 36px; height: 36px; flex: none; border: 1px solid var(--line); overflow: hidden; display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 14px; background: var(--surface); }
+.mini img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Formulario */
+form { display: grid; gap: 22px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 20px; }
+.field { display: grid; gap: 6px; }
+.field.full { grid-column: 1 / -1; }
+label, legend { font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.req { color: var(--text); }
+input[type=text], input[type=tel], input[type=email], input[type=password], select {
+  width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); padding: 11px 12px; font: inherit; border-radius: 0;
+}
+input:focus, select:focus { border-color: var(--text); outline: none; }
+input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--loss); }
+.hint { font-size: 13px; color: var(--muted); }
+.err { font-size: 13px; color: var(--loss); min-height: 0; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice { font-family: var(--body); font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--text); }
+.choice input { position: absolute; opacity: 0; pointer-events: none; }
+.choice span { display: inline-block; padding: 9px 14px; border: 1px solid var(--line); cursor: pointer; font-size: 15px; }
+.choice input:checked + span { background: var(--text); color: var(--bg); border-color: var(--text); }
+.choice input:focus-visible + span { outline: 2px solid var(--text); outline-offset: 2px; }
+.photo-pick { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.photo-pick .photo .ini { font-size: 48px; }
+
+.flag-preview { display: flex; gap: 14px; min-height: 52px; align-items: start; }
+.opt-search { display: none; }
+@media (min-width: 900px) and (hover: hover) and (pointer: fine) {
+  .opt-search { display: block; margin-bottom: -6px; width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-bottom: 0; padding: 9px 12px 9px 34px; font: inherit; font-size: 15px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239a9a9a' stroke-width='2'%3E%3Ccircle cx='7' cy='7' r='5'/%3E%3Cpath d='m11 11 4 4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 11px center; }
+  .opt-search:focus { border-color: var(--text); outline: none; }
+}
+.form-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.status { font-size: 14px; color: var(--muted); }
+.status.bad { color: var(--loss); }
+
+/* Calendario */
+.rounds { border-top: 1px solid var(--line); }
+details.round { border-bottom: 1px solid var(--line); }
+details.round > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 110px 130px 1fr 100px 110px 20px; gap: 16px; align-items: center; padding: 16px 4px; font-variant-numeric: tabular-nums; }
+details.round > summary::-webkit-details-marker { display: none; }
+details.round.is-next > summary { background: var(--surface); box-shadow: inset 3px 0 0 var(--text); }
+.caret { color: var(--muted); transition: transform .15s; font-family: var(--display); }
+details[open] .caret { transform: rotate(90deg); }
+.r-num { font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.r-date { font-size: 15px; }
+.r-date small { display: block; color: var(--muted); font-size: 13px; }
+.r-match { font-family: var(--display); font-weight: 600; font-size: 20px; text-transform: uppercase; line-height: 1.15; }
+.r-match .vsw { color: var(--muted); }
+.chip { justify-self: start; font-family: var(--display); font-weight: 700; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; padding: 4px 10px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.chip.home { background: var(--text); color: var(--bg); border-color: var(--text); }
+.chip.me { border-color: var(--text); color: var(--text); }
+.r-score { font-family: var(--display); font-weight: 700; font-size: 22px; text-align: right; }
+.r-score.pending { color: var(--muted); font-size: 15px; font-weight: 600; letter-spacing: .06em; }
+.r-score.w { color: var(--win); } .r-score.l { color: var(--loss); } .r-score.d { color: var(--text); }
+.r-body { padding: 4px 4px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.venue p { margin: 6px 0 12px; color: var(--muted); }
+.venue p b { color: var(--text); font-weight: 600; }
+.lineup { display: grid; gap: 8px; margin-top: 6px; }
+.dd { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; font-size: 15px; }
+.dd .tag { font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .08em; color: var(--muted); }
+.dd.mine .tag { color: var(--text); }
+.dd .names { overflow-wrap: anywhere; }
+.dd.mine .names { font-weight: 600; }
+
+/* Alineaciones (capitanas) */
+.admin-round { border: 1px solid var(--line); background: var(--surface); padding: 18px; display: grid; gap: 14px; }
+.admin-list { display: grid; gap: 14px; }
+.admin-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+.admin-dd { display: grid; grid-template-columns: 44px 1fr 1fr; gap: 10px; align-items: center; }
+.admin-score { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.admin-score input { width: 70px; }
+.managers { display: flex; flex-wrap: wrap; gap: 8px; }
+.conflict { color: var(--warn); font-size: 13px; }
+
+/* Clasificación */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 520px; }
+th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--line); }
+th { font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+td.n, th.n { text-align: right; width: 64px; }
+td.pos { width: 44px; color: var(--muted); font-family: var(--display); font-weight: 700; font-size: 18px; }
+td.team { font-family: var(--display); font-weight: 600; font-size: 18px; text-transform: uppercase; }
+tr.us td, tr.us td.pos { background: var(--text); color: var(--bg); }
+
+/* Jugadoras */
+.players { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.player { border: 1px solid var(--line); background: var(--surface); display: grid; align-content: start; }
+.player .photo { border: 0; }
+.p-body { padding: 16px 18px 18px; display: grid; gap: 12px; }
+.p-name { font-family: var(--display); font-weight: 700; font-size: 22px; line-height: 1.1; text-transform: uppercase; }
+.badge { display: inline-block; margin-top: 6px; font-family: var(--display); font-weight: 700; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; background: var(--text); color: var(--bg); padding: 3px 8px; }
+.badge.ghost { background: none; color: var(--muted); border: 1px solid var(--line); }
+.p-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.p-contact { font-size: 14px; color: var(--muted); display: grid; gap: 2px; overflow-wrap: anywhere; }
+
+/* Club y pie */
+.club-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.club-card { border-top: 1px solid var(--text); padding-top: 16px; }
+.club-card p { margin: 6px 0 0; color: var(--muted); }
+.club-card p b { color: var(--text); font-weight: 600; }
+.links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+footer { padding: 36px 0 44px; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
+.sponsor { display: flex; align-items: center; gap: 12px; }
+.sponsor span { font-family: var(--display); font-weight: 600; letter-spacing: .12em; text-transform: uppercase; font-size: 12px; }
+.sponsor svg { width: 88px; height: auto; display: block; }
+.sponsor svg path { fill: var(--text); }
+.credits { margin-top: 18px; font-size: 12px; color: #6a6a6a; }
+.credits a { color: #8a8a8a; }
+
+@media (max-width: 900px) {
+  nav { gap: 14px; }
+  nav a:not(#nav-profile) { display: none; }
+  .admin-round .admin-dd { grid-template-columns: 44px 1fr 1fr; }
+  .admin-round .admin-dd input { grid-column: 2; }
+  .admin-round .admin-dd .dd-out { grid-column: 3; }
+  .hero-grid, .me-grid, .r-body { grid-template-columns: 1fr; }
+  .me-side { max-width: 280px; }
+  .club-grid { grid-template-columns: 1fr; }
+  details.round > summary { grid-template-columns: 1fr auto; gap: 6px 12px; }
+  .r-date, .r-match { grid-column: 1 / -1; }
+  .r-score { grid-column: 2; grid-row: 1; }
+  .caret { display: none; }
+}
+@media (max-width: 560px) {
+  .hero { padding: 40px 0 36px; }
+  .form-grid, .facts { grid-template-columns: 1fr; }
+  .admin-round .admin-dd { grid-template-columns: 36px 1fr; }
+  .admin-round .admin-dd > :not(.label) { grid-column: 2; }
+  .brand svg { width: 100px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="https://xnrgyclub.com/nl/" aria-label="XNRGY Club">
+      <svg xmlns="http://www.w3.org/2000/svg" width="133.714" height="20.545" viewBox="0 0 133.714 20.545" role="img" aria-label="XNRGY">
+        <path d="M137.16,43.805a2.355,2.355,0,0,0-2.355,2.355V51.9a2.355,2.355,0,0,0,4.71,0V46.16a2.355,2.355,0,0,0-2.355-2.355" transform="translate(-103.723 -33.705)" fill="currentColor"/>
+        <path d="M152.952.026A2.354,2.354,0,0,0,150.6,2.381V12.454L139.155.839a2.354,2.354,0,1,0-3.6,3.032l15.6,15.836c.023.027.049.05.072.076s.054.061.083.088.066.062.1.093.053.046.08.067.074.057.112.083l.087.059c.038.024.075.047.113.069s.068.035.1.053.072.036.109.053.084.033.126.05l.1.035c.052.017.1.03.156.042.025.006.051.014.077.02.062.014.124.022.188.031l.053.008a2.231,2.231,0,0,0,.613-.018l.056-.009a2.426,2.426,0,0,0,.347-.091l.051-.019a2.359,2.359,0,0,0,.338-.155l.026-.017a2.29,2.29,0,0,0,.33-.231h0l0,0a2.333,2.333,0,0,0,.324-.334l.017-.022a2.392,2.392,0,0,0,.234-.367l.011-.022a2.239,2.239,0,0,0,.158-.405l0-.013a2.33,2.33,0,0,0,.08-.433v-.009c.006-.065.01-.13.01-.2V2.381A2.355,2.355,0,0,0,152.952.026" transform="translate(-103.872 0)" fill="currentColor"/>
+        <path d="M394.592,7.959a2.355,2.355,0,0,0-2.354,2.355v5.545c-1.319,0-2.762-.01-3.074-.018a5.55,5.55,0,0,1,.044-11.059c.554-.011,4.925-.019,5.313-.019a2.355,2.355,0,1,0,0-4.71c-.052,0-5.275,0-5.611.028a10.26,10.26,0,0,0-.077,20.458c.369.03,5.635.033,5.688.033a2.539,2.539,0,0,0,2.427-2.48V10.314a2.355,2.355,0,0,0-2.355-2.355" transform="translate(-291.923 -0.042)" fill="currentColor"/>
+        <path d="M286.7,6.789A6.808,6.808,0,0,0,280.47.038c-.118-.009-2.8-.017-8.907-.021h0a2.355,2.355,0,0,0,0,4.709c2.092,0,8.042.007,8.591.012a2.064,2.064,0,0,1-.02,4.105c-.526,0-6.477.009-8.571.01a2.421,2.421,0,0,0-2.369,2.412V18.2a2.355,2.355,0,1,0,4.709,0V13.6c.045.03.089.061.136.089l7.4,6.541a2.355,2.355,0,0,0,2.372-4.069L280.8,13.506a6.8,6.8,0,0,0,5.9-6.716" transform="translate(-207.124 -0.013)" fill="currentColor"/>
+        <path d="M4.082.809A2.354,2.354,0,1,0,.628,4.01L5.463,8.526a2.355,2.355,0,0,0,3.455-3.2Z" transform="translate(0 -0.043)" fill="currentColor"/>
+        <path d="M55.734,49.793a2.355,2.355,0,0,0-3.454,3.2l4.836,4.516a2.355,2.355,0,1,0,3.455-3.2Z" transform="translate(-39.743 -37.732)" fill="currentColor"/>
+        <path d="M59.521.153a2.356,2.356,0,0,0-2.406.655L52.28,5.324a2.355,2.355,0,1,0,3.454,3.2L60.57,4.009A2.356,2.356,0,0,0,59.521.153" transform="translate(-39.743 -0.041)" fill="currentColor"/>
+        <path d="M7.869,49.138a2.355,2.355,0,0,0-2.406.655L.628,54.308a2.355,2.355,0,0,0,3.454,3.2l4.836-4.516a2.355,2.355,0,0,0-1.049-3.856" transform="translate(0 -37.732)" fill="currentColor"/>
+        <path d="M494.768,4.3,490.961.809a2.354,2.354,0,1,0-3.454,3.2L491.314,7.5a2.355,2.355,0,0,0,3.455-3.2" transform="translate(-374.619 -0.043)" fill="currentColor"/>
+        <path d="M535.5.68a2.352,2.352,0,0,0-3.328.127L523.8,8.86a2.344,2.344,0,0,0-.349.5c-.031.057-.059.115-.084.174-.01.023-.02.046-.029.069s-.028.074-.041.112-.031.1-.044.144l-.011.042a2.357,2.357,0,0,0-.075.581l.012,7.753a2.355,2.355,0,0,0,4.71,0l-.011-6.77,7.749-7.453A2.353,2.353,0,0,0,535.5.68" transform="translate(-402.539 -0.04)" fill="currentColor"/>
+      </svg>
+    </a>
+    <nav aria-label="Secciones">
+      <a href="#perfil" data-i18n="nav.me" id="nav-profile"></a>
+      <a href="#partidos" data-i18n="nav.matches"></a>
+      <a href="#clasificacion" data-i18n="nav.table"></a>
+      <a href="#jugadoras" data-i18n="nav.players"></a>
+      <a href="#club" data-i18n="nav.club"></a>
+    </nav>
+    <div class="langs" role="group" aria-label="Idioma / Language / Dil / Taal">
+      <button type="button" data-lang="es">ES</button>
+      <button type="button" data-lang="en">EN</button>
+      <button type="button" data-lang="tr">TR</button>
+      <button type="button" data-lang="nl">NL</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="hero" data-view="home">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="kicker">AA Drink Winter Padel 2026/2027 · KNLTB</p>
+        <h1>XNRGY<br>Amsterdam <span class="num">1</span></h1>
+        <p class="division"><strong>Padel Dames Zaterdag (4DD)</strong> · 3e klasse · Afdeling 2. <span data-i18n="hero.season"></span></p>
+      </div>
+      <aside class="next" aria-labelledby="next-label">
+        <div class="next-head">
+          <span class="label" id="next-label" data-i18n="next.title"></span>
+          <span class="count" id="next-count"></span>
+        </div>
+        <div class="vs" id="next-vs"></div>
+        <div class="next-meta" id="next-meta"></div>
+      </aside>
+    </div>
+  </div>
+
+  <section id="perfil" data-view="profile" class="profile-view">
+    <div class="wrap">
+      <div class="sec-head">
+        <div><a class="route" href="#inicio" data-i18n="prof.back" style="display:inline-block;margin-bottom:14px;text-decoration:none;color:var(--muted)"></a><h2 data-i18n="me.title"></h2></div>
+        <p class="sec-note" id="me-note"></p>
+      </div>
+      <div id="me-root"></div>
+    </div>
+  </section>
+
+  <section data-view="home" id="partidos">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-i18n="cal.title"></h2>
+        <p class="sec-note" data-i18n="cal.note"></p>
+      </div>
+      <div class="rounds" id="rounds"></div>
+    </div>
+  </section>
+
+  <section data-view="home" id="alineaciones" hidden>
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-i18n="adm.title"></h2>
+        <p class="sec-note" data-i18n="adm.note"></p>
+      </div>
+      <div id="managers-box" class="panel" hidden style="margin-bottom:16px"></div>
+      <div class="admin-list" id="admin-list"></div>
+    </div>
+  </section>
+
+  <section data-view="home" id="clasificacion">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-i18n="tab.title"></h2>
+        <p class="sec-note" data-i18n="tab.note"></p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th data-i18n="tab.team"></th><th class="n" data-i18n="tab.p"></th><th class="n" data-i18n="tab.w"></th><th class="n" data-i18n="tab.l"></th><th class="n" data-i18n="tab.pts"></th></tr></thead>
+          <tbody id="standings"></tbody>
+        </table>
+      </div>
+      <p class="fineprint" data-i18n="tab.fine"></p>
+    </div>
+  </section>
+
+  <section data-view="home" id="jugadoras">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-i18n="pl.title"></h2>
+        <p class="sec-note" id="pl-note"></p>
+      </div>
+      <div class="players" id="players"></div>
+    </div>
+  </section>
+
+  <section data-view="home" id="club">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-i18n="club.title"></h2>
+        <p class="sec-note" data-i18n="club.note"></p>
+      </div>
+      <div class="club-grid">
+        <div class="club-card"><span class="label" data-i18n="club.club"></span><p><b>XNRGY Amsterdam</b><br>KNLTB 88088</p></div>
+        <div class="club-card"><span class="label" data-i18n="club.addr"></span><p><b>De Flinesstraat 10</b><br>1099 CB Amsterdam</p></div>
+        <div class="club-card"><span class="label" data-i18n="club.contact"></span><p><b><a href="mailto:info@xnrgyclub.com">info@xnrgyclub.com</a></b><br>06-18111890</p></div>
+      </div>
+      <div class="links">
+        <a class="btn solid" id="club-route" href="#" data-i18n="route"></a>
+        <a class="btn" href="https://xnrgyclub.com/nl/" data-i18n="club.web"></a>
+        <a class="btn" href="https://mijnknltb.toernooi.nl/league/29119B50-5DBF-428B-A636-B16B52242F5C/team/2481" data-i18n="club.knltb"></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <span data-i18n="foot.season"></span>
+      <div class="sponsor">
+        <span data-i18n="foot.sponsor"></span>
+        <svg width="117" height="12" viewBox="0 0 117 12" fill="none" role="img" aria-label="Pure Path">
+          <path d="M94.6068 3.11501H90.0781V0.478455H102.144V3.11501H97.6156V11.676H94.6068V3.11501Z"/>
+          <path d="M19.9149 11.676C16.3478 11.676 14.7969 10.3733 14.7969 7.24044V0.478455H17.7746V7.24044C17.7746 8.66728 18.2709 9.25662 19.9459 9.25662H20.7524C22.3653 9.25662 22.8926 8.69829 22.8926 7.24044V0.478455H25.8084V7.24044C25.8084 10.3423 24.2574 11.676 20.6903 11.676H19.8839H19.9149Z"/>
+          <path d="M54.1643 7.14738H46.2236V9.25662H54.2263V11.676H43.2148V0.478455H54.2263V2.89788H46.2236V5.00712H54.1643V7.1784V7.14738Z"/>
+          <path d="M85.3641 0.478455H81.5488L76.0586 11.676H79.1914L80.215 9.50477H86.7909L87.8145 11.676H90.8543L85.3641 0.478455ZM81.3007 7.20942L83.2238 3.14603H83.7821L85.7053 7.20942H81.3007Z"/>
+          <path d="M116.999 0.478455V11.676H113.99V7.30247H107.786V11.676H104.777V0.478455H107.786V4.85203H113.99V0.478455H116.999Z"/>
+          <path d="M37.3161 7.58164C37.3161 7.58164 38.4017 7.27145 39.2082 6.37193C39.3943 6.1548 39.5804 5.90665 39.7045 5.59647C39.8906 5.16221 39.9837 4.6349 39.9837 3.98352C39.9837 3.33214 39.8596 2.64973 39.6425 2.18446C39.3943 1.71919 39.0841 1.37798 38.6809 1.12984C38.2777 0.881692 37.8124 0.695582 37.3161 0.633546C36.8198 0.509473 36.2615 0.478455 35.7032 0.478455H28.9102V11.676H32.105V7.95386H34.0902L36.6957 11.676H40.3869L37.3471 7.58164H37.3161ZM37.0059 5.00712C36.9439 5.19323 36.8508 5.3173 36.7268 5.44138C36.6027 5.53443 36.4786 5.62749 36.3235 5.65851C36.1684 5.68952 35.9823 5.72054 35.7962 5.72054H31.8879V2.95992H35.7962C35.9823 2.95992 36.1374 2.95992 36.3235 3.02195C36.4786 3.05297 36.6337 3.11501 36.7268 3.23908C36.8508 3.33213 36.9439 3.48723 37.0059 3.67334C37.068 3.85945 37.099 4.07657 37.099 4.35574C37.099 4.6349 37.068 4.88305 37.0059 5.03814V5.00712Z"/>
+          <path d="M7.8166 0.478455H0L1.14768 2.46362V11.676H4.15645V8.202H7.8166C10.0499 8.202 12.1902 7.64367 12.1902 4.38676C12.1902 1.12984 10.0809 0.478455 7.8166 0.478455ZM7.90966 5.84461H4.15645V2.95992H7.90966C8.62308 2.95992 9.21243 3.23908 9.21243 4.41777C9.21243 5.59647 8.62308 5.84461 7.90966 5.84461Z"/>
+          <path d="M71.5588 0.478455H63.7422L64.8899 2.46362V11.676H67.8986V8.202H71.5588C73.7921 8.202 75.9324 7.64367 75.9324 4.38676C75.9324 1.12984 73.8231 0.478455 71.5588 0.478455ZM71.6518 5.84461H67.8986V2.95992H71.6518C72.3653 2.95992 72.9546 3.23908 72.9546 4.41777C72.9546 5.59647 72.3653 5.84461 71.6518 5.84461Z"/>
+        </svg>
+      </div>
+    </div>
+    <p class="credits"><span data-i18n="foot.flags"></span> <a href="https://github.com/kreativekorp/vexillo">Vexillo</a> (MPL-2.0) · <a href="https://github.com/fonttools/region-flags">region-flags</a> · <a href="https://github.com/country-regions/country-region-data">country-region-data</a> (MIT)</p>
+  </div>
+</footer>
+
+<script src="config.js"></script>
+<script src="vendor/supabase-2.118.0.js"></script>
+<script>
+"use strict";
+/* ───────────── Textos en 4 idiomas ───────────── */
+var I18N = {
+  es: {
+    "nav.me": "Mi perfil", "prof.upcoming": "Próximos partidos", "prof.results": "Resultados", "prof.noUpcoming": "No tienes partidos pendientes con alineación. Cuando la capitana te ponga en uno, aparecerá aquí.", "prof.noResults": "Aún no has jugado ningún partido esta temporada.", "prof.played": "Jugados", "prof.won": "Ganados", "prof.lost": "Perdidos", "res.w": "Ganado", "res.l": "Perdido", "res.p": "Sin resultado", "prof.team": "Equipo", "prof.back": "Volver a la web del equipo", "adm.ddScore": "Sets (ej. 6-4 6-3)", "adm.ddOut": "Resultado", "adm.none": "—", "nav.matches": "Partidos", "nav.table": "Clasificación", "nav.players": "Jugadoras", "nav.club": "Club",
+    "hero.season": "Competición del 13 de noviembre al 14 de marzo.",
+    "next.title": "Próximo partido", "next.none": "Temporada terminada", "next.vs": "contra",
+    "today": "Hoy", "tomorrow": "Mañana", "inDays": "En {n} días",
+    "round": "Jornada", "home": "En casa", "away": "Fuera", "tbc": "Por confirmar", "hour": "h",
+    "route": "Cómo llegar", "venue": "Sede",
+    "login.email": "Email", "login.password": "Contraseña", "login.submit": "Entrar", "login.forgot": "¿Has olvidado tu contraseña? Pídele a Lucía que te ponga una provisional nueva.", "login.forgotHint": "Escribe tu email arriba y pulsa aquí: te enviaremos un enlace para crear una nueva.", "login.sending": "Entrando…", "login.err": "Email o contraseña incorrectos.", "login.errNet": "No se ha podido conectar. Comprueba tu conexión e inténtalo de nuevo.", "login.needEmail": "Escribe primero tu email.", "login.resetSent": "Si ese email tiene cuenta, te hemos enviado un enlace para crear una contraseña nueva. Mira también en spam.", "pw.title": "Cambia tu contraseña", "pw.p": "Elige la contraseña con la que entrarás a partir de ahora.", "pw.new": "Contraseña nueva", "pw.repeat": "Repite la contraseña", "pw.save": "Guardar contraseña", "pw.errLen": "Usa al menos 8 caracteres.", "pw.errMatch": "Las contraseñas no coinciden.", "pw.saved": "Contraseña guardada.", "logout": "Cerrar sesión", "cfg.missing": "La web todavía no está conectada a la base de datos. Falta rellenar config.js.", "pl.locked": "Inicia sesión para ver la plantilla completa.", "cal.locked": "Inicia sesión para ver la alineación.", "pw.change": "Cambiar contraseña", "me.title": "Mi perfil", "me.loading": "Cargando tus datos…",
+    "me.slow": "Los datos tardan en llegar. Comprueba tu conexión; la página seguirá intentándolo.",
+    "me.noaccess.t": "Entra para ver tu perfil y tus partidos",
+    "me.noaccess.p": "Escribe el email y la contraseña que te ha dado Lucía. La primera vez, cambia la contraseña provisional por una tuya desde tu perfil.",
+    "me.welcome.t": "Bienvenida al equipo",
+    "me.welcome.p": "Rellena tu perfil para aparecer en la plantilla. Con él verás cuándo juegas, contra quién y con qué compañera.",
+    "me.edit": "Editar perfil", "me.myMatches": "Mis partidos",
+    "me.noMatches": "Todavía no estás en ninguna alineación. Cuando la capitana te ponga en un partido, aparecerá aquí.",
+    "me.partner": "Compañera", "me.partnerTbc": "Compañera por decidir", "me.vsTeam": "contra",
+    "f.photo": "Foto", "f.photoPick": "Elegir foto", "f.photoRemove": "Quitar foto", "f.photoHint": "Opcional. Se recorta en cuadrado.",
+    "f.first": "Nombre", "f.last": "Apellidos", "f.phone": "Teléfono", "f.knltb": "Número KNLTB", "f.knltbHint": "Lo encuentras en la app KNLTB o en tu pase de jugadora.",
+    "f.email": "Email", "f.side": "Lado de la pista", "f.hand": "Mano",
+    "f.country": "País de nacimiento", "f.region": "Región de nacimiento", "f.choose": "Elige…", "f.searchCountry": "Buscar país…", "f.searchRegion": "Buscar región…",
+    "f.regionHint": "Con el país y la región se ponen tus banderas automáticamente.",
+    "f.noRegionFlag": "Esta región no tiene bandera disponible; se mostrará su nombre.",
+    "f.save": "Guardar perfil", "f.cancel": "Cancelar", "f.saving": "Guardando…", "f.saved": "Perfil guardado.",
+    "f.errRequired": "Este campo es obligatorio.", "f.errEmail": "Escribe un email válido, por ejemplo nombre@correo.com.",
+    "f.errPhone": "Escribe un teléfono con al menos 9 cifras.", "f.errKnltb": "El número KNLTB son solo cifras (entre 6 y 10).",
+    "f.errForm": "Revisa los campos marcados en rojo.", "f.errSave": "No se ha podido guardar. Inténtalo de nuevo en un momento.",
+    "f.errBig": "La foto es demasiado grande. Prueba con otra.", "f.errImg": "No se ha podido leer esa imagen. Prueba con una JPG o PNG.",
+    "side.left": "Izquierda (revés)", "side.right": "Derecha (drive)", "side.any": "Sin preferencia",
+    "hand.left": "Zurda", "hand.right": "Diestra", "hand.both": "Ambas",
+    "cal.title": "Calendario", "cal.note": "7 jornadas · 4 partidos de dobles (DD1–DD4) por jornada",
+    "cal.lineup": "Alineación", "cal.noLineup": "La capitana aún no ha hecho la alineación.", "cal.you": "Juegas",
+    "adm.title": "Alineaciones", "adm.note": "Solo lo ven las capitanas. Elige las parejas de cada jornada.",
+    "adm.managers": "Quién puede hacer alineaciones", "adm.managersHint": "Además de ti, marca a las capitanas. Solo puedes elegir jugadoras con perfil.",
+    "adm.score": "Resultado (puntos)", "adm.us": "Nosotras", "adm.them": "Rival", "adm.save": "Guardar jornada",
+    "adm.saved": "Jornada guardada.", "adm.dup": "Hay una jugadora repetida en la misma jornada.", "adm.pick": "— Jugadora —",
+    "adm.empty": "Todavía no hay jugadoras registradas. En cuanto rellenen su perfil podrás elegirlas aquí.",
+    "tab.title": "Clasificación", "tab.note": "Afdeling 2 · 8 equipos", "tab.team": "Equipo", "tab.p": "J", "tab.w": "G", "tab.l": "P", "tab.pts": "Pts",
+    "tab.fine": "La liga empieza el 14 de noviembre; hasta entonces todos los equipos están a cero.",
+    "pl.title": "Jugadoras", "pl.captain": "Capitana", "pl.pending": "Sin perfil todavía", "pl.count": "{n} jugadoras",
+    "pl.level": "Nivel KNLTB",
+    "club.title": "Nuestro club", "club.note": "Aquí jugamos los partidos en casa", "club.club": "Club", "club.addr": "Dirección", "club.contact": "Contacto",
+    "club.web": "Web del club", "club.knltb": "Ficha en MijnKNLTB",
+    "foot.season": "XNRGY Amsterdam 1 · Temporada 2026/2027", "foot.sponsor": "Patrocinado por", "foot.flags": "Banderas:"
+  },
+  en: {
+    "nav.me": "My profile", "prof.upcoming": "Upcoming matches", "prof.results": "Results", "prof.noUpcoming": "You have no upcoming matches in a line-up. Once the captain picks you, it will show up here.", "prof.noResults": "You have not played a match this season yet.", "prof.played": "Played", "prof.won": "Won", "prof.lost": "Lost", "res.w": "Won", "res.l": "Lost", "res.p": "No result yet", "prof.team": "Team", "prof.back": "Back to the team site", "adm.ddScore": "Sets (e.g. 6-4 6-3)", "adm.ddOut": "Result", "adm.none": "—", "nav.matches": "Matches", "nav.table": "Standings", "nav.players": "Players", "nav.club": "Club",
+    "hero.season": "League runs from 13 November to 14 March.",
+    "next.title": "Next match", "next.none": "Season finished", "next.vs": "vs",
+    "today": "Today", "tomorrow": "Tomorrow", "inDays": "In {n} days",
+    "round": "Round", "home": "Home", "away": "Away", "tbc": "To be confirmed", "hour": "",
+    "route": "Directions", "venue": "Venue",
+    "login.email": "Email", "login.password": "Password", "login.submit": "Sign in", "login.forgot": "Forgot your password? Ask Lucía to set a new temporary one for you.", "login.forgotHint": "Type your email above and press here: we will send you a link to create a new one.", "login.sending": "Signing in…", "login.err": "Wrong email or password.", "login.errNet": "Could not connect. Check your connection and try again.", "login.needEmail": "Type your email first.", "login.resetSent": "If that email has an account, we have sent you a link to create a new password. Check your spam folder too.", "pw.title": "Change your password", "pw.p": "Choose the password you will use to sign in from now on.", "pw.new": "New password", "pw.repeat": "Repeat password", "pw.save": "Save password", "pw.errLen": "Use at least 8 characters.", "pw.errMatch": "The passwords do not match.", "pw.saved": "Password saved.", "logout": "Sign out", "cfg.missing": "The site is not connected to the database yet. config.js still needs to be filled in.", "pl.locked": "Sign in to see the full squad.", "cal.locked": "Sign in to see the line-up.", "pw.change": "Change password", "me.title": "My profile", "me.loading": "Loading your details…",
+    "me.slow": "Your details are taking a while. Check your connection; the page will keep trying.",
+    "me.noaccess.t": "Sign in to see your profile and your matches",
+    "me.noaccess.p": "Enter the email and password Lucía gave you. The first time, replace the temporary password with your own from your profile.",
+    "me.welcome.t": "Welcome to the team",
+    "me.welcome.p": "Fill in your profile to appear in the squad. You will then see when you play, against whom and with which partner.",
+    "me.edit": "Edit profile", "me.myMatches": "My matches",
+    "me.noMatches": "You are not in a line-up yet. Once the captain picks you for a match, it will show up here.",
+    "me.partner": "Partner", "me.partnerTbc": "Partner not decided yet", "me.vsTeam": "vs",
+    "f.photo": "Photo", "f.photoPick": "Choose photo", "f.photoRemove": "Remove photo", "f.photoHint": "Optional. It is cropped to a square.",
+    "f.first": "First name", "f.last": "Last name", "f.phone": "Phone", "f.knltb": "KNLTB number", "f.knltbHint": "You can find it in the KNLTB app or on your player pass.",
+    "f.email": "Email", "f.side": "Court side", "f.hand": "Playing hand",
+    "f.country": "Country of birth", "f.region": "Region of birth", "f.choose": "Choose…", "f.searchCountry": "Search country…", "f.searchRegion": "Search region…",
+    "f.regionHint": "Your country and region set your flags automatically.",
+    "f.noRegionFlag": "This region has no flag available; its name will be shown instead.",
+    "f.save": "Save profile", "f.cancel": "Cancel", "f.saving": "Saving…", "f.saved": "Profile saved.",
+    "f.errRequired": "This field is required.", "f.errEmail": "Enter a valid email, for example name@mail.com.",
+    "f.errPhone": "Enter a phone number with at least 9 digits.", "f.errKnltb": "The KNLTB number is digits only (6 to 10).",
+    "f.errForm": "Check the fields marked in red.", "f.errSave": "Could not save. Please try again in a moment.",
+    "f.errBig": "That photo is too large. Try another one.", "f.errImg": "That image could not be read. Try a JPG or PNG.",
+    "side.left": "Left (backhand)", "side.right": "Right (forehand)", "side.any": "No preference",
+    "hand.left": "Left-handed", "hand.right": "Right-handed", "hand.both": "Both",
+    "cal.title": "Fixtures", "cal.note": "7 rounds · 4 doubles matches (DD1–DD4) per round",
+    "cal.lineup": "Line-up", "cal.noLineup": "The captain has not set the line-up yet.", "cal.you": "You play",
+    "adm.title": "Line-ups", "adm.note": "Only captains see this. Pick the pairs for each round.",
+    "adm.managers": "Who can set line-ups", "adm.managersHint": "Besides you, tick the captains. Only players with a profile can be chosen.",
+    "adm.score": "Result (points)", "adm.us": "Us", "adm.them": "Opponent", "adm.save": "Save round",
+    "adm.saved": "Round saved.", "adm.dup": "A player appears twice in the same round.", "adm.pick": "— Player —",
+    "adm.empty": "No players have registered yet. As soon as they fill in their profile you can pick them here.",
+    "tab.title": "Standings", "tab.note": "Afdeling 2 · 8 teams", "tab.team": "Team", "tab.p": "P", "tab.w": "W", "tab.l": "L", "tab.pts": "Pts",
+    "tab.fine": "The league starts on 14 November; until then every team is on zero.",
+    "pl.title": "Players", "pl.captain": "Captain", "pl.pending": "No profile yet", "pl.count": "{n} players",
+    "pl.level": "KNLTB level",
+    "club.title": "Our club", "club.note": "Where we play our home matches", "club.club": "Club", "club.addr": "Address", "club.contact": "Contact",
+    "club.web": "Club website", "club.knltb": "MijnKNLTB page",
+    "foot.season": "XNRGY Amsterdam 1 · Season 2026/2027", "foot.sponsor": "Sponsored by", "foot.flags": "Flags:"
+  },
+  tr: {
+    "nav.me": "Profilim", "prof.upcoming": "Yaklaşan maçlar", "prof.results": "Sonuçlar", "prof.noUpcoming": "Kadroda olduğun yaklaşan maç yok. Kaptan seni seçtiğinde burada görünecek.", "prof.noResults": "Bu sezon henüz maç oynamadın.", "prof.played": "Oynanan", "prof.won": "Kazanılan", "prof.lost": "Kaybedilen", "res.w": "Kazandı", "res.l": "Kaybetti", "res.p": "Sonuç yok", "prof.team": "Takım", "prof.back": "Takım sayfasına dön", "adm.ddScore": "Setler (örn. 6-4 6-3)", "adm.ddOut": "Sonuç", "adm.none": "—", "nav.matches": "Maçlar", "nav.table": "Puan durumu", "nav.players": "Oyuncular", "nav.club": "Kulüp",
+    "hero.season": "Lig 13 Kasım'dan 14 Mart'a kadar sürüyor.",
+    "next.title": "Sıradaki maç", "next.none": "Sezon bitti", "next.vs": "karşı",
+    "today": "Bugün", "tomorrow": "Yarın", "inDays": "{n} gün sonra",
+    "round": "Hafta", "home": "İç saha", "away": "Deplasman", "tbc": "Belli değil", "hour": "",
+    "route": "Yol tarifi", "venue": "Saha",
+    "login.email": "E-posta", "login.password": "Şifre", "login.submit": "Giriş yap", "login.forgot": "Şifreni mi unuttun? Lucía'dan sana yeni bir geçici şifre vermesini iste.", "login.forgotHint": "Yukarıya e-postanı yaz ve buraya bas: yeni şifre oluşturman için bir bağlantı göndereceğiz.", "login.sending": "Giriş yapılıyor…", "login.err": "E-posta veya şifre yanlış.", "login.errNet": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.", "login.needEmail": "Önce e-postanı yaz.", "login.resetSent": "Bu e-postanın hesabı varsa yeni şifre oluşturman için bir bağlantı gönderdik. Spam klasörüne de bak.", "pw.title": "Şifreni değiştir", "pw.p": "Bundan sonra giriş yaparken kullanacağın şifreyi seç.", "pw.new": "Yeni şifre", "pw.repeat": "Şifreyi tekrar yaz", "pw.save": "Şifreyi kaydet", "pw.errLen": "En az 8 karakter kullan.", "pw.errMatch": "Şifreler eşleşmiyor.", "pw.saved": "Şifre kaydedildi.", "logout": "Çıkış yap", "cfg.missing": "Site henüz veritabanına bağlı değil. config.js dosyasının doldurulması gerekiyor.", "pl.locked": "Kadronun tamamını görmek için giriş yap.", "cal.locked": "Kadroyu görmek için giriş yap.", "pw.change": "Şifreyi değiştir", "me.title": "Profilim", "me.loading": "Bilgilerin yükleniyor…",
+    "me.slow": "Bilgiler gecikiyor. Bağlantını kontrol et; sayfa denemeye devam edecek.",
+    "me.noaccess.t": "Profilini ve maçlarını görmek için giriş yap",
+    "me.noaccess.p": "Lucía'nın sana verdiği e-posta ve şifreyi yaz. İlk girişte geçici şifreyi profilinden kendi şifrenle değiştir.",
+    "me.welcome.t": "Takıma hoş geldin",
+    "me.welcome.p": "Kadroda görünmek için profilini doldur. Böylece ne zaman, kime karşı ve hangi partnerle oynadığını göreceksin.",
+    "me.edit": "Profili düzenle", "me.myMatches": "Maçlarım",
+    "me.noMatches": "Henüz hiçbir kadroda değilsin. Kaptan seni bir maça koyduğunda burada görünecek.",
+    "me.partner": "Partner", "me.partnerTbc": "Partner henüz belli değil", "me.vsTeam": "karşı",
+    "f.photo": "Fotoğraf", "f.photoPick": "Fotoğraf seç", "f.photoRemove": "Fotoğrafı kaldır", "f.photoHint": "İsteğe bağlı. Kare olarak kırpılır.",
+    "f.first": "Ad", "f.last": "Soyad", "f.phone": "Telefon", "f.knltb": "KNLTB numarası", "f.knltbHint": "KNLTB uygulamasında veya oyuncu kartında bulabilirsin.",
+    "f.email": "E-posta", "f.side": "Kort tarafı", "f.hand": "Oynadığın el",
+    "f.country": "Doğduğun ülke", "f.region": "Doğduğun bölge", "f.choose": "Seç…", "f.searchCountry": "Ülke ara…", "f.searchRegion": "Bölge ara…",
+    "f.regionHint": "Ülke ve bölgeye göre bayrakların otomatik olarak eklenir.",
+    "f.noRegionFlag": "Bu bölgenin bayrağı yok; yerine adı gösterilecek.",
+    "f.save": "Profili kaydet", "f.cancel": "Vazgeç", "f.saving": "Kaydediliyor…", "f.saved": "Profil kaydedildi.",
+    "f.errRequired": "Bu alan zorunludur.", "f.errEmail": "Geçerli bir e-posta yaz, örneğin ad@posta.com.",
+    "f.errPhone": "En az 9 rakamlı bir telefon numarası yaz.", "f.errKnltb": "KNLTB numarası yalnızca rakamlardan oluşur (6–10).",
+    "f.errForm": "Kırmızı işaretli alanları kontrol et.", "f.errSave": "Kaydedilemedi. Biraz sonra tekrar dene.",
+    "f.errBig": "Fotoğraf çok büyük. Başka bir tane dene.", "f.errImg": "Bu görsel okunamadı. JPG veya PNG dene.",
+    "side.left": "Sol (backhand)", "side.right": "Sağ (forehand)", "side.any": "Fark etmez",
+    "hand.left": "Solak", "hand.right": "Sağlak", "hand.both": "İki el de",
+    "cal.title": "Fikstür", "cal.note": "7 hafta · her hafta 4 çiftler maçı (DD1–DD4)",
+    "cal.lineup": "Kadro", "cal.noLineup": "Kaptan henüz kadroyu belirlemedi.", "cal.you": "Oynuyorsun",
+    "adm.title": "Kadrolar", "adm.note": "Bunu sadece kaptanlar görür. Her haftanın çiftlerini seç.",
+    "adm.managers": "Kadroyu kimler belirleyebilir", "adm.managersHint": "Sana ek olarak kaptanları işaretle. Sadece profili olan oyuncular seçilebilir.",
+    "adm.score": "Sonuç (puan)", "adm.us": "Biz", "adm.them": "Rakip", "adm.save": "Haftayı kaydet",
+    "adm.saved": "Hafta kaydedildi.", "adm.dup": "Aynı haftada bir oyuncu iki kez seçilmiş.", "adm.pick": "— Oyuncu —",
+    "adm.empty": "Henüz kayıtlı oyuncu yok. Profillerini doldurdukları anda burada seçebileceksin.",
+    "tab.title": "Puan durumu", "tab.note": "Afdeling 2 · 8 takım", "tab.team": "Takım", "tab.p": "O", "tab.w": "G", "tab.l": "M", "tab.pts": "P",
+    "tab.fine": "Lig 14 Kasım'da başlıyor; o zamana kadar bütün takımlar sıfırda.",
+    "pl.title": "Oyuncular", "pl.captain": "Kaptan", "pl.pending": "Henüz profil yok", "pl.count": "{n} oyuncu",
+    "pl.level": "KNLTB seviyesi",
+    "club.title": "Kulübümüz", "club.note": "İç saha maçlarımızı burada oynuyoruz", "club.club": "Kulüp", "club.addr": "Adres", "club.contact": "İletişim",
+    "club.web": "Kulüp sitesi", "club.knltb": "MijnKNLTB sayfası",
+    "foot.season": "XNRGY Amsterdam 1 · 2026/2027 Sezonu", "foot.sponsor": "Sponsor", "foot.flags": "Bayraklar:"
+  },
+  nl: {
+    "nav.me": "Mijn profiel", "prof.upcoming": "Komende wedstrijden", "prof.results": "Uitslagen", "prof.noUpcoming": "Je staat nog niet in een opstelling voor een komende wedstrijd. Zodra de aanvoerder je kiest, zie je het hier.", "prof.noResults": "Je hebt dit seizoen nog geen partij gespeeld.", "prof.played": "Gespeeld", "prof.won": "Gewonnen", "prof.lost": "Verloren", "res.w": "Gewonnen", "res.l": "Verloren", "res.p": "Nog geen uitslag", "prof.team": "Team", "prof.back": "Terug naar de teampagina", "adm.ddScore": "Sets (bijv. 6-4 6-3)", "adm.ddOut": "Uitslag", "adm.none": "—", "nav.matches": "Wedstrijden", "nav.table": "Stand", "nav.players": "Speelsters", "nav.club": "Club",
+    "hero.season": "Competitie van 13 november tot 14 maart.",
+    "next.title": "Volgende wedstrijd", "next.none": "Seizoen afgelopen", "next.vs": "tegen",
+    "today": "Vandaag", "tomorrow": "Morgen", "inDays": "Over {n} dagen",
+    "round": "Ronde", "home": "Thuis", "away": "Uit", "tbc": "Nog niet bekend", "hour": "uur",
+    "route": "Route", "venue": "Speellocatie",
+    "login.email": "E-mail", "login.password": "Wachtwoord", "login.submit": "Inloggen", "login.forgot": "Wachtwoord vergeten? Vraag Lucía om een nieuw tijdelijk wachtwoord.", "login.forgotHint": "Vul hierboven je e-mailadres in en klik hier: we sturen je een link om een nieuw wachtwoord te maken.", "login.sending": "Bezig met inloggen…", "login.err": "Onjuist e-mailadres of wachtwoord.", "login.errNet": "Geen verbinding. Controleer je internet en probeer het opnieuw.", "login.needEmail": "Vul eerst je e-mailadres in.", "login.resetSent": "Als dit e-mailadres een account heeft, hebben we je een link gestuurd om een nieuw wachtwoord te maken. Kijk ook in je spam.", "pw.title": "Wijzig je wachtwoord", "pw.p": "Kies het wachtwoord waarmee je voortaan inlogt.", "pw.new": "Nieuw wachtwoord", "pw.repeat": "Herhaal wachtwoord", "pw.save": "Wachtwoord opslaan", "pw.errLen": "Gebruik minstens 8 tekens.", "pw.errMatch": "De wachtwoorden komen niet overeen.", "pw.saved": "Wachtwoord opgeslagen.", "logout": "Uitloggen", "cfg.missing": "De site is nog niet verbonden met de database. config.js moet nog worden ingevuld.", "pl.locked": "Log in om de volledige selectie te zien.", "cal.locked": "Log in om de opstelling te zien.", "pw.change": "Wachtwoord wijzigen", "me.title": "Mijn profiel", "me.loading": "Je gegevens worden geladen…",
+    "me.slow": "Je gegevens laten op zich wachten. Controleer je verbinding; de pagina blijft het proberen.",
+    "me.noaccess.t": "Log in om je profiel en je wedstrijden te zien",
+    "me.noaccess.p": "Vul het e-mailadres en wachtwoord in dat je van Lucía hebt gekregen. Vervang het tijdelijke wachtwoord de eerste keer via je profiel door een eigen wachtwoord.",
+    "me.welcome.t": "Welkom in het team",
+    "me.welcome.p": "Vul je profiel in om in de selectie te staan. Dan zie je wanneer je speelt, tegen wie en met welke partner.",
+    "me.edit": "Profiel bewerken", "me.myMatches": "Mijn wedstrijden",
+    "me.noMatches": "Je staat nog in geen enkele opstelling. Zodra de aanvoerder je voor een wedstrijd kiest, zie je het hier.",
+    "me.partner": "Partner", "me.partnerTbc": "Partner nog niet bekend", "me.vsTeam": "tegen",
+    "f.photo": "Foto", "f.photoPick": "Foto kiezen", "f.photoRemove": "Foto verwijderen", "f.photoHint": "Optioneel. Wordt vierkant bijgesneden.",
+    "f.first": "Voornaam", "f.last": "Achternaam", "f.phone": "Telefoon", "f.knltb": "KNLTB-nummer", "f.knltbHint": "Staat in de KNLTB-app of op je spelerspas.",
+    "f.email": "E-mail", "f.side": "Baankant", "f.hand": "Speelhand",
+    "f.country": "Geboorteland", "f.region": "Geboorteregio", "f.choose": "Kies…", "f.searchCountry": "Zoek land…", "f.searchRegion": "Zoek regio…",
+    "f.regionHint": "Met land en regio worden je vlaggen automatisch toegevoegd.",
+    "f.noRegionFlag": "Voor deze regio is geen vlag beschikbaar; de naam wordt getoond.",
+    "f.save": "Profiel opslaan", "f.cancel": "Annuleren", "f.saving": "Opslaan…", "f.saved": "Profiel opgeslagen.",
+    "f.errRequired": "Dit veld is verplicht.", "f.errEmail": "Vul een geldig e-mailadres in, bijvoorbeeld naam@mail.nl.",
+    "f.errPhone": "Vul een telefoonnummer in met minstens 9 cijfers.", "f.errKnltb": "Het KNLTB-nummer bestaat alleen uit cijfers (6 tot 10).",
+    "f.errForm": "Controleer de rood gemarkeerde velden.", "f.errSave": "Opslaan is niet gelukt. Probeer het zo opnieuw.",
+    "f.errBig": "Deze foto is te groot. Probeer een andere.", "f.errImg": "Deze afbeelding kan niet worden gelezen. Probeer een JPG of PNG.",
+    "side.left": "Links (backhand)", "side.right": "Rechts (forehand)", "side.any": "Geen voorkeur",
+    "hand.left": "Linkshandig", "hand.right": "Rechtshandig", "hand.both": "Beide",
+    "cal.title": "Programma", "cal.note": "7 ronden · 4 dubbelpartijen (DD1–DD4) per ronde",
+    "cal.lineup": "Opstelling", "cal.noLineup": "De aanvoerder heeft de opstelling nog niet gemaakt.", "cal.you": "Jij speelt",
+    "adm.title": "Opstellingen", "adm.note": "Alleen zichtbaar voor aanvoerders. Kies per ronde de koppels.",
+    "adm.managers": "Wie mag opstellingen maken", "adm.managersHint": "Vink naast jezelf de aanvoerders aan. Alleen speelsters met een profiel zijn te kiezen.",
+    "adm.score": "Uitslag (punten)", "adm.us": "Wij", "adm.them": "Tegenstander", "adm.save": "Ronde opslaan",
+    "adm.saved": "Ronde opgeslagen.", "adm.dup": "Een speelster staat twee keer in dezelfde ronde.", "adm.pick": "— Speelster —",
+    "adm.empty": "Er zijn nog geen speelsters geregistreerd. Zodra ze hun profiel invullen kun je ze hier kiezen.",
+    "tab.title": "Stand", "tab.note": "Afdeling 2 · 8 teams", "tab.team": "Team", "tab.p": "G", "tab.w": "W", "tab.l": "V", "tab.pts": "Ptn",
+    "tab.fine": "De competitie begint op 14 november; tot die tijd staan alle teams op nul.",
+    "pl.title": "Speelsters", "pl.captain": "Aanvoerder", "pl.pending": "Nog geen profiel", "pl.count": "{n} speelsters",
+    "pl.level": "KNLTB-speelsterkte",
+    "club.title": "Onze club", "club.note": "Hier spelen we onze thuiswedstrijden", "club.club": "Club", "club.addr": "Adres", "club.contact": "Contact",
+    "club.web": "Website van de club", "club.knltb": "MijnKNLTB-pagina",
+    "foot.season": "XNRGY Amsterdam 1 · Seizoen 2026/2027", "foot.sponsor": "Gesponsord door", "foot.flags": "Vlaggen:"
+  }
+};
+var LANGS = ["es", "en", "tr", "nl"];
+var lang = (function () {
+  try { var s = localStorage.getItem("xnrgy-lang"); if (LANGS.indexOf(s) >= 0) return s; } catch (e) {}
+  var n = (navigator.language || "es").slice(0, 2).toLowerCase();
+  return LANGS.indexOf(n) >= 0 ? n : "es";
+})();
+function t(k, vars) {
+  var s = (I18N[lang] && I18N[lang][k]) || I18N.es[k] || k;
+  if (vars) for (var v in vars) s = s.replace("{" + v + "}", vars[v]);
+  return s;
+}
+
+/* ───────────── Datos de la liga (MijnKNLTB) ───────────── */
+var US = "XNRGY AMSTERDAM 1";
+var HOME_VENUE = { name: "XNRGY Amsterdam", street: "De Flinesstraat 10", city: "1099 CB Amsterdam" };
+var ROUNDS = [
+  { r: 1, date: "2026-11-14", time: "12:30", home: US, away: "STROKEL 1", venue: HOME_VENUE },
+  { r: 2, date: "2026-11-28", time: null, home: "HEALTHCITY HOENDERDAAL 2", away: US, venue: { name: "Health Centre Hoenderdaal", street: "Hoendersteeg 7", city: "3972 NA Driebergen-Rijsenburg" } },
+  { r: 3, date: "2026-12-12", time: "09:30", home: US, away: "GAASPERPARK 1", venue: HOME_VENUE },
+  { r: 4, date: "2027-01-16", time: "10:30", home: "PLAZA PADEL AMERSFOORT 1", away: US, venue: { name: "Plaza Padel Amersfoort", street: "Bunschoterstraat 23", city: "3828 NR Hoogland" } },
+  { r: 5, date: "2027-01-23", time: "09:30", home: US, away: "LEISURE WORLD PADEL 1", venue: HOME_VENUE },
+  { r: 6, date: "2027-01-30", time: "09:30", home: "VLTV 3", away: US, venue: { name: "VLTV Tennis & Padel", street: "Mijdrechtse Dwarsweg 2", city: "3645 GA Vinkeveen" } },
+  { r: 7, date: "2027-02-13", time: "14:00", home: "NIJKERK 1", away: US, venue: { name: "De Conijnenbergh", street: "Bloemendaalseweg 5-D", city: "3862 RN Nijkerk" } }
+];
+var STANDINGS = ["GAASPERPARK 1", "HEALTHCITY HOENDERDAAL 2", "LEISURE WORLD PADEL 1", "NIJKERK 1", "PLAZA PADEL AMERSFOORT 1", "STROKEL 1", "VLTV 3", US];
+var KNLTB_PLAYERS = [
+  { name: "Lucia Carrera Guillén", surname: "Carrera", level: "9 · 9,0000" },
+  { name: "Irviani Gerard", surname: "Gerard", level: "9 · 9,5887" },
+  { name: "Roseline Isabel Moro Huesca Schmit", surname: "Moro", level: "9 · 9,1265", captain: true }
+];
+var SLOTS = ["DD1", "DD2", "DD3", "DD4"];
+
+/* ───────────── Estado ───────────── */
+var state = {
+  sb: null, uid: null, email: "", isOwner: false, canWrite: true, needPassword: false,
+  phase: "loading",          // loading | slow | noaccess (sin sesión) | nocfg | ready
+  players: {},               // uid -> perfil
+  rounds: {},                // "r1" -> { pairs: [[a,b]x4], us, them }
+  managers: [],              // uids con permiso de alineaciones
+  editing: false,
+  regions: null, flags: null
+};
+
+/* ───────────── Utilidades ───────────── */
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function parse(d) { var p = d.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+var LOCALE = { es: "es-ES", en: "en-GB", tr: "tr-TR", nl: "nl-NL" };
+function fmtDate(d, long) {
+  try { return new Intl.DateTimeFormat(LOCALE[lang], long ? { weekday: "long", day: "numeric", month: "long" } : { weekday: "short", day: "numeric", month: "short" }).format(parse(d)); }
+  catch (e) { return d; }
+}
+function timeStr(m) { return m.time ? (m.time + (t("hour") ? " " + t("hour") : "")) : t("tbc"); }
+function routeUrl(v) { return "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(v.street + ", " + v.city + ", Nederland"); }
+function countryName(cc) {
+  try { return new Intl.DisplayNames([LOCALE[lang]], { type: "region" }).of(cc) || cc; } catch (e) { return cc; }
+}
+function initials(a, b) { return ((a || "?")[0] + ((b || "")[0] || "")).toUpperCase(); }
+function fullName(p) { return p ? (p.firstName + " " + p.lastName).trim() : ""; }
+function today0() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+function roundDoc(r) { return state.rounds["r" + r] || null; }
+function resultsOf(r) { var d = roundDoc(r); return (d && Array.isArray(d.results)) ? d.results : [{}, {}, {}, {}]; }
+function pairsOf(r) { var d = roundDoc(r); return (d && Array.isArray(d.pairs)) ? d.pairs : [[null, null], [null, null], [null, null], [null, null]]; }
+function canManage() { return state.isOwner || (state.uid && state.managers.indexOf(state.uid) >= 0); }
+function nextRound() {
+  var t0 = today0();
+  for (var i = 0; i < ROUNDS.length; i++) {
+    var d = roundDoc(ROUNDS[i].r);
+    var played = d && typeof d.us === "number" && typeof d.them === "number";
+    if (!played && parse(ROUNDS[i].date) >= t0) return ROUNDS[i];
+  }
+  return null;
+}
+function flagImg(code, label) {
+  var b = state.flags && state.flags[code.toLowerCase()];
+  if (!b) return '<span class="noflag" role="img" aria-label="' + esc(label) + '"></span>';
+  return '<img src="data:image/webp;base64,' + b + '" alt="' + esc(label) + '">';
+}
+function regionInfo(cc, rc) {
+  var reg = state.regions && state.regions[cc];
+  if (!reg) return { name: rc || "", hasFlag: false };
+  var name = rc; for (var i = 0; i < reg.r.length; i++) if (reg.r[i][0] === rc) { name = reg.r[i][1]; break; }
+  return { name: name, hasFlag: reg.f.indexOf(rc) >= 0 };
+}
+function flagsHtml(p) {
+  if (!p || !p.country) return "";
+  var cn = countryName(p.country);
+  var ri = regionInfo(p.country, p.region);
+  var regionName = p.regionName || ri.name || "";
+  return '<div class="flags">' +
+    '<div class="flag">' + flagImg(p.country, cn) + '<span>' + esc(cn) + '</span></div>' +
+    (p.region ? '<div class="flag">' + (ri.hasFlag ? flagImg(p.country + "-" + p.region, regionName) : '<span class="noflag" aria-hidden="true"></span>') + '<span>' + esc(regionName) + '</span></div>' : "") +
+    '</div>';
+}
+function flagData(code) { var b = state.flags && state.flags[code.toLowerCase()]; return b ? "data:image/webp;base64," + b : null; }
+// Franja bajo la foto: bandera del país (izquierda) y de la región (derecha) ocupando todo el recuadro
+function kitHtml(p, withCaption) {
+  if (!p) return "";
+  var cn = p.country ? countryName(p.country) : "", ri = p.country ? regionInfo(p.country, p.region) : { name: "", hasFlag: false };
+  var rn = p.regionName || ri.name || "";
+  var c = p.country ? flagData(p.country) : null, r = (p.region && ri.hasFlag) ? flagData(p.country + "-" + p.region) : null;
+  var label = [cn, rn].filter(Boolean).join(" · ");
+  var inner = (c ? '<img src="' + c + '" alt="" title="' + esc(cn) + '">' : '') + (r ? '<img src="' + r + '" alt="" title="' + esc(rn) + '">' : '');
+  return '<div class="kit' + (inner ? '' : ' empty') + '"' + (label ? ' role="img" aria-label="' + esc(label) + '"' : ' aria-hidden="true"') + '>' + inner + '</div>' +
+    (withCaption && label ? '<div class="kit-cap">' + esc(label) + '</div>' : "");
+}
+function photoHtml(p, cls) {
+  if (p && p.photo && /^data:image\/(jpeg|png|webp);base64,/.test(p.photo)) return '<img src="' + p.photo + '" alt="">';
+  return '<span class="' + (cls || "ini") + '">' + esc(p ? initials(p.firstName, p.lastName) : "?") + '</span>';
+}
+function miniHtml(p) { return '<span class="mini">' + photoHtml(p, "") + '</span>'; }
+function sortedPlayers() {
+  return Object.keys(state.players).map(function (id) { return { id: id, p: state.players[id] }; })
+    .sort(function (a, b) { return fullName(a.p).localeCompare(fullName(b.p)); });
+}
+
+/* ───────────── Pintado de textos fijos ───────────── */
+function paintStatic() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(function (el) { el.textContent = t(el.getAttribute("data-i18n")); });
+  document.querySelectorAll(".langs button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang)); });
+  document.getElementById("club-route").href = routeUrl(HOME_VENUE);
+}
+
+/* ───────────── Próximo partido ───────────── */
+function renderNext() {
+  var vs = document.getElementById("next-vs"), meta = document.getElementById("next-meta"), count = document.getElementById("next-count");
+  var m = nextRound();
+  if (!m) { document.getElementById("next-label").textContent = t("next.none"); vs.innerHTML = ""; meta.innerHTML = ""; count.textContent = ""; return; }
+  document.getElementById("next-label").textContent = t("next.title");
+  var isHome = m.home === US;
+  vs.innerHTML = '<span class="team' + (isHome ? "" : " them") + '">' + esc(m.home) + '</span><span class="sep">' + esc(t("next.vs")) + '</span><span class="team' + (isHome ? " them" : "") + '">' + esc(m.away) + '</span>';
+  var days = Math.round((parse(m.date) - today0()) / 86400000);
+  count.textContent = days === 0 ? t("today") : days === 1 ? t("tomorrow") : t("inDays", { n: days });
+  meta.innerHTML = '<span>' + esc(t("round")) + ' <b>' + m.r + '</b></span><span><b>' + esc(fmtDate(m.date)) + '</b></span><span><b>' + esc(timeStr(m)) + '</b></span>' +
+    '<span><b>' + esc(isHome ? t("home") : t("away")) + '</b> · ' + esc(m.venue.name) + '</span>' +
+    '<a class="route" href="' + routeUrl(m.venue) + '">' + esc(t("route")) + ' →</a>';
+}
+
+/* ───────────── Calendario ───────────── */
+var openRounds = {};
+function renderRounds() {
+  var nx = nextRound();
+  var html = ROUNDS.map(function (m) {
+    var isHome = m.home === US, rival = isHome ? m.away : m.home, d = roundDoc(m.r);
+    var score;
+    if (d && typeof d.us === "number" && typeof d.them === "number") {
+      var cls = d.us > d.them ? "w" : d.us < d.them ? "l" : "d";
+      score = '<span class="r-score ' + cls + '">' + d.us + '–' + d.them + '</span>';
+    } else score = '<span class="r-score pending">' + esc(m.time || t("tbc")) + '</span>';
+    var pairs = pairsOf(m.r), mine = false, anySet = false;
+    var lineup = pairs.map(function (pr, i) {
+      var a = state.players[pr[0]], b = state.players[pr[1]];
+      if (pr[0] || pr[1]) anySet = true;
+      var isMine = state.uid && (pr[0] === state.uid || pr[1] === state.uid);
+      if (isMine) mine = true;
+      var names = [a ? fullName(a) : (pr[0] ? "?" : "—"), b ? fullName(b) : (pr[1] ? "?" : "—")].join(" / ");
+      var rs = resultsOf(m.r)[i] || {}, rtxt = "";
+      if (rs.won === true || rs.won === false) rtxt = '<span class="ddres ' + (rs.won ? "w" : "l") + '">' + esc(t(rs.won ? "res.w" : "res.l")) + (rs.score ? " · " + esc(rs.score) : "") + '</span>';
+      return '<div class="dd' + (isMine ? " mine" : "") + '"><span class="tag">' + SLOTS[i] + '</span><span class="names">' + esc(names) + rtxt + '</span></div>';
+    }).join("");
+    var chip = mine ? '<span class="chip me">' + esc(t("cal.you")) + '</span>' : '<span class="chip' + (isHome ? " home" : "") + '">' + esc(isHome ? t("home") : t("away")) + '</span>';
+    return '<details class="round' + (m === nx ? " is-next" : "") + '" data-r="' + m.r + '"' + (openRounds[m.r] ? " open" : "") + '>' +
+      '<summary><span class="r-num">' + esc(t("round")) + ' ' + m.r + '</span>' +
+      '<span class="r-date">' + esc(fmtDate(m.date)) + '<small>' + parse(m.date).getFullYear() + '</small></span>' +
+      '<span class="r-match"><span class="vsw">' + esc(t("next.vs")) + '</span> ' + esc(rival) + '</span>' + chip + score + '<span class="caret" aria-hidden="true">›</span></summary>' +
+      '<div class="r-body">' +
+        '<div class="venue"><span class="label">' + esc(t("venue")) + ' · ' + esc(isHome ? t("home") : t("away")) + '</span>' +
+          '<p><b>' + esc(m.venue.name) + '</b><br>' + esc(m.venue.street) + '<br>' + esc(m.venue.city) + '<br>' + esc(fmtDate(m.date, true)) + ' · ' + esc(timeStr(m)) + '</p>' +
+          '<a class="btn small solid" href="' + routeUrl(m.venue) + '">' + esc(t("route")) + '</a></div>' +
+        '<div><span class="label">' + esc(t("cal.lineup")) + '</span>' +
+          (!state.uid ? '<p class="muted" style="margin:6px 0 0"><a href="#perfil">' + esc(t("cal.locked")) + '</a></p>' : anySet ? '<div class="lineup">' + lineup + '</div>' : '<p class="muted" style="margin:6px 0 0">' + esc(t("cal.noLineup")) + '</p>') + '</div>' +
+      '</div></details>';
+  }).join("");
+  var box = document.getElementById("rounds");
+  box.innerHTML = html;
+  box.querySelectorAll("details").forEach(function (d) {
+    d.addEventListener("toggle", function () { openRounds[d.getAttribute("data-r")] = d.open; });
+  });
+}
+
+/* ───────────── Clasificación ───────────── */
+function renderStandings() {
+  document.getElementById("standings").innerHTML = STANDINGS.map(function (team, i) {
+    return '<tr' + (team === US ? ' class="us"' : '') + '><td class="pos">' + (i + 1) + '</td><td class="team">' + esc(team) + '</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n"><b>0</b></td></tr>';
+  }).join("");
+}
+
+/* ───────────── Plantilla ───────────── */
+function sideLabel(v) { return v ? t("side." + v) : ""; }
+function handLabel(v) { return v ? t("hand." + v) : ""; }
+function isCaptain(p) { return /roseline/i.test(p.firstName || "") && /schmit|moro/i.test(p.lastName || ""); }
+function renderPlayers() {
+  if (!state.uid) {
+    document.getElementById("players").innerHTML = '<div class="notice"><p style="margin:0">' + esc(t("pl.locked")) + ' <a href="#perfil">' + esc(t("login.submit")) + ' →</a></p></div>';
+    document.getElementById("pl-note").textContent = "";
+    return;
+  }
+  var list = sortedPlayers();
+  var registeredNames = list.map(function (x) { return fullName(x.p).toLowerCase(); });
+  var cards = list.map(function (x) {
+    var p = x.p;
+    return '<article class="player"><div class="photo">' + photoHtml(p) + '</div>' + kitHtml(p, true) + '<div class="p-body">' +
+      '<div><div class="p-name">' + esc(fullName(p)) + '</div>' + (isCaptain(p) ? '<span class="badge">' + esc(t("pl.captain")) + '</span>' : '') + '</div>' +
+      '<div class="p-chips"><span class="chip">' + esc(sideLabel(p.side)) + '</span><span class="chip">' + esc(handLabel(p.hand)) + '</span></div>' +
+      '<div class="p-contact"><span>' + esc(p.phone) + '</span><span>' + esc(p.email) + '</span><span>KNLTB ' + esc(p.knltb) + '</span></div>' +
+      '</div></article>';
+  });
+  // Jugadoras de la ficha KNLTB que aún no han rellenado su perfil
+  KNLTB_PLAYERS.forEach(function (k) {
+    var parts = k.name.split(" ");
+    var found = registeredNames.some(function (n) { return n.indexOf(parts[0].toLowerCase()) >= 0 && n.indexOf(parts[parts.length - 1].toLowerCase()) >= 0; });
+    if (found) return;
+    cards.push('<article class="player"><div class="photo"><span class="ini">' + esc(initials(parts[0], parts[1])) + '</span></div>' + kitHtml({ firstName: k.name.split(" ")[0], lastName: k.surname }, false) + '<div class="p-body">' +
+      '<div><div class="p-name">' + esc(k.name) + '</div>' + (k.captain ? '<span class="badge">' + esc(t("pl.captain")) + '</span> ' : '') + '<span class="badge ghost">' + esc(t("pl.pending")) + '</span></div>' +
+      '<div class="p-contact"><span>' + esc(t("pl.level")) + ': ' + esc(k.level) + '</span></div></div></article>');
+  });
+  document.getElementById("players").innerHTML = cards.join("");
+  document.getElementById("pl-note").textContent = t("pl.count", { n: cards.length });
+}
+
+/* ───────────── Mi zona ───────────── */
+function myGames() {
+  var up = [], done = [], t0 = today0();
+  ROUNDS.forEach(function (m) {
+    pairsOf(m.r).forEach(function (pr, i) {
+      if (!state.uid || (pr[0] !== state.uid && pr[1] !== state.uid)) return;
+      var rs = resultsOf(m.r)[i] || {}, d = roundDoc(m.r) || {};
+      var g = { m: m, i: i, partnerId: pr[0] === state.uid ? pr[1] : pr[0], rs: rs, d: d };
+      var hasRes = rs.won === true || rs.won === false;
+      if (hasRes || parse(m.date) < t0) done.push(g); else up.push(g);
+    });
+  });
+  return { up: up, done: done };
+}
+function gameHtml(g, past) {
+  var m = g.m, partner = g.partnerId ? state.players[g.partnerId] : null;
+  var isHome = m.home === US, rival = isHome ? m.away : m.home;
+  var right;
+  if (past) {
+    var cls = g.rs.won === true ? "w" : g.rs.won === false ? "l" : "p";
+    right = '<div style="display:grid;gap:6px;justify-items:end"><span class="res ' + cls + '">' + esc(t("res." + cls)) + '</span>' + (g.rs.score ? '<span class="mm-score">' + esc(g.rs.score) + '</span>' : '') + '</div>';
+  } else right = '<a class="btn small" href="' + routeUrl(m.venue) + '">' + esc(t("route")) + '</a>';
+  var team = (past && typeof g.d.us === "number" && typeof g.d.them === "number") ? ' · ' + esc(t("prof.team")) + ' <b>' + g.d.us + '–' + g.d.them + '</b>' : '';
+  return '<div class="mm">' +
+    '<div><div class="mm-title">' + SLOTS[g.i] + ' · ' + esc(t("me.vsTeam")) + ' ' + esc(rival) + '</div>' +
+    '<div class="mm-meta">' + esc(t("round")) + ' ' + m.r + ' · <b>' + esc(fmtDate(m.date, true)) + '</b>' + (past ? '' : ' · <b>' + esc(timeStr(m)) + '</b>') + ' · ' + esc(isHome ? t("home") : t("away")) + ' · ' + esc(m.venue.name) + team + '</div></div>' +
+    right +
+    '<div class="partner" style="grid-column:1/-1">' + (partner ? miniHtml(partner) + '<span><span class="label">' + esc(t("me.partner")) + '</span><br>' + esc(fullName(partner)) + ' · ' + esc(sideLabel(partner.side)) + '</span>' : '<span class="muted">' + esc(t("me.partnerTbc")) + '</span>') + '</div>' +
+    '</div>';
+}
+function renderMe() {
+  var root = document.getElementById("me-root");
+  var note = document.getElementById("me-note");
+  note.textContent = "";
+  if (state.phase === "loading" || state.phase === "slow") {
+    root.innerHTML = '<p class="muted">' + esc(t(state.phase === "slow" ? "me.slow" : "me.loading")) + '</p>';
+    return;
+  }
+  if (state.phase === "nocfg") {
+    root.innerHTML = '<div class="notice"><h3>' + esc(t("cfg.missing")) + '</h3></div>';
+    return;
+  }
+  if (state.phase === "noaccess") { formMounted = false; mountLogin(root); return; }
+  if (state.needPassword) { formMounted = false; mountSetPassword(root); return; }
+  var me = state.players[state.uid];
+  if (state.editing || !me) {
+    if (!formMounted) mountForm(me);
+    return;
+  }
+  formMounted = false;
+  note.textContent = fullName(me);
+  var gm = myGames();
+  var won = gm.done.filter(function (g) { return g.rs.won === true; }).length, lost = gm.done.filter(function (g) { return g.rs.won === false; }).length;
+  var gamesBlock =
+    '<div class="stats"><div class="stat"><b>' + (won + lost) + '</b><span>' + esc(t("prof.played")) + '</span></div><div class="stat w"><b>' + won + '</b><span>' + esc(t("prof.won")) + '</span></div><div class="stat l"><b>' + lost + '</b><span>' + esc(t("prof.lost")) + '</span></div></div>' +
+    '<div class="p-sec"><h3>' + esc(t("prof.upcoming")) + '</h3>' + (gm.up.length ? gm.up.map(function (g) { return gameHtml(g, false); }).join("") : '<p class="muted" style="margin:0">' + esc(t("prof.noUpcoming")) + '</p>') + '</div>' +
+    '<div class="p-sec"><h3>' + esc(t("prof.results")) + '</h3>' + (gm.done.length ? gm.done.slice().reverse().map(function (g) { return gameHtml(g, true); }).join("") : '<p class="muted" style="margin:0">' + esc(t("prof.noResults")) + '</p>') + '</div>';
+  root.innerHTML = '<div class="panel"><div class="me-grid">' +
+    '<div class="me-side"><div class="card-photo"><div class="photo" style="border:0">' + photoHtml(me) + '</div>' + kitHtml(me, true) + '</div></div>' +
+    '<div><h3>' + esc(fullName(me)) + '</h3>' +
+      '<dl class="facts">' +
+        '<div><dt>' + esc(t("f.phone")) + '</dt><dd>' + esc(me.phone) + '</dd></div>' +
+        '<div><dt>' + esc(t("f.email")) + '</dt><dd>' + esc(me.email) + '</dd></div>' +
+        '<div><dt>' + esc(t("f.knltb")) + '</dt><dd>' + esc(me.knltb) + '</dd></div>' +
+        '<div><dt>' + esc(t("f.side")) + '</dt><dd>' + esc(sideLabel(me.side)) + '</dd></div>' +
+        '<div><dt>' + esc(t("f.hand")) + '</dt><dd>' + esc(handLabel(me.hand)) + '</dd></div>' +
+      '</dl>' +
+      '<div class="form-actions" style="margin-top:20px"><button type="button" class="btn small" id="edit-btn">' + esc(t("me.edit")) + '</button>' +
+        '<button type="button" class="btn small" id="pw-btn">' + esc(t("pw.change")) + '</button>' +
+        '<button type="button" class="btn small" id="logout-btn">' + esc(t("logout")) + '</button></div>' +
+    '</div></div></div>' + gamesBlock;
+  document.getElementById("edit-btn").addEventListener("click", function () { state.editing = true; formMounted = false; renderMe(); });
+  document.getElementById("pw-btn").addEventListener("click", function () { state.needPassword = true; renderMe(); });
+  document.getElementById("logout-btn").addEventListener("click", function () { state.sb.auth.signOut(); });
+}
+
+/* ───────────── Inicio de sesión ───────────── */
+function mountLogin(root) {
+  if (root.querySelector("#lf")) return; // no repintar mientras escribe
+  root.innerHTML = '<div class="notice" style="margin-bottom:24px"><h3>' + esc(t("me.noaccess.t")) + '</h3><p>' + esc(t("me.noaccess.p")) + '</p></div>' +
+    '<form class="panel" id="lf" novalidate style="max-width:460px">' +
+      '<div class="field"><label for="l-email">' + esc(t("login.email")) + '</label><input type="email" id="l-email" autocomplete="username" required></div>' +
+      '<div class="field"><label for="l-pass">' + esc(t("login.password")) + '</label><input type="password" id="l-pass" autocomplete="current-password" required></div>' +
+      '<div class="form-actions"><button type="submit" class="btn solid" id="l-go">' + esc(t("login.submit")) + '</button></div>' +
+      '<p class="hint" style="margin:0">' + esc(t("login.forgot")) + '</p>' +
+      '<span class="status" id="l-status" role="status" aria-live="polite"></span>' +
+    '</form>';
+  var f = document.getElementById("lf"), st = document.getElementById("l-status");
+  f.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var email = f.querySelector("#l-email").value.trim(), pass = f.querySelector("#l-pass").value;
+    if (!email || !pass) { st.textContent = t("login.err"); st.className = "status bad"; return; }
+    var btn = document.getElementById("l-go"); btn.disabled = true; st.textContent = t("login.sending"); st.className = "status";
+    state.sb.auth.signInWithPassword({ email: email, password: pass }).then(function (res) {
+      btn.disabled = false;
+      if (res.error) { st.textContent = /fetch|network/i.test(res.error.message || "") ? t("login.errNet") : t("login.err"); st.className = "status bad"; }
+    }).catch(function () { btn.disabled = false; st.textContent = t("login.errNet"); st.className = "status bad"; });
+  });
+}
+function mountSetPassword(root) {
+  if (root.querySelector("#pwf")) return;
+  root.innerHTML = '<form class="panel" id="pwf" novalidate style="max-width:460px">' +
+      '<div><h3>' + esc(t("pw.title")) + '</h3><p class="muted" style="margin:6px 0 0">' + esc(t("pw.p")) + '</p></div>' +
+      '<input type="email" autocomplete="username" value="' + esc(state.email) + '" hidden>' +
+      '<div class="field"><label for="p-new">' + esc(t("pw.new")) + '</label><input type="password" id="p-new" autocomplete="new-password" minlength="8" required></div>' +
+      '<div class="field"><label for="p-rep">' + esc(t("pw.repeat")) + '</label><input type="password" id="p-rep" autocomplete="new-password" minlength="8" required></div>' +
+      '<div class="form-actions"><button type="submit" class="btn solid" id="p-go">' + esc(t("pw.save")) + '</button>' +
+        (state.players[state.uid] ? '<button type="button" class="btn" id="p-cancel">' + esc(t("f.cancel")) + '</button>' : '') + '</div>' +
+      '<span class="status" id="p-status" role="status" aria-live="polite"></span>' +
+    '</form>';
+  var f = document.getElementById("pwf"), st = document.getElementById("p-status");
+  var cancel = document.getElementById("p-cancel");
+  if (cancel) cancel.addEventListener("click", function () { state.needPassword = false; renderMe(); });
+  f.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var a = f.querySelector("#p-new").value, b = f.querySelector("#p-rep").value;
+    if (a.length < 8) { st.textContent = t("pw.errLen"); st.className = "status bad"; return; }
+    if (a !== b) { st.textContent = t("pw.errMatch"); st.className = "status bad"; return; }
+    var btn = document.getElementById("p-go"); btn.disabled = true;
+    state.sb.auth.updateUser({ password: a }).then(function (res) {
+      btn.disabled = false;
+      if (res.error) { st.textContent = res.error.message || t("f.errSave"); st.className = "status bad"; return; }
+      state.needPassword = false; renderMe();
+      document.getElementById("me-note").textContent = t("pw.saved");
+    }).catch(function () { btn.disabled = false; st.textContent = t("login.errNet"); st.className = "status bad"; });
+  });
+}
+
+/* ───────────── Formulario de perfil ───────────── */
+var formMounted = false, formPhoto = null;
+function radios(name, opts, prefix, val) {
+  return '<div class="choices">' + opts.map(function (o) {
+    return '<label class="choice"><input type="radio" name="' + name + '" id="f-' + name + '-' + o + '" value="' + o + '"' + (val === o ? " checked" : "") + '><span>' + esc(t(prefix + o)) + '</span></label>';
+  }).join("") + '</div>';
+}
+function norm(x) { return String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i").toLowerCase(); }
+function countryOptions(sel, q) {
+  var codes = state.regions ? Object.keys(state.regions) : [];
+  var items = codes.map(function (c) { return { c: c, n: countryName(c) }; });
+  if (q) {
+    var nq = norm(q);
+    items = items.filter(function (i) {
+      if (i.c === sel || i.c.toLowerCase() === nq) return true;
+      // Busca en los 4 idiomas de la web, para que cada una lo encuentre como lo escriba
+      return LANGS.some(function (l) { var n; try { n = new Intl.DisplayNames([LOCALE[l]], { type: "region" }).of(i.c); } catch (e) { n = i.n; } return norm(n).indexOf(nq) >= 0; });
+    });
+  }
+  try { items.sort(function (a, b) { return a.n.localeCompare(b.n, LOCALE[lang]); }); } catch (e) { items.sort(function (a, b) { return a.n < b.n ? -1 : 1; }); }
+  return '<option value="">' + esc(t("f.choose")) + '</option>' + items.map(function (i) { return '<option value="' + i.c + '"' + (i.c === sel ? " selected" : "") + '>' + esc(i.n) + '</option>'; }).join("");
+}
+function regionOptions(cc, sel, q) {
+  var reg = state.regions && state.regions[cc];
+  if (!reg) return '<option value="">' + esc(t("f.choose")) + '</option>';
+  var items = reg.r.slice().sort(function (a, b) { return a[1].localeCompare(b[1]); });
+  if (q) { var nq = norm(q); items = items.filter(function (r) { return norm(r[1]).indexOf(nq) >= 0 || r[0] === sel; }); }
+  return '<option value="">' + esc(t("f.choose")) + '</option>' + items.map(function (r) { return '<option value="' + esc(r[0]) + '"' + (r[0] === sel ? " selected" : "") + '>' + esc(r[1]) + '</option>'; }).join("");
+}
+function field(id, key, type, val, extra) {
+  return '<div class="field' + (extra && extra.full ? " full" : "") + '"><label for="f-' + id + '">' + esc(t(key)) + ' <span class="req" aria-hidden="true">*</span></label>' +
+    '<input type="' + type + '" id="f-' + id + '" name="' + id + '" value="' + esc(val || "") + '" required aria-describedby="e-' + id + (extra && extra.hint ? ' h-' + id : '') + '"' + (extra && extra.attrs || "") + '>' +
+    (extra && extra.hint ? '<span class="hint" id="h-' + id + '">' + esc(t(extra.hint)) + '</span>' : '') +
+    '<span class="err" id="e-' + id + '"></span></div>';
+}
+function mountForm(me) {
+  formMounted = true;
+  me = me || {};
+  formPhoto = me.photo || null;
+  var root = document.getElementById("me-root");
+  var intro = state.players[state.uid] ? '' : '<div class="notice" style="margin-bottom:24px"><h3>' + esc(t("me.welcome.t")) + '</h3><p>' + esc(t("me.welcome.p")) + '</p></div>';
+  root.innerHTML = intro + '<form class="panel" id="pf" novalidate>' +
+    '<div class="field"><span class="label">' + esc(t("f.photo")) + '</span><div class="photo-pick"><div style="width:240px;max-width:100%;border:1px solid var(--line)"><div class="photo" id="pf-photo" style="width:100%;border:0"></div><div id="pf-kit"></div></div>' +
+      '<div style="display:grid;gap:8px;justify-items:start"><label class="btn small" for="f-photo" style="color:var(--text)">' + esc(t("f.photoPick")) + '</label>' +
+      '<input type="file" id="f-photo" accept="image/*" style="position:absolute;opacity:0;width:1px;height:1px">' +
+      '<button type="button" class="btn small" id="pf-photo-rm">' + esc(t("f.photoRemove")) + '</button>' +
+      '<span class="hint">' + esc(t("f.photoHint")) + '</span><span class="err" id="e-photo"></span></div></div></div>' +
+    '<div class="form-grid">' +
+      field("first", "f.first", "text", me.firstName, { attrs: ' autocomplete="given-name" maxlength="60"' }) +
+      field("last", "f.last", "text", me.lastName, { attrs: ' autocomplete="family-name" maxlength="80"' }) +
+      '<div class="field"><label for="f-country">' + esc(t("f.country")) + ' <span class="req" aria-hidden="true">*</span></label>' +
+        '<input type="search" class="opt-search" id="s-country" autocomplete="off" placeholder="' + esc(t("f.searchCountry")) + '" aria-label="' + esc(t("f.searchCountry")) + '" aria-controls="f-country">' +
+        '<select id="f-country" name="country" required aria-describedby="e-country">' + countryOptions(me.country) + '</select><span class="err" id="e-country"></span></div>' +
+      '<div class="field"><label for="f-region">' + esc(t("f.region")) + ' <span class="req" aria-hidden="true">*</span></label>' +
+        '<input type="search" class="opt-search" id="s-region" autocomplete="off" placeholder="' + esc(t("f.searchRegion")) + '" aria-label="' + esc(t("f.searchRegion")) + '" aria-controls="f-region">' +
+        '<select id="f-region" name="region" required aria-describedby="e-region">' + regionOptions(me.country, me.region) + '</select><span class="err" id="e-region"></span></div>' +
+      '<div class="field full"><span class="hint">' + esc(t("f.regionHint")) + '</span> <span class="hint" id="pf-flagnote"></span></div>' +
+      field("phone", "f.phone", "tel", me.phone, { attrs: ' autocomplete="tel" maxlength="25" placeholder="+31 6 12345678"' }) +
+      field("email", "f.email", "email", me.email, { attrs: ' autocomplete="email" maxlength="120"' }) +
+      field("knltb", "f.knltb", "text", me.knltb, { hint: "f.knltbHint", attrs: ' inputmode="numeric" maxlength="10"' }) +
+      '<div class="field"></div>' +
+      '<fieldset class="field" id="fs-side"><legend>' + esc(t("f.side")) + ' <span class="req" aria-hidden="true">*</span></legend>' + radios("side", ["left", "right", "any"], "side.", me.side) + '<span class="err" id="e-side"></span></fieldset>' +
+      '<fieldset class="field" id="fs-hand"><legend>' + esc(t("f.hand")) + ' <span class="req" aria-hidden="true">*</span></legend>' + radios("hand", ["right", "left", "both"], "hand.", me.hand) + '<span class="err" id="e-hand"></span></fieldset>' +
+    '</div>' +
+    '<div class="form-actions"><button type="submit" class="btn solid" id="pf-save">' + esc(t("f.save")) + '</button>' +
+      (state.players[state.uid] ? '<button type="button" class="btn" id="pf-cancel">' + esc(t("f.cancel")) + '</button>' : '') +
+      '<span class="status" id="pf-status" role="status" aria-live="polite"></span></div>' +
+  '</form>';
+
+  var f = document.getElementById("pf");
+  function paintPhoto() {
+    document.getElementById("pf-photo").innerHTML = photoHtml({ photo: formPhoto, firstName: f.first.value, lastName: f.last.value });
+    document.getElementById("pf-photo-rm").hidden = !formPhoto;
+  }
+  function paintFlags() {
+    var cc = f.country.value, rc = f.region.value, ri = cc ? regionInfo(cc, rc) : { name: "", hasFlag: true };
+    document.getElementById("pf-kit").innerHTML = kitHtml({ country: cc, region: rc, regionName: ri.name, firstName: f.first.value, lastName: f.last.value }, false);
+    document.getElementById("pf-flagnote").textContent = (cc && rc && !ri.hasFlag) ? t("f.noRegionFlag") : "";
+  }
+  paintPhoto(); paintFlags();
+  f.first.addEventListener("input", function () { paintPhoto(); paintFlags(); }); f.last.addEventListener("input", function () { paintPhoto(); paintFlags(); });
+  var sC = document.getElementById("s-country"), sR = document.getElementById("s-region");
+  function pickCountry() { sR.value = ""; f.region.innerHTML = regionOptions(f.country.value, ""); paintFlags(); }
+  f.country.addEventListener("change", pickCountry);
+  function wireSearch(input, select, build, onPick) {
+    input.addEventListener("input", function () {
+      var cur = select.value;
+      select.innerHTML = build(cur, input.value);
+      var real = Array.prototype.filter.call(select.options, function (o) { return o.value; });
+      if (input.value && real.length === 1 && real[0].value !== cur) { select.value = real[0].value; onPick(); }
+      else select.value = cur;
+    });
+    input.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        var first = Array.prototype.find.call(select.options, function (o) { return o.value; });
+        if (first) { select.value = first.value; onPick(); select.focus(); }
+      } else if (ev.key === "ArrowDown") { ev.preventDefault(); select.focus(); }
+    });
+  }
+  wireSearch(sC, f.country, function (sel, q) { return countryOptions(sel, q); }, pickCountry);
+  wireSearch(sR, f.region, function (sel, q) { return regionOptions(f.country.value, sel, q); }, paintFlags);
+  f.region.addEventListener("change", paintFlags);
+  document.getElementById("pf-photo-rm").addEventListener("click", function () { formPhoto = null; paintPhoto(); });
+  document.getElementById("f-photo").addEventListener("change", function (ev) {
+    var file = ev.target.files && ev.target.files[0]; ev.target.value = "";
+    document.getElementById("e-photo").textContent = "";
+    if (!file) return;
+    if (file.size > 25 * 1024 * 1024) { document.getElementById("e-photo").textContent = t("f.errBig"); return; }
+    resizePhoto(file).then(function (url) { formPhoto = url; paintPhoto(); })
+      .catch(function () { document.getElementById("e-photo").textContent = t("f.errImg"); });
+  });
+  var cancel = document.getElementById("pf-cancel");
+  if (cancel) cancel.addEventListener("click", function () { state.editing = false; formMounted = false; renderMe(); });
+  f.addEventListener("submit", function (ev) { ev.preventDefault(); saveProfile(f); });
+}
+
+function resizePhoto(file) {
+  return new Promise(function (resolve, reject) {
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      var s = Math.min(img.naturalWidth, img.naturalHeight), size = 360;
+      var c = document.createElement("canvas"); c.width = size; c.height = size;
+      var ctx = c.getContext("2d");
+      ctx.drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      var q = 0.82, out = c.toDataURL("image/jpeg", q);
+      while (out.length > 120000 && q > 0.4) { q -= 0.1; out = c.toDataURL("image/jpeg", q); }
+      resolve(out);
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("img")); };
+    img.src = url;
+  });
+}
+
+function setErr(id, msg, el) {
+  var e = document.getElementById("e-" + id); if (e) e.textContent = msg || "";
+  if (el) el.setAttribute("aria-invalid", msg ? "true" : "false");
+}
+function saveProfile(f) {
+  var v = {
+    firstName: f.first.value.trim(), lastName: f.last.value.trim(), phone: f.phone.value.trim(), email: f.email.value.trim(),
+    knltb: f.knltb.value.replace(/\s/g, ""), side: (f.querySelector('input[name=side]:checked') || {}).value || "",
+    hand: (f.querySelector('input[name=hand]:checked') || {}).value || "", country: f.country.value, region: f.region.value
+  };
+  var bad = null;
+  function check(id, ok, msg, el) { setErr(id, ok ? "" : msg, el); if (!ok && !bad) bad = el || document.getElementById("f-" + id); }
+  check("first", !!v.firstName, t("f.errRequired"), f.first);
+  check("last", !!v.lastName, t("f.errRequired"), f.last);
+  check("phone", v.phone.replace(/\D/g, "").length >= 9, v.phone ? t("f.errPhone") : t("f.errRequired"), f.phone);
+  check("email", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email), v.email ? t("f.errEmail") : t("f.errRequired"), f.email);
+  check("knltb", /^\d{6,10}$/.test(v.knltb), v.knltb ? t("f.errKnltb") : t("f.errRequired"), f.knltb);
+  check("side", !!v.side, t("f.errRequired"), f.querySelector('input[name=side]'));
+  check("hand", !!v.hand, t("f.errRequired"), f.querySelector('input[name=hand]'));
+  check("country", !!v.country, t("f.errRequired"), f.country);
+  check("region", !!v.region, t("f.errRequired"), f.region);
+  var st = document.getElementById("pf-status");
+  if (bad) { st.textContent = t("f.errForm"); st.className = "status bad"; bad.focus(); return; }
+  v.regionName = regionInfo(v.country, v.region).name;
+  v.photo = formPhoto || null;
+  v.updatedAt = new Date().toISOString();
+  var btn = document.getElementById("pf-save"); btn.disabled = true;
+  st.textContent = t("f.saving"); st.className = "status";
+  state.sb.from("players").upsert(toRow(v)).then(function (res) {
+    if (res.error) throw res.error;
+    state.players[state.uid] = v; state.editing = false; formMounted = false;
+    renderAll();
+    document.getElementById("me-note").textContent = t("f.saved");
+  }).catch(function () {
+    btn.disabled = false;
+    st.textContent = t("f.errSave"); st.className = "status bad";
+  });
+}
+
+/* ───────────── Alineaciones (capitanas) ───────────── */
+var adminDirty = {};
+function renderAdmin() {
+  var sec = document.getElementById("alineaciones");
+  if (state.phase !== "ready" || !canManage() || location.hash === "#perfil") { sec.hidden = true; return; }
+  sec.hidden = false;
+  var players = sortedPlayers();
+  // Quién puede gestionar (solo la dueña)
+  var mb = document.getElementById("managers-box");
+  if (state.isOwner && players.length) {
+    mb.hidden = false;
+    mb.innerHTML = '<span class="label">' + esc(t("adm.managers")) + '</span><p class="hint" style="margin:4px 0 12px">' + esc(t("adm.managersHint")) + '</p><div class="managers">' +
+      players.filter(function (x) { return x.id !== state.uid; }).map(function (x) {
+        return '<label class="choice"><input type="checkbox" data-mid="' + esc(x.id) + '"' + (state.managers.indexOf(x.id) >= 0 ? " checked" : "") + '><span>' + esc(fullName(x.p)) + '</span></label>';
+      }).join("") + '</div>';
+    mb.querySelectorAll("input[data-mid]").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        var id = cb.getAttribute("data-mid");
+        var q = cb.checked ? state.sb.from("team_roles").insert({ user_id: id, role: "captain" })
+                           : state.sb.from("team_roles").delete().eq("user_id", id).eq("role", "captain");
+        q.then(function (res) { if (res.error) throw res.error; return loadData(); }).catch(function () { cb.checked = !cb.checked; });
+      });
+    });
+  } else mb.hidden = true;
+
+  var list = document.getElementById("admin-list");
+  if (!players.length) { list.innerHTML = '<p class="muted">' + esc(t("adm.empty")) + '</p>'; return; }
+  // No repintar una jornada que alguien está editando
+  var keep = {};
+  list.querySelectorAll(".admin-round").forEach(function (el) { var r = el.getAttribute("data-r"); if (adminDirty[r]) keep[r] = el; });
+  var opts = function (sel) {
+    return '<option value="">' + esc(t("adm.pick")) + '</option>' + players.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === sel ? " selected" : "") + '>' + esc(fullName(x.p)) + '</option>'; }).join("");
+  };
+  var frag = document.createDocumentFragment();
+  ROUNDS.forEach(function (m) {
+    if (keep[m.r]) { frag.appendChild(keep[m.r]); return; }
+    var d = roundDoc(m.r) || {}, pairs = pairsOf(m.r), rival = m.home === US ? m.away : m.home;
+    var el = document.createElement("div");
+    el.className = "admin-round"; el.setAttribute("data-r", m.r);
+    el.innerHTML = '<div class="admin-head"><h3>' + esc(t("round")) + ' ' + m.r + ' · ' + esc(rival) + '</h3><span class="muted">' + esc(fmtDate(m.date)) + ' · ' + esc(timeStr(m)) + '</span></div>' +
+      pairs.map(function (pr, i) {
+        var rs = resultsOf(m.r)[i] || {};
+        return '<div class="admin-dd"><span class="label">' + SLOTS[i] + '</span>' +
+          '<select id="a' + m.r + '-' + i + '-0" aria-label="' + SLOTS[i] + ' 1">' + opts(pr[0]) + '</select>' +
+          '<select id="a' + m.r + '-' + i + '-1" aria-label="' + SLOTS[i] + ' 2">' + opts(pr[1]) + '</select>' +
+          '<input type="text" id="a' + m.r + '-' + i + '-s" maxlength="24" placeholder="6-4 6-3" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.ddScore")) + '" value="' + esc(rs.score || "") + '">' +
+          '<select class="dd-out" id="a' + m.r + '-' + i + '-w" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.ddOut")) + '">' +
+            '<option value="">' + esc(t("adm.ddOut")) + '</option><option value="w"' + (rs.won === true ? " selected" : "") + '>' + esc(t("res.w")) + '</option><option value="l"' + (rs.won === false ? " selected" : "") + '>' + esc(t("res.l")) + '</option></select></div>';
+      }).join("") +
+      '<div class="admin-score"><span class="label">' + esc(t("adm.score")) + '</span>' +
+        '<label for="a' + m.r + '-us" class="muted">' + esc(t("adm.us")) + '</label><input type="text" inputmode="numeric" id="a' + m.r + '-us" value="' + (typeof d.us === "number" ? d.us : "") + '">' +
+        '<label for="a' + m.r + '-them" class="muted">' + esc(t("adm.them")) + '</label><input type="text" inputmode="numeric" id="a' + m.r + '-them" value="' + (typeof d.them === "number" ? d.them : "") + '">' +
+      '</div>' +
+      '<div class="form-actions"><button type="button" class="btn small solid">' + esc(t("adm.save")) + '</button><span class="status" role="status" aria-live="polite"></span></div>';
+    el.addEventListener("input", function () { adminDirty[m.r] = true; });
+    el.addEventListener("change", function () {
+      adminDirty[m.r] = true;
+      var ids = Array.prototype.map.call(el.querySelectorAll("select:not(.dd-out)"), function (s) { return s.value; }).filter(Boolean);
+      var dup = ids.length !== new Set(ids).size;
+      var stx = el.querySelector(".status"); stx.textContent = dup ? t("adm.dup") : ""; stx.className = "status" + (dup ? " bad" : "");
+    });
+    el.querySelector("button").addEventListener("click", function () { saveRound(m.r, el); });
+    frag.appendChild(el);
+  });
+  list.innerHTML = ""; list.appendChild(frag);
+}
+function saveRound(r, el) {
+  var pairs = [0, 1, 2, 3].map(function (i) { return [el.querySelector("#a" + r + "-" + i + "-0").value || null, el.querySelector("#a" + r + "-" + i + "-1").value || null]; });
+  var flat = [].concat.apply([], pairs).filter(Boolean);
+  var st = el.querySelector(".status");
+  if (flat.length !== new Set(flat).size) { st.textContent = t("adm.dup"); st.className = "status bad"; return; }
+  function num(id) { var v = el.querySelector(id).value.trim(); return v === "" ? null : (/^\d{1,2}$/.test(v) ? +v : NaN); }
+  var us = num("#a" + r + "-us"), them = num("#a" + r + "-them");
+  if (isNaN(us) || isNaN(them)) { st.textContent = t("f.errForm"); st.className = "status bad"; return; }
+  var results = [0, 1, 2, 3].map(function (i) {
+    var w = el.querySelector("#a" + r + "-" + i + "-w").value;
+    return { score: el.querySelector("#a" + r + "-" + i + "-s").value.trim(), won: w === "w" ? true : w === "l" ? false : null };
+  });
+  var body = { pairs: pairs, results: results, us: us, them: them, updatedAt: new Date().toISOString() };
+  var btn = el.querySelector("button"); btn.disabled = true; st.textContent = t("f.saving"); st.className = "status";
+  state.sb.from("rounds").upsert({ r: r, pairs: pairs, results: results, us: us, them: them, updated_at: body.updatedAt }).then(function (res) {
+    if (res.error) throw res.error;
+    adminDirty[r] = false; state.rounds["r" + r] = body; btn.disabled = false;
+    renderAll(); var again = document.querySelector('.admin-round[data-r="' + r + '"] .status'); if (again) again.textContent = t("adm.saved");
+  }).catch(function () { btn.disabled = false; st.textContent = t("f.errSave"); st.className = "status bad"; });
+}
+
+/* ───────────── Render general ───────────── */
+function applyView() {
+  var view = location.hash === "#perfil" ? "profile" : "home";
+  document.querySelectorAll("[data-view]").forEach(function (el) {
+    var v = el.getAttribute("data-view");
+    if (el.id === "alineaciones" && v === "home" && view === "home") return; // su visibilidad la decide renderAdmin
+    el.hidden = v !== view;
+  });
+  document.getElementById("nav-profile").setAttribute("aria-current", view === "profile" ? "page" : "false");
+  return view;
+}
+window.addEventListener("hashchange", function () {
+  var view = applyView(); renderAdmin();
+  if (view === "profile") window.scrollTo(0, 0);
+  else if (location.hash && location.hash !== "#inicio") { var el = document.querySelector(location.hash); if (el) el.scrollIntoView(); }
+  else window.scrollTo(0, 0);
+});
+function renderAll() {
+  paintStatic(); applyView(); renderNext(); renderRounds(); renderStandings(); renderPlayers(); renderMe(); renderAdmin();
+}
+document.querySelectorAll(".langs button").forEach(function (b) {
+  b.addEventListener("click", function () {
+    lang = b.getAttribute("data-lang");
+    try { localStorage.setItem("xnrgy-lang", lang); } catch (e) {}
+    formMounted = false; renderAll();
+  });
+});
+
+/* ───────────── Conexión a los datos compartidos ───────────── */
+function loadRegions() {
+  var a = fetch("regions.json").then(function (r) { return r.json(); }).then(function (j) { state.regions = j; }).catch(function () { state.regions = null; });
+  var b = fetch("flags.json").then(function (r) { return r.json(); }).then(function (j) { state.flags = j; }).catch(function () { state.flags = null; });
+  return Promise.all([a, b]);
+}
+/* Columnas de Supabase (snake_case) <-> objetos de la página */
+function fromRow(r) {
+  return { firstName: r.first_name, lastName: r.last_name, phone: r.phone, email: r.email, knltb: r.knltb, side: r.side, hand: r.hand,
+    country: r.country, region: r.region, regionName: r.region_name, photo: r.photo, updatedAt: r.updated_at };
+}
+function toRow(v) {
+  return { id: state.uid, first_name: v.firstName, last_name: v.lastName, phone: v.phone, email: v.email, knltb: v.knltb, side: v.side, hand: v.hand,
+    country: v.country, region: v.region, region_name: v.regionName || null, photo: v.photo || null, updated_at: v.updatedAt };
+}
+var loading = null;
+function loadData() {
+  if (loading) return loading;
+  var sb = state.sb;
+  var reqs = [sb.from("rounds").select("*")];
+  if (state.uid) reqs.push(sb.from("players").select("*"), sb.from("team_roles").select("*"));
+  loading = Promise.all(reqs).then(function (res) {
+    loading = null;
+    if (res[0].error) throw res[0].error;
+    var rounds = {}; (res[0].data || []).forEach(function (row) { rounds["r" + row.r] = { pairs: row.pairs, results: row.results, us: row.us, them: row.them }; });
+    state.rounds = rounds;
+    if (state.uid) {
+      if (res[1].error || res[2].error) throw (res[1].error || res[2].error);
+      var players = {}; (res[1].data || []).forEach(function (row) { players[row.id] = fromRow(row); });
+      state.players = players;
+      var roles = res[2].data || [];
+      state.isOwner = roles.some(function (x) { return x.user_id === state.uid && x.role === "owner"; });
+      state.managers = roles.filter(function (x) { return x.role === "captain"; }).map(function (x) { return x.user_id; });
+      state.phase = "ready";
+    } else {
+      state.players = {}; state.isOwner = false; state.managers = []; state.phase = "noaccess";
+    }
+    renderAll();
+  }).catch(function () {
+    loading = null;
+    if (state.phase === "loading") state.phase = state.uid ? "slow" : "noaccess";
+    renderAll();
+  });
+  return loading;
+}
+function setSession(session) {
+  var uid = session && session.user ? session.user.id : null;
+  var changed = uid !== state.uid;
+  state.uid = uid; state.email = session && session.user ? (session.user.email || "") : "";
+  if (!uid) { state.editing = false; state.needPassword = false; formMounted = false; }
+  if (changed) { formMounted = false; loadData(); }
+}
+function boot() {
+  // Enlace de invitación o de recuperación: pedir la contraseña nueva al entrar
+  var h = location.hash || "", q = location.search || "";
+  if (/type=(invite|recovery)/.test(h + q)) { state.needPassword = true; }
+  renderAll();
+  loadRegions().then(function () { formMounted = false; renderAll(); });
+  var cfg = window.XNRGY_CONFIG || {};
+  if (!cfg.supabaseUrl || !cfg.supabaseKey || !window.supabase) { state.phase = "nocfg"; renderAll(); return; }
+  state.sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" } });
+  var slowTimer = setTimeout(function () { if (state.phase === "loading") { state.phase = "slow"; renderMe(); } }, 10000);
+  state.sb.auth.onAuthStateChange(function (event, session) {
+    clearTimeout(slowTimer);
+    if (event === "PASSWORD_RECOVERY") state.needPassword = true;
+    if (state.needPassword && session && /access_token|type=/.test(location.hash)) {
+      history.replaceState(null, "", location.pathname + "#perfil");
+      applyView();
+    }
+    setSession(session);
+    if (event === "SIGNED_OUT") { state.phase = "noaccess"; loadData(); }
+  });
+  state.sb.auth.getSession().then(function (res) {
+    clearTimeout(slowTimer);
+    var session = res && res.data ? res.data.session : null;
+    if (!session) { state.uid = null; loadData(); } else setSession(session);
+  });
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && state.sb) loadData(); });
+}
+boot();
+</script>
+</body>
+</html>
