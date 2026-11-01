@@ -10,6 +10,9 @@ Está alojada en GitHub Pages y guarda los datos en Supabase.
 | `index.html` | La web entera (diseño, textos en ES/EN/TR/NL y funcionamiento) |
 | `config.js` | Dirección y clave pública de Supabase |
 | `flags.json`, `regions.json` | Banderas y lista de regiones |
+| `fonts/` | Fuentes Barlow y Barlow Condensed servidas desde la web (sin Google Fonts) · SIL Open Font License |
+| `og-image.jpg` | Imagen que se ve al compartir el enlace en WhatsApp y redes |
+| `favicon.svg`, `*.png`, `site.webmanifest` | Icono de la web y de la app en el móvil |
 | `vendor/` | Librería de Supabase |
 | `supabase-setup.sql` | Crea las tablas, los roles (dueña, capitanas, jugadoras), las solicitudes de acceso y las reglas de seguridad |
 | `supabase-owner.sql` | Te hace dueña de la web (se ejecuta una vez) |
@@ -49,6 +52,10 @@ En la web, ve a **Alineaciones → Equipo y roles** para cambiar el rol de cada 
 | Ver teléfono, email y nº KNLTB de todas | Sí | Sí | Solo los suyos |
 
 El teléfono, el email y el número KNLTB se guardan en una tabla aparte (`player_contacts`) que solo pueden leer la propia jugadora, la administradora, la capitana y las managers.
+
+## Privacidad
+
+La política de privacidad está en la propia web (`#privacidad`, enlazada en el pie). Al crear una cuenta hay que aceptarla; la fecha y la versión aceptadas se guardan en los datos de la cuenta en Supabase (`privacy_accepted_at`, `privacy_version`). Si cambias la política, actualiza `PRIVACY_VERSION` en `index.html`.
 
 ## Ten en cuenta
 
