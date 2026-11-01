@@ -38,7 +38,12 @@ header { position: sticky; top: 0; z-index: 10; background: rgba(10,10,10,.94); 
 .brand svg { width: 124px; height: auto; display: block; }
 nav { display: flex; gap: 20px; flex-wrap: wrap; }
 nav a { white-space: nowrap; font-family: var(--display); font-weight: 600; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; color: var(--muted); }
-nav a:hover, nav a[aria-current="page"] { color: var(--text); }
+nav a:hover { color: var(--text); }
+.bar nav { flex: 1; justify-content: center; }
+.account { display: flex; gap: 8px; flex: none; }
+.acc-btn { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; color: var(--text); border: 1px solid var(--line); padding: 7px 12px; }
+.acc-btn.solid { border-color: var(--text); }
+.acc-btn:hover, .acc-btn[aria-current="page"] { background: var(--text); color: var(--bg); border-color: var(--text); }
 .profile-view { border-bottom: 0; min-height: 70vh; }
 .stats { display: flex; gap: 28px; flex-wrap: wrap; margin: 22px 0 0; }
 .stat b { display: block; font-family: var(--display); font-weight: 800; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -254,8 +259,7 @@ footer { padding: 36px 0 44px; }
 .credits a { color: #8a8a8a; }
 
 @media (max-width: 900px) {
-  nav { gap: 14px; }
-  nav a:not(#nav-profile):not(#nav-lineups) { display: none; }
+  .bar nav { display: none; }
   .admin-round .admin-dd { grid-template-columns: 44px 1fr 1fr; }
   .admin-round .admin-dd input { grid-column: 2; }
   .admin-round .admin-dd .dd-out { grid-column: 3; }
@@ -268,6 +272,12 @@ footer { padding: 36px 0 44px; }
   .caret { display: none; }
 }
 @media (max-width: 560px) {
+  .bar { gap: 8px; }
+  .acc-btn { padding: 6px 8px; font-size: 12px; letter-spacing: .06em; }
+  .acc-btn svg + span { display: none; }
+  .acc-btn { padding: 8px; }
+  .langs button { padding: 6px 5px; font-size: 12px; }
+  .brand svg { width: 86px; }
   .hero { padding: 40px 0 36px; }
   .form-grid, .facts { grid-template-columns: 1fr; }
   .admin-round .admin-dd { grid-template-columns: 36px 1fr; }
@@ -280,7 +290,7 @@ footer { padding: 36px 0 44px; }
 
 <header>
   <div class="wrap bar">
-    <a class="brand" href="https://xnrgyclub.com/nl/" aria-label="XNRGY Club">
+    <a class="brand" href="#inicio" aria-label="XNRGY Amsterdam 1 · Inicio">
       <svg xmlns="http://www.w3.org/2000/svg" width="133.714" height="20.545" viewBox="0 0 133.714 20.545" role="img" aria-label="XNRGY">
         <path d="M137.16,43.805a2.355,2.355,0,0,0-2.355,2.355V51.9a2.355,2.355,0,0,0,4.71,0V46.16a2.355,2.355,0,0,0-2.355-2.355" transform="translate(-103.723 -33.705)" fill="currentColor"/>
         <path d="M152.952.026A2.354,2.354,0,0,0,150.6,2.381V12.454L139.155.839a2.354,2.354,0,1,0-3.6,3.032l15.6,15.836c.023.027.049.05.072.076s.054.061.083.088.066.062.1.093.053.046.08.067.074.057.112.083l.087.059c.038.024.075.047.113.069s.068.035.1.053.072.036.109.053.084.033.126.05l.1.035c.052.017.1.03.156.042.025.006.051.014.077.02.062.014.124.022.188.031l.053.008a2.231,2.231,0,0,0,.613-.018l.056-.009a2.426,2.426,0,0,0,.347-.091l.051-.019a2.359,2.359,0,0,0,.338-.155l.026-.017a2.29,2.29,0,0,0,.33-.231h0l0,0a2.333,2.333,0,0,0,.324-.334l.017-.022a2.392,2.392,0,0,0,.234-.367l.011-.022a2.239,2.239,0,0,0,.158-.405l0-.013a2.33,2.33,0,0,0,.08-.433v-.009c.006-.065.01-.13.01-.2V2.381A2.355,2.355,0,0,0,152.952.026" transform="translate(-103.872 0)" fill="currentColor"/>
@@ -295,13 +305,15 @@ footer { padding: 36px 0 44px; }
       </svg>
     </a>
     <nav aria-label="Secciones">
-      <a href="#perfil" data-i18n="nav.me" id="nav-profile"></a>
-      <a href="#alineaciones" data-i18n="nav.lineups" id="nav-lineups" hidden></a>
       <a href="#partidos" data-i18n="nav.matches"></a>
       <a href="#clasificacion" data-i18n="nav.table"></a>
       <a href="#jugadoras" data-i18n="nav.players"></a>
       <a href="#club" data-i18n="nav.club"></a>
     </nav>
+    <div class="account">
+      <a class="acc-btn" href="#alineaciones" id="nav-lineups" hidden><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="12" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M1.5 6.5h13M5 1v3M11 1v3" stroke="currentColor" stroke-width="1.6"/></svg><span data-i18n="nav.lineups"></span></a>
+      <a class="acc-btn solid" href="#perfil" id="nav-profile"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2 15c.6-3.2 3-5 6-5s5.4 1.8 6 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span data-i18n="nav.me"></span></a>
+    </div>
     <div class="langs" role="group" aria-label="Idioma / Language / Dil / Taal">
       <button type="button" data-lang="es">ES</button>
       <button type="button" data-lang="en">EN</button>
@@ -738,6 +750,8 @@ function paintStatic() {
   document.querySelectorAll("[data-i18n]").forEach(function (el) { el.textContent = t(el.getAttribute("data-i18n")); });
   document.querySelectorAll(".langs button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang)); });
   document.getElementById("club-route").href = routeUrl(HOME_VENUE);
+  document.getElementById("nav-profile").setAttribute("aria-label", t("nav.me"));
+  document.getElementById("nav-lineups").setAttribute("aria-label", t("nav.lineups"));
 }
 
 /* ───────────── Próximo partido ───────────── */
@@ -1549,7 +1563,7 @@ function setSession(session) {
   if (!uid) { state.editing = false; state.needPassword = false; formMounted = false; }
   if (changed) { formMounted = false; loadData(); }
 }
-var APP_VERSION = "2026-11-01-8";
+var APP_VERSION = "2026-11-01-9";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
