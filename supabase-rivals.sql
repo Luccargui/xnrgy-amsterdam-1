@@ -1,0 +1,46 @@
+-- ═══════════════════════════════════════════════════════════════════
+--  Jugadoras de los equipos rivales de la poule (Padel Dames Zaterdag
+--  4DD · 3e klasse · Afdeling 2), sacadas de MijnKNLTB el 1-11-2026.
+--  Ejecútalo de nuevo si cambian las plantillas: actualiza el rating.
+-- ═══════════════════════════════════════════════════════════════════
+insert into public.rival_players (team, name, rating) values
+  ('STROKEL 1', 'Kim Dalm - luiting', '7,4659'),
+  ('STROKEL 1', 'Marielle van Dijk', '9,7777'),
+  ('STROKEL 1', 'Yvonne Goosensen', '9,8332'),
+  ('STROKEL 1', 'Annelies Schuler', '9,0240'),
+  ('STROKEL 1', 'Carola Vitting', '9,4603'),
+  ('HEALTHCITY HOENDERDAAL 2', 'Angelique van den Bouwhuijsen', '8,6312'),
+  ('HEALTHCITY HOENDERDAAL 2', 'Mayke Harding', '7,9683'),
+  ('HEALTHCITY HOENDERDAAL 2', 'Marije Lamb', '9,0000'),
+  ('HEALTHCITY HOENDERDAAL 2', 'Monique Logger', '9,0000'),
+  ('HEALTHCITY HOENDERDAAL 2', 'Simone Vreugdenhil', '9,0000'),
+  ('GAASPERPARK 1', 'Esther Tijnagel', '8,1027'),
+  ('GAASPERPARK 1', 'Vera Verweij', '9,2802'),
+  ('GAASPERPARK 1', 'Pien Vollers', '8,6280'),
+  ('GAASPERPARK 1', 'Jet Vollers', '7,8944'),
+  ('GAASPERPARK 1', 'Eveline Wilms', '8,9485'),
+  ('PLAZA PADEL AMERSFOORT 1', 'Chantal Bijlholt', '8,0499'),
+  ('PLAZA PADEL AMERSFOORT 1', 'Lisanne de Boer', '8,4811'),
+  ('PLAZA PADEL AMERSFOORT 1', 'Jolanda Greving', '9,0257'),
+  ('PLAZA PADEL AMERSFOORT 1', 'Joëlle Hijne', '7,9410'),
+  ('PLAZA PADEL AMERSFOORT 1', 'Maaike Poutsma', '8,4264'),
+  ('PLAZA PADEL AMERSFOORT 1', 'Sanne Vermeulen', '9,4056'),
+  ('PLAZA PADEL AMERSFOORT 1', 'Constance Witman', '7,3315'),
+  ('LEISURE WORLD PADEL 1', 'Jennefer Bode', '9,0000'),
+  ('LEISURE WORLD PADEL 1', 'Annelies de Boer', '9,2121'),
+  ('LEISURE WORLD PADEL 1', 'Simone Hakvoort', '9,3575'),
+  ('LEISURE WORLD PADEL 1', 'Jacolien Schraal', '9,1454'),
+  ('LEISURE WORLD PADEL 1', 'Wendy Taal', '9,0000'),
+  ('LEISURE WORLD PADEL 1', 'Rinske Zeeman', '9,2028'),
+  ('VLTV 3', 'Bobby Diekstra', '10,2166'),
+  ('VLTV 3', 'Marianne Kuijpers', '9,9328'),
+  ('VLTV 3', 'Diana Mouter', '11,2315'),
+  ('VLTV 3', 'Annemieke Osendarp', '10,0983'),
+  ('VLTV 3', 'Ellen van Rijn', '11,5724'),
+  ('NIJKERK 1', 'Lizzie Bouw', '9,1500'),
+  ('NIJKERK 1', 'Julia van Deuveren', '9,7911'),
+  ('NIJKERK 1', 'Rianne Jellema', '9,4500'),
+  ('NIJKERK 1', 'Danique Nijhof', '9,0415'),
+  ('NIJKERK 1', 'Debbie Verhoeven', '8,7840'),
+  ('NIJKERK 1', 'Anouk van Wijnen', '8,7652')
+on conflict (team, name) do update set rating = excluded.rating;

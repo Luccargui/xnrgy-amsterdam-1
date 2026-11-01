@@ -222,5 +222,32 @@ revoke all on public.players, public.player_contacts, public.team_roles, public.
 grant select on public.rounds to anon;
 grant select, insert, update, delete on public.players, public.player_contacts, public.team_roles, public.join_requests, public.rounds to authenticated;
 
+-- 9. Jugadoras de los equipos rivales (las ven solo las jugadoras aprobadas;
+--    las cambian la administradora, la capitana y las managers).
+--    Los nombres se cargan con supabase-rivals.sql.
+create table if not exists public.rival_players (
+  id      bigint generated always as identity primary key,
+  team    text not null check (char_length(team) between 1 and 60),
+  name    text not null check (char_length(name) between 1 and 80),
+  rating  text check (char_length(rating) <= 10),
+  unique (team, name)
+);
+alter table public.rival_players enable row level security;
+drop policy if exists "rivals_select" on public.rival_players;
+drop policy if exists "rivals_insert" on public.rival_players;
+drop policy if exists "rivals_update" on public.rival_players;
+drop policy if exists "rivals_delete" on public.rival_players;
+create policy "rivals_select" on public.rival_players for select to authenticated
+  using (private.has_role(array['owner', 'captain', 'manager', 'player']));
+create policy "rivals_insert" on public.rival_players for insert to authenticated
+  with check (private.has_role(array['owner', 'captain', 'manager']));
+create policy "rivals_update" on public.rival_players for update to authenticated
+  using (private.has_role(array['owner', 'captain', 'manager']))
+  with check (private.has_role(array['owner', 'captain', 'manager']));
+create policy "rivals_delete" on public.rival_players for delete to authenticated
+  using (private.has_role(array['owner', 'captain', 'manager']));
+revoke all on public.rival_players from anon;
+grant select, insert, update, delete on public.rival_players to authenticated;
+
 -- Que la API vea los cambios de columnas al momento
 notify pgrst, 'reload schema';

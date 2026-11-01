@@ -13,6 +13,7 @@ Está alojada en GitHub Pages y guarda los datos en Supabase.
 | `vendor/` | Librería de Supabase |
 | `supabase-setup.sql` | Crea las tablas, los roles (dueña, capitanas, jugadoras), las solicitudes de acceso y las reglas de seguridad |
 | `supabase-owner.sql` | Te hace dueña de la web (se ejecuta una vez) |
+| `supabase-rivals.sql` | Jugadoras de los equipos rivales (de MijnKNLTB) para elegir contra quién se jugó |
 | `supabase-reset-password.sql` | Pone una contraseña provisional a una jugadora que la ha olvidado |
 
 ## Cómo entra una jugadora nueva
