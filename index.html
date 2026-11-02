@@ -304,11 +304,13 @@ details[open] .caret { transform: rotate(90deg); }
 .admin-round .caret { display: inline-block; transition: transform .15s; font-size: 20px; }
 .admin-body { display: grid; gap: 14px; padding: 0 18px 18px; border-top: 1px solid var(--line); padding-top: 16px; }
 .filters { display: grid; grid-template-columns: 1.4fr .8fr 1fr 1fr auto; gap: 10px 12px; align-items: end; margin-bottom: 16px; padding: 16px; border: 1px solid var(--line); background: var(--surface); }
-.filters input[type=date] { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); padding: 10px 12px; font: inherit; color-scheme: dark; }
+.filters .field { min-width: 0; }
+.filters input[type=date] { display: block; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; border-radius: 0; min-height: 44px; background: var(--bg); color: var(--text); border: 1px solid var(--line); padding: 10px 12px; font: inherit; text-align: left; }
+.filters input[type=date]::-webkit-date-and-time-value { text-align: left; }
 .flt-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .flt-count { grid-column: 1 / -1; margin: 0; }
 @media (max-width: 900px) { .filters { grid-template-columns: 1fr 1fr; } .flt-actions { grid-column: 1 / -1; } }
-@media (max-width: 480px) { .filters { grid-template-columns: 1fr 1fr; padding: 12px; } .filters input[type=date] { padding: 10px 6px; font-size: 14px; } .admin-sum { padding: 14px; } .admin-body { padding: 14px; } .sum-title { font-size: 19px; } }
+@media (max-width: 480px) { .filters { grid-template-columns: 1fr 1fr; padding: 12px; } .filters input[type=date] { padding: 10px 8px; font-size: 14px; } .admin-sum { padding: 14px; } .admin-body { padding: 14px; } .sum-title { font-size: 19px; } }
 .admin-list { display: grid; gap: 14px; }
 .admin-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; }
 .admin-dd { display: grid; grid-template-columns: 44px 1fr 1fr; gap: 10px; align-items: center; }
@@ -2175,7 +2177,7 @@ function setSession(session) {
   if (!uid) { state.editing = false; state.needPassword = false; formMounted = false; }
   if (changed) { formMounted = false; loadData(); }
 }
-var APP_VERSION = "2026-11-02-4";
+var APP_VERSION = "2026-11-02-5";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
