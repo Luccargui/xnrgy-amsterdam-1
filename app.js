@@ -49,7 +49,8 @@ var state = {
   rounds: {},                // "r1" -> { pairs: [[a,b]x4], us, them }
   managers: [],              // uids con permiso de alineaciones
   editing: false,
-  regions: null, flags: null, rivals: {}, avail: {}, standings: [], calToken: null, roles: {}, requests: [], myRequest: null, meta: {}
+  regions: null, flags: null, rivals: {}, avail: {}, standings: [], calToken: null, roles: {}, requests: [], myRequest: null, meta: {},
+  acks: {}, pushOn: false, installEvt: null
 };
 
 /* ───────────── Utilidades ───────────── */
@@ -162,8 +163,64 @@ function kitHtml(p, withCaption) {
   return '<div class="kit' + (inner ? '' : ' empty') + '"' + (label ? ' role="img" aria-label="' + esc(label) + '"' : ' aria-hidden="true"') + '>' + inner + '</div>' +
     (withCaption && label ? '<div class="kit-cap">' + esc(label) + '</div>' : "");
 }
+/* ───────────── Fotos (Supabase Storage, bucket privado) ───────────── */
+function storageBase() { return ((window.XNRGY_CONFIG || {}).supabaseUrl || "") + "/storage/v1/"; }
+// Los enlaces firmados duran 7 días; se guardan en el navegador para que la foto salga de la caché y no se descargue cada vez
+var PHOTO_TTL = 7 * 24 * 3600;
+function photoCache() { try { return JSON.parse(localStorage.getItem("xnrgy-photos") || "{}"); } catch (e) { return {}; } }
+function signPhotos(players) {
+  var cache = photoCache(), now = Date.now(), need = [];
+  Object.keys(players).forEach(function (id) {
+    var p = players[id]; if (!p.photoPath) return;
+    var c = cache[p.photoPath];
+    if (c && c.exp - now > 24 * 3600 * 1000) p.photo = c.url; else need.push(p.photoPath);
+  });
+  if (!need.length) return Promise.resolve(false);
+  return state.sb.storage.from("photos").createSignedUrls(need, PHOTO_TTL).then(function (res) {
+    if (res.error || !res.data) return;
+    var fresh = photoCache();
+    // Solo se guardan las fotos actuales: las antiguas se olvidan
+    var keep = {}; Object.keys(players).forEach(function (id) { var pp = players[id].photoPath; if (pp && fresh[pp]) keep[pp] = fresh[pp]; });
+    res.data.forEach(function (x) { if (x.signedUrl && x.path) keep[x.path] = { url: x.signedUrl, exp: now + PHOTO_TTL * 1000 }; });
+    Object.keys(players).forEach(function (id) { var pp = players[id].photoPath; if (pp && keep[pp]) players[id].photo = keep[pp].url; });
+    try { localStorage.setItem("xnrgy-photos", JSON.stringify(keep)); } catch (e) {}
+    return true;
+  }).catch(function () { return false; });
+}
+function dataUrlToBlob(d) {
+  var parts = d.split(","), mime = parts[0].match(/:(.*?);/)[1], bin = atob(parts[1]), arr = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+function randomId() { var a = new Uint8Array(8); crypto.getRandomValues(a); return Array.prototype.map.call(a, function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }
+// Sube una foto nueva (data URL) y devuelve su ruta en Storage
+function uploadPhoto(dataUrl) {
+  var path = state.uid + "/" + randomId() + ".jpg";
+  return state.sb.storage.from("photos").upload(path, dataUrlToBlob(dataUrl), { contentType: "image/jpeg", cacheControl: "604800", upsert: false })
+    .then(function (res) { if (res.error) throw res.error; return path; });
+}
+function removePhotos(paths) {
+  paths = paths.filter(Boolean); if (!paths.length) return Promise.resolve();
+  return state.sb.storage.from("photos").remove(paths).catch(function () {});
+}
+// Las fotos antiguas estaban guardadas dentro de la tabla: al entrar, la propia jugadora la pasa a Storage
+function migrateMyPhoto() {
+  var me = state.players[state.uid];
+  if (!me || me.photoPath || state.photoMigrating) return;
+  state.photoMigrating = true;
+  state.sb.from("players").select("photo").eq("id", state.uid).maybeSingle().then(function (res) {
+    var d = res && res.data && res.data.photo;
+    if (!d || !/^data:image\//.test(d)) return;
+    return uploadPhoto(d).then(function (path) {
+      return state.sb.from("players").update({ photo_path: path, photo: null }).eq("id", state.uid).then(function (r) {
+        if (r.error) throw r.error;
+        me.photoPath = path; return signPhotos(state.players).then(function () { renderAll(); });
+      });
+    });
+  }).catch(function () {});
+}
 function photoHtml(p, cls) {
-  if (p && p.photo && /^data:image\/(jpeg|png|webp);base64,/.test(p.photo)) return '<img src="' + p.photo + '" alt="">';
+  if (p && p.photo && (/^data:image\/(jpeg|png|webp);base64,/.test(p.photo) || p.photo.indexOf(storageBase()) === 0)) return '<img src="' + esc(p.photo) + '" alt="" loading="lazy" decoding="async">';
   return '<span class="' + (cls || "ini") + '">' + esc(p ? initials(p.firstName, p.lastName) : "?") + '</span>';
 }
 function miniHtml(p) { return '<span class="mini">' + photoHtml(p, "") + '</span>'; }
@@ -442,6 +499,100 @@ function calFeedUrl() {
   var cfg = window.XNRGY_CONFIG || {};
   return state.calToken ? cfg.supabaseUrl + FN_CALENDAR + "?token=" + state.calToken + "&lang=" + lang : null;
 }
+/* ───────────── App instalable y avisos push ───────────── */
+function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
+function isStandalone() { return (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true; }
+function pushSupported() { return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window; }
+function b64uToBytes(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; var b = atob(s), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
+function swReady() { return navigator.serviceWorker.getRegistration().then(function (r) { return r || navigator.serviceWorker.register("sw.js"); }).then(function () { return navigator.serviceWorker.ready; }); }
+function refreshPushState() {
+  if (!pushSupported() || !state.uid) { state.pushOn = false; return Promise.resolve(); }
+  return swReady().then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (sub) {
+    var on = !!sub && Notification.permission === "granted";
+    if (on !== state.pushOn) { state.pushOn = on; renderMe(); }
+    if (sub && on) saveSubscription(sub); // la mantiene al día (idioma, jugadora)
+  }).catch(function () {});
+}
+function saveSubscription(sub) {
+  var j = sub.toJSON();
+  return state.sb.from("push_subscriptions").upsert({ endpoint: j.endpoint, user_id: state.uid, p256dh: j.keys.p256dh, auth: j.keys.auth, lang: lang })
+    .then(function (res) { if (res.error) throw res.error; });
+}
+function enablePush(st) {
+  var key = (window.XNRGY_CONFIG || {}).vapidPublicKey;
+  st.textContent = t("push.working"); st.className = "status";
+  Notification.requestPermission().then(function (perm) {
+    if (perm !== "granted") throw new Error("denied");
+    return swReady();
+  }).then(function (reg) {
+    return reg.pushManager.getSubscription().then(function (old) { return old || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(key) }); });
+  }).then(function (sub) { return saveSubscription(sub); }).then(function () {
+    state.pushOn = true; renderMe();
+  }).catch(function (e) {
+    st.textContent = (e && e.message === "denied") ? t("push.denied") : t("push.err"); st.className = "status bad";
+  });
+}
+function disablePush() {
+  if (!pushSupported()) return Promise.resolve();
+  return swReady().then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (sub) {
+    if (!sub) return;
+    var ep = sub.endpoint;
+    return state.sb.from("push_subscriptions").delete().eq("endpoint", ep).then(function () { return sub.unsubscribe(); });
+  }).catch(function () {}).then(function () { state.pushOn = false; });
+}
+// Cerrar sesión: este dispositivo deja de recibir los avisos de esa cuenta
+function signOutAll() {
+  var p = state.pushOn ? disablePush() : Promise.resolve();
+  return p.then(function () { return state.sb.auth.signOut(); });
+}
+function appHtml() {
+  var parts = [];
+  if (!isStandalone()) {
+    if (state.installEvt) parts.push('<div class="app-row"><p class="hint" style="margin:0">' + esc(t("app.installP")) + '</p><button type="button" class="btn small solid" id="app-install">' + esc(t("app.install")) + '</button></div>');
+    else if (isIOS()) parts.push('<p class="hint" style="margin:0">' + esc(t("app.ios")) + '</p>');
+    else parts.push('<p class="hint" style="margin:0">' + esc(t("app.other")) + '</p>');
+  }
+  var push;
+  if (!pushSupported()) push = '<p class="hint" style="margin:0">' + esc(isIOS() && !isStandalone() ? t("push.iosFirst") : t("push.unsupported")) + '</p>';
+  else if (Notification.permission === "denied") push = '<p class="hint" style="margin:0">' + esc(t("push.blocked")) + '</p>';
+  else if (state.pushOn) push = '<div class="app-row"><p style="margin:0"><b>✓ ' + esc(t("push.on")) + '</b></p><div class="form-actions" style="margin:0"><button type="button" class="btn small" id="push-test">' + esc(t("push.test")) + '</button><button type="button" class="btn small" id="push-off">' + esc(t("push.off")) + '</button></div></div>';
+  else push = '<div class="app-row"><p class="hint" style="margin:0">' + esc(t("push.why")) + '</p><button type="button" class="btn small solid" id="push-on">' + esc(t("push.enable")) + '</button></div>';
+  parts.push(push + '<span class="status" id="push-status" role="status" aria-live="polite"></span>');
+  return '<div class="p-sec" id="avisos" style="scroll-margin-top:80px"><h3>' + esc(t("app.title")) + '</h3>' + parts.join("") + '</div>';
+}
+function bindAppSection() {
+  var st = document.getElementById("push-status");
+  var ib = document.getElementById("app-install");
+  if (ib) ib.addEventListener("click", function () { var e = state.installEvt; if (!e) return; e.prompt(); e.userChoice.then(function () { state.installEvt = null; renderMe(); }); });
+  var on = document.getElementById("push-on");
+  if (on) on.addEventListener("click", function () { on.disabled = true; enablePush(st); setTimeout(function () { on.disabled = false; }, 4000); });
+  var off = document.getElementById("push-off");
+  if (off) off.addEventListener("click", function () { disablePush().then(renderMe); });
+  var te = document.getElementById("push-test");
+  if (te) te.addEventListener("click", function () {
+    te.disabled = true; st.textContent = t("push.working"); st.className = "status";
+    state.sb.functions.invoke("notify", { body: { action: "test" } }).then(function (res) {
+      te.disabled = false;
+      var n = res && res.data ? res.data.sent : 0;
+      st.textContent = n ? t("push.testSent") : t("push.err"); st.className = "status" + (n ? "" : " bad");
+    });
+  });
+}
+
+/* "He visto la alineación": la capitana ve quién la ha visto desde el último cambio */
+function ackOf(uid, r) { return state.acks[uid + ":" + r] || null; }
+function ackValid(uid, r) {
+  var a = ackOf(uid, r), d = roundDoc(r);
+  return !!a && (!d || !d.updatedAt || new Date(a) >= new Date(d.updatedAt));
+}
+function ackLineup(r, btn) {
+  btn.disabled = true;
+  state.sb.from("lineup_ack").upsert({ r: r, user_id: state.uid, seen_at: new Date().toISOString() }).select("seen_at").then(function (res) {
+    if (res.error) throw res.error;
+    state.acks[state.uid + ":" + r] = res.data[0].seen_at; renderMe();
+  }).catch(function () { btn.disabled = false; });
+}
+
 function subscribeHtml() {
   return '<div class="sub-box"><div><b>' + esc(t("sub.title")) + '</b><p class="hint" style="margin:4px 0 0">' + esc(t("sub.p")) + '</p></div>' +
     '<div class="form-actions"><button type="button" class="btn small solid" data-sub="google">' + esc(t("sub.google")) + '</button>' +
@@ -508,6 +659,7 @@ function gameHtml(g, past) {
     '<div class="mm-meta">' + esc(t("round")) + ' ' + m.r + ' · <b>' + esc(fmtDate(m.date, true)) + '</b>' + (past ? '' : ' · <b>' + esc(timeStr(m)) + '</b>') + ' · ' + esc(isHome ? t("home") : t("away")) + ' · ' + esc(m.venue.name) + team + '</div></div>' +
     right +
     '<div class="partner" style="grid-column:1/-1">' + (partner ? miniHtml(partner) + '<span><span class="label">' + esc(t("me.partner")) + '</span><br>' + esc(fullName(partner)) + (partner.side ? ' · ' + esc(sideLabel(partner.side)) : '') + '</span>' : '<span class="muted">' + esc(t("me.partnerTbc")) + '</span>') + '</div>' +
+    (past ? '' : '<div class="ack-row">' + (ackValid(state.uid, m.r) ? '<span class="ack ok">✓ ' + esc(t("ack.done")) + '</span>' : '<button type="button" class="btn small solid" data-ack="' + m.r + '">' + esc(t("ack.btn")) + '</button><span class="hint">' + esc(t("ack.hint")) + '</span>') + '</div>') +
     (past ? '' : '<div class="cal-btns"><a class="btn small" href="' + esc(googleCalUrl(g)) + '" target="_blank" rel="noopener">' + esc(t("cal.google")) + '</a>' +
       '<button type="button" class="btn small" data-ics="' + m.r + '-' + g.i + '">' + esc(t("cal.apple")) + '</button></div>') +
     '</div>';
@@ -596,7 +748,7 @@ function renderMe() {
   var won = gm.done.filter(function (g) { return g.rs.won === true; }).length, lost = gm.done.filter(function (g) { return g.rs.won === false; }).length;
   var gamesBlock =
     '<div class="stats"><div class="stat"><b>' + (won + lost) + '</b><span>' + esc(t("prof.played")) + '</span></div><div class="stat w"><b>' + won + '</b><span>' + esc(t("prof.won")) + '</span></div><div class="stat l"><b>' + lost + '</b><span>' + esc(t("prof.lost")) + '</span></div></div>' +
-    availHtml() +
+    availHtml() + appHtml() +
     '<div class="p-sec" id="mis-partidos" style="scroll-margin-top:80px"><div class="admin-head"><h3>' + esc(t("prof.upcoming")) + '</h3>' + (gm.up.length > 1 ? '<button type="button" class="btn small solid" id="ics-all">' + esc(t("cal.all")) + '</button>' : '') + '</div>' +
       subscribeHtml() +
       (gm.up.length ? '<p class="hint" style="margin:0">' + esc(t("cal.hint")) + '</p>' + gm.up.map(function (g) { return gameHtml(g, false); }).join("") : '<p class="muted" style="margin:0">' + esc(t("prof.noUpcoming")) + '</p>') + '</div>' +
@@ -619,10 +771,12 @@ function renderMe() {
     '</div></div></div>' + gamesBlock;
   document.getElementById("edit-btn").addEventListener("click", function () { state.editing = true; formMounted = false; renderMe(); });
   document.getElementById("pw-btn").addEventListener("click", function () { state.needPassword = true; renderMe(); });
-  document.getElementById("logout-btn").addEventListener("click", function () { state.sb.auth.signOut(); });
+  document.getElementById("logout-btn").addEventListener("click", function () { signOutAll(); });
   wireAvail(root); wireSubscribe(root);
   var allBtn = document.getElementById("ics-all");
   if (allBtn) allBtn.addEventListener("click", function () { downloadIcs(gm.up, "xnrgy-mis-partidos.ics"); });
+  document.querySelectorAll("[data-ack]").forEach(function (b) { b.addEventListener("click", function () { ackLineup(+b.getAttribute("data-ack"), b); }); });
+  bindAppSection();
   document.querySelectorAll("[data-ics]").forEach(function (b) {
     b.addEventListener("click", function () {
       var k = b.getAttribute("data-ics").split("-").map(Number);
@@ -639,7 +793,9 @@ function renderMe() {
     document.getElementById("del-no").addEventListener("click", function () { renderMe(); });
     document.getElementById("del-yes").addEventListener("click", function () {
       var yes = document.getElementById("del-yes"); yes.disabled = true;
-      state.sb.rpc("delete_my_account").then(function (res) {
+      state.sb.storage.from("photos").list(state.uid).then(function (l) {
+        return removePhotos(((l && l.data) || []).map(function (x) { return state.uid + "/" + x.name; }));
+      }).catch(function () {}).then(function () { return state.sb.rpc("delete_my_account"); }).then(function (res) {
         if (res.error) throw res.error;
         return state.sb.auth.signOut();
       }).then(function () {
@@ -736,7 +892,7 @@ function mountPending(root) {
   var send = document.getElementById("pend-send");
   if (send) send.addEventListener("click", function () { send.disabled = true; sendJoinRequest().then(loadData).catch(function () { send.disabled = false; document.getElementById("pend-status").textContent = t("f.errSave"); }); });
   document.getElementById("pend-check").addEventListener("click", function () { loadData(); });
-  document.getElementById("logout-btn").addEventListener("click", function () { state.sb.auth.signOut(); });
+  document.getElementById("logout-btn").addEventListener("click", function () { signOutAll(); });
 }
 function sendJoinRequest() {
   var md = state.meta || {};
@@ -896,7 +1052,7 @@ function resizePhoto(file) {
   return new Promise(function (resolve, reject) {
     var url = URL.createObjectURL(file), img = new Image();
     img.onload = function () {
-      var s = Math.min(img.naturalWidth, img.naturalHeight), size = 360;
+      var s = Math.min(img.naturalWidth, img.naturalHeight), size = 400;
       var c = document.createElement("canvas"); c.width = size; c.height = size;
       var ctx = c.getContext("2d");
       ctx.drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, size, size);
@@ -935,15 +1091,21 @@ function saveProfile(f) {
   var st = document.getElementById("pf-status");
   if (bad) { st.textContent = t("f.errForm"); st.className = "status bad"; bad.focus(); return; }
   v.regionName = regionInfo(v.country, v.region).name;
+  var old = state.players[state.uid] || {}, oldPath = old.photoPath || null;
   v.photo = formPhoto || null;
+  v.photoPath = formPhoto ? oldPath : null;
   v.updatedAt = new Date().toISOString();
   var btn = document.getElementById("pf-save"); btn.disabled = true;
   st.textContent = t("f.saving"); st.className = "status";
-  state.sb.from("players").upsert(toRow(v)).then(function (res) {
+  var isNew = formPhoto && /^data:image\//.test(formPhoto);
+  (isNew ? uploadPhoto(formPhoto).then(function (path) { v.photoPath = path; }) : Promise.resolve()).then(function () {
+    return state.sb.from("players").upsert(toRow(v));
+  }).then(function (res) {
     if (res.error) throw res.error;
     return state.sb.from("player_contacts").upsert(toContact(v));
   }).then(function (res) {
     if (res.error) throw res.error;
+    if (oldPath && oldPath !== v.photoPath) removePhotos([oldPath]);
     state.players[state.uid] = v; state.editing = false; formMounted = false;
     renderAll();
     document.getElementById("me-note").textContent = t("f.saved");
@@ -1057,7 +1219,7 @@ function renderAdmin() {
         return '<div class="dd-card"><span class="dd-tag">' + SLOTS[i] + '</span><div class="dd-lines">' +
           '<div class="dd-line"><span class="label">' + esc(t("adm.ourPair")) + '</span>' +
             '<select id="' + id + '-0" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.ourPair")) + ' 1">' + opts(pr[0]) + '</select>' +
-            '<select id="' + id + '-1" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.ourPair")) + ' 2">' + opts(pr[1]) + '</select></div>' +
+            '<select id="' + id + '-1" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.ourPair")) + ' 2">' + opts(pr[1]) + '</select>' + ackLineHtml(m.r, pr) + '</div>' +
           '<div class="dd-vs" aria-hidden="true">' + esc(t("next.vs")) + '</div>' +
           '<div class="dd-line"><span class="label">' + esc(t("adm.rivalPair")) + '<small>' + esc(rival) + '</small></span>' +
             '<select class="rv-sel" id="' + id + '-r0" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.rivalPair")) + ' 1">' + rivalOpts(rival, rv[0]) + '</select>' +
@@ -1075,7 +1237,8 @@ function renderAdmin() {
       }).join("") +
       '<div class="admin-total" id="a' + m.r + '-total"></div>' +
       '<div class="form-actions"><button type="button" class="btn small solid" data-save>' + esc(t("adm.save")) + '</button>' +
-        '<a class="btn small wa" href="' + esc(waUrl(m)) + '" target="_blank" rel="noopener" data-wa>' + esc(t("wa.share")) + '</a><span class="status" role="status" aria-live="polite"></span></div></div>';
+        '<a class="btn small wa" href="' + esc(waUrl(m)) + '" target="_blank" rel="noopener" data-wa>' + esc(t("wa.share")) + '</a>' +
+        '<button type="button" class="btn small" data-notify>' + esc(t("push.lineupBtn")) + '</button><span class="status" role="status" aria-live="polite"></span></div></div>';
     el.addEventListener("input", function () { adminDirty[m.r] = true; updateRoundTotals(m.r, el); });
     el.addEventListener("change", function () {
       adminDirty[m.r] = true;
@@ -1084,6 +1247,7 @@ function renderAdmin() {
       var stx = el.querySelector(".status"); stx.textContent = dup ? t("adm.dup") : ""; stx.className = "status" + (dup ? " bad" : "");
     });
     el.querySelector("[data-save]").addEventListener("click", function () { saveRound(m.r, el); });
+    el.querySelector("[data-notify]").addEventListener("click", function () { notifyLineup(m.r, el, this); });
     updateRoundTotals(m.r, el);
     frag.appendChild(el);
   });
@@ -1248,11 +1412,48 @@ function saveRound(r, el) {
   var meetTime = el.querySelector("#a" + r + "-mt").value || null, meetPlace = el.querySelector("#a" + r + "-mp").value.trim().slice(0, 80) || null;
   body.meetTime = meetTime || ""; body.meetPlace = meetPlace || "";
   var btn = el.querySelector("[data-save]"); btn.disabled = true; st.textContent = t("f.saving"); st.className = "status";
-  state.sb.from("rounds").upsert({ r: r, pairs: pairs, results: results, us: us, them: them, meet_time: meetTime, meet_place: meetPlace, updated_at: body.updatedAt }).then(function (res) {
+  // Si otra capitana ha guardado esta jornada desde que la abriste, no se pisa su trabajo: se avisa y se ofrece recargar
+  var prev = roundDoc(r), row = { pairs: pairs, results: results, us: us, them: them, meet_time: meetTime, meet_place: meetPlace };
+  var req = (prev && prev.updatedAt)
+    ? state.sb.from("rounds").update(row).eq("r", r).eq("updated_at", prev.updatedAt).select("updated_at,updated_by")
+    : state.sb.from("rounds").insert(Object.assign({ r: r }, row)).select("updated_at,updated_by");
+  req.then(function (res) {
+    var conflict = (res.error && res.error.code === "23505") || (!res.error && (!res.data || !res.data.length));
+    if (conflict) return showConflict(r, el, btn);
     if (res.error) throw res.error;
+    body.updatedAt = res.data[0].updated_at; body.updatedBy = res.data[0].updated_by;
     adminDirty[r] = false; state.rounds["r" + r] = body; btn.disabled = false;
     renderAll(); var again = document.querySelector('.admin-round[data-r="' + r + '"] .status'); if (again) again.textContent = t("adm.saved");
   }).catch(function () { btn.disabled = false; st.textContent = t("f.errSave"); st.className = "status bad"; });
+}
+function ackLineHtml(r, pr) {
+  var ids = (pr || []).filter(function (id) { return id && state.players[id]; });
+  if (!ids.length) return "";
+  return '<span class="ack-line">' + ids.map(function (id) {
+    var ok = ackValid(id, r);
+    return '<span class="ack' + (ok ? " ok" : "") + '" title="' + esc(ok ? t("ack.seen") : t("ack.notSeen")) + '">' + (ok ? "✓ " : "○ ") + esc(state.players[id].firstName) + '</span>';
+  }).join("") + '</span>';
+}
+function notifyLineup(r, el, btn) {
+  var st = el.querySelector(".status");
+  if (adminDirty[r]) { st.textContent = t("push.saveFirst"); st.className = "status bad"; return; }
+  btn.disabled = true; st.textContent = t("push.working"); st.className = "status";
+  state.sb.functions.invoke("notify", { body: { action: "lineup", r: r } }).then(function (res) {
+    btn.disabled = false;
+    if (res.error) throw res.error;
+    var n = res.data.sent || 0;
+    st.textContent = n ? t("push.lineupSent", { n: n }) : t("push.lineupNone"); st.className = "status";
+  }).catch(function () { btn.disabled = false; st.textContent = t("push.err"); st.className = "status bad"; });
+}
+function showConflict(r, el, btn) {
+  return state.sb.from("rounds").select("updated_at,updated_by").eq("r", r).maybeSingle().then(function (res) {
+    var d = (res && res.data) || {}, who = state.players[d.updated_by] ? state.players[d.updated_by].firstName : t("conf.someone");
+    var mins = d.updated_at ? Math.max(0, Math.round((Date.now() - new Date(d.updated_at).getTime()) / 60000)) : 0;
+    var st = el.querySelector(".status"); btn.disabled = false;
+    st.className = "status bad";
+    st.innerHTML = esc(t("conf.msg", { who: who, n: mins })) + ' <button type="button" class="btn small" data-reload>' + esc(t("conf.reload")) + '</button>';
+    st.querySelector("[data-reload]").addEventListener("click", function () { adminDirty[r] = false; adminOpen[r] = true; loadData(); });
+  });
 }
 
 /* ───────────── Render general ───────────── */
@@ -1283,7 +1484,7 @@ function closeAccMenu() {
     var mc = document.querySelector('meta[name="theme-color"]'); if (mc) mc.content = light ? "#ffffff" : "#0a0a0a";
     try { localStorage.setItem("xnrgy-theme", light ? "light" : "dark"); } catch (e) {}
   });
-  document.getElementById("menu-logout").addEventListener("click", function () { closeAccMenu(); if (state.sb) state.sb.auth.signOut(); location.hash = "#perfil"; });
+  document.getElementById("menu-logout").addEventListener("click", function () { closeAccMenu(); if (state.sb) signOutAll(); location.hash = "#perfil"; });
 })();
 function applyView() {
   var h = location.hash;
@@ -1310,6 +1511,7 @@ document.querySelectorAll(".langs button").forEach(function (b) {
   b.addEventListener("click", function () {
     lang = b.getAttribute("data-lang");
     try { localStorage.setItem("xnrgy-lang", lang); } catch (e) {}
+    if (state.pushOn) refreshPushState();
     formMounted = false; renderAll();
   });
 });
@@ -1323,11 +1525,11 @@ function loadRegions() {
 /* Columnas de Supabase (snake_case) <-> objetos de la página */
 function fromRow(r) {
   return { firstName: r.first_name, lastName: r.last_name, side: r.side, hand: r.hand,
-    country: r.country, region: r.region, regionName: r.region_name, photo: r.photo, birthday: r.birthday || "", updatedAt: r.updated_at };
+    country: r.country, region: r.region, regionName: r.region_name, photo: null, photoPath: r.photo_path || null, birthday: r.birthday || "", updatedAt: r.updated_at };
 }
 function toRow(v) {
   return { id: state.uid, first_name: v.firstName, last_name: v.lastName, side: v.side || null, hand: v.hand || null,
-    country: v.country, region: v.region, region_name: v.regionName || null, photo: v.photo || null, birthday: v.birthday || null, updated_at: v.updatedAt };
+    country: v.country, region: v.region, region_name: v.regionName || null, photo: null, photo_path: v.photoPath || null, birthday: v.birthday || null, updated_at: v.updatedAt };
 }
 // Teléfono, email y KNLTB van aparte: solo los leen ella misma, la dueña y las capitanas
 function toContact(v) { return { id: state.uid, phone: v.phone || null, email: v.email || null, knltb: v.knltb || null, updated_at: v.updatedAt }; }
@@ -1340,13 +1542,14 @@ function loadData() {
     standings: sb.from("standings").select("*")
   };
   if (state.uid) {
-    q.players = sb.from("players").select("*");
+    q.players = sb.from("players").select("id,first_name,last_name,side,hand,country,region,region_name,photo_path,birthday,updated_at");
     q.roles = sb.from("team_roles").select("*");
     q.requests = sb.from("join_requests").select("*").order("created_at");
     q.contacts = sb.from("player_contacts").select("*");
     q.rivals = sb.from("rival_players").select("team,name,rating").order("name");
     q.avail = sb.from("availability").select("*");
     q.caltoken = sb.from("calendar_tokens").select("token");
+    q.acks = sb.from("lineup_ack").select("r,user_id,seen_at");
   }
   var keys = Object.keys(q);
   loading = Promise.all(keys.map(function (k) { return q[k]; })).then(function (arr) {
@@ -1354,7 +1557,7 @@ function loadData() {
     var res = {}; keys.forEach(function (k, i) { res[k] = arr[i]; });
     function rows(k) { return (res[k] && !res[k].error && res[k].data) || []; }
     if (res.rounds.error) throw res.rounds.error;
-    var rounds = {}; rows("rounds").forEach(function (row) { rounds["r" + row.r] = { pairs: row.pairs, results: row.results, us: row.us, them: row.them, meetTime: row.meet_time || "", meetPlace: row.meet_place || "" }; });
+    var rounds = {}; rows("rounds").forEach(function (row) { rounds["r" + row.r] = { pairs: row.pairs, results: row.results, us: row.us, them: row.them, meetTime: row.meet_time || "", meetPlace: row.meet_place || "", updatedAt: row.updated_at || null, updatedBy: row.updated_by || null }; });
     state.rounds = rounds;
     state.standings = rows("standings");
     if (state.uid) {
@@ -1367,19 +1570,23 @@ function loadData() {
       state.players = players;
       state.avail = {}; rows("avail").forEach(function (x) { state.avail[x.user_id + ":" + x.r] = x; });
       state.calToken = (rows("caltoken")[0] || {}).token || null;
+      state.acks = {}; rows("acks").forEach(function (x) { state.acks[x.user_id + ":" + x.r] = x.seen_at; });
       var reqRows = rows("requests");
       state.requests = reqRows.filter(function (x) { return x.user_id !== state.uid && !state.roles[x.user_id]; });
       state.myRequest = reqRows.filter(function (x) { return x.user_id === state.uid; })[0] || null;
       state.isOwner = state.roles[state.uid] === "owner";
       state.managers = roles.filter(function (x) { return STAFF.indexOf(x.role) >= 0; }).map(function (x) { return x.user_id; });
+      var signing = signPhotos(players);
+      signing.then(function (fetched) { if (fetched && state.players === players) renderAll(); if (state.players === players) migrateMyPhoto(); });
       if (!state.roles[state.uid]) {
         state.phase = "pending";
         if (!state.myRequest && !state.autoRequested) { state.autoRequested = true; sendJoinRequest().then(loadData).catch(function () {}); }
       } else state.phase = "ready";
     } else {
-      state.players = {}; state.roles = {}; state.requests = []; state.myRequest = null; state.isOwner = false; state.managers = []; state.phase = "noaccess"; state.autoRequested = false; state.avail = {}; state.calToken = null;
+      state.players = {}; state.roles = {}; state.requests = []; state.myRequest = null; state.isOwner = false; state.managers = []; state.phase = "noaccess"; state.autoRequested = false; state.avail = {}; state.calToken = null; state.acks = {};
     }
     renderAll();
+    if (state.phase === "ready" && state.pushFor !== state.uid) { state.pushFor = state.uid; refreshPushState(); }
   }).catch(function () {
     loading = null;
     if (state.phase === "loading") state.phase = state.uid ? "slow" : "noaccess";
@@ -1408,6 +1615,9 @@ function checkVersion() {
 }
 function boot() {
   checkVersion();
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () {});
+  window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); state.installEvt = e; renderMe(); });
+  window.addEventListener("appinstalled", function () { state.installEvt = null; renderMe(); });
   // Enlace de invitación o de recuperación: pedir la contraseña nueva al entrar
   var h = location.hash || "", q = location.search || "";
   if (/type=(invite|recovery)/.test(h + q)) { state.needPassword = true; }

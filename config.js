@@ -5,5 +5,9 @@
 // NUNCA pongas aquí la clave "secret" ni la "service_role".
 window.XNRGY_CONFIG = {
   supabaseUrl: "https://hnsnxdaobusdbnryitjq.supabase.co",
-  supabaseKey: "sb_publishable_NlzKCiyH1Gp38WtyBPaXkA_NvEP7lKo"
+  supabaseKey: "sb_publishable_NlzKCiyH1Gp38WtyBPaXkA_NvEP7lKo",
+  // Clave pública de los avisos push (la privada solo la tiene Supabase)
+  vapidPublicKey: "BHNNsXeHkBGFWxqUCcKmSFRmyrBfAmnxuPpXW_pXDnQ7yNNU-kowcGtDqkGBg0txWZikCh_kfcsG9iCELe32G_k",
+  // CAPTCHA invisible de Cloudflare Turnstile para crear cuenta y entrar. Vacío = desactivado.
+  turnstileSiteKey: ""
 };
