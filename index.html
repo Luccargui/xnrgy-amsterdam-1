@@ -387,6 +387,25 @@ td.n, th.n { text-align: right; width: 64px; }
 td.pos { width: 44px; color: var(--muted); font-family: var(--display); font-weight: 700; font-size: 18px; }
 td.team { font-family: var(--display); font-weight: 600; font-size: 18px; text-transform: uppercase; }
 tr.us td, tr.us td.pos { background: var(--text); color: var(--bg); }
+.st-tiles { display: grid; grid-template-columns: repeat(6, 1fr); border: 1px solid var(--line); margin-bottom: 28px; }
+.st-tile { padding: 16px 14px; border-right: 1px solid var(--line); }
+.st-tile:last-child { border-right: 0; }
+.st-tile b { display: block; font-family: var(--display); font-weight: 800; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; }
+.st-tile span { font-family: var(--display); font-weight: 700; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.st-tile.w b { color: var(--win); } .st-tile.l b { color: var(--loss); }
+.st-h { font-family: var(--display); font-weight: 800; font-size: 22px; text-transform: uppercase; letter-spacing: .02em; margin: 0 0 6px; }
+.st-block + .st-block { margin-top: 32px; }
+table.st-tbl { min-width: 0; }
+.st-tbl td.who { font-weight: 600; }
+.st-tbl td.n, .st-tbl th.n { white-space: nowrap; }
+.st-tbl td.pc { width: 120px; }
+.st-tbl td.who small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+.st-tbl tr.me td { background: var(--surface); }
+.st-tbl tr.me td.who { box-shadow: inset 3px 0 0 var(--text); }
+.st-bar { display: inline-block; vertical-align: middle; width: 54px; height: 6px; background: var(--line); margin-right: 8px; position: relative; }
+.st-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--text); }
+@media (max-width: 760px) { .st-tiles { grid-template-columns: repeat(3, 1fr); } .st-tile:nth-child(3) { border-right: 0; } .st-tile:nth-child(-n+3) { border-bottom: 1px solid var(--line); } }
+@media (max-width: 520px) { .st-tbl .hide-sm { display: none; } .st-bar { display: none; } .st-tbl th, .st-tbl td { padding: 10px 6px; } .st-tile b { font-size: 28px; } td.n, th.n { width: auto; } }
 
 /* Jugadoras */
 .players { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 16px; }
@@ -602,6 +621,16 @@ footer { padding: 36px 0 44px; }
     </div>
   </section>
 
+  <section data-view="home" id="estadisticas">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-i18n="st.title"></h2>
+        <p class="sec-note" id="st-note"></p>
+      </div>
+      <div id="stats-box"></div>
+    </div>
+  </section>
+
   <section data-view="home" id="club">
     <div class="wrap">
       <div class="sec-head">
@@ -670,6 +699,7 @@ function renderPrivacy() {
 /* ───────────── Textos en 4 idiomas ───────────── */
 var I18N = {
   es: {
+    "st.title": "Estadísticas", "st.note": "Se actualizan solas con cada resultado.", "st.locked": "Inicia sesión para ver las estadísticas del equipo.", "st.empty": "Las estadísticas aparecerán en cuanto se apunten los primeros resultados.", "st.t.pj": "Partidos", "st.t.w": "Ganados", "st.t.l": "Perdidos", "st.t.pct": "% victorias", "st.t.sets": "Sets", "st.t.games": "Juegos", "st.players": "Por jugadora", "st.pairs": "Por pareja", "st.player": "Jugadora", "st.pair": "Pareja", "st.pj": "PJ", "st.w": "G", "st.l": "P", "st.fine": "Ordenado por partidos ganados, después % de victorias, diferencia de sets y de juegos.",
     "nav.me": "Mi perfil", "prof.upcoming": "Próximos partidos", "prof.results": "Resultados", "prof.noUpcoming": "No hay ningún partido planificado de momento.", "prof.noResults": "Aún no has jugado ningún partido esta temporada.", "prof.played": "Jugados", "prof.won": "Ganados", "prof.lost": "Perdidos", "res.w": "Ganado", "res.l": "Perdido", "res.p": "Sin resultado", "prof.team": "Equipo", "prof.back": "Volver a la web del equipo", "adm.ddScore": "Sets (ej. 6-4 6-3)", "adm.ddOut": "Resultado", "adm.none": "—", "nav.matches": "Partidos", "nav.table": "Clasificación", "nav.players": "Jugadoras", "nav.club": "Club",
     "hero.season": "Competición del 13 de noviembre al 14 de marzo.",
     "next.title": "Próximo partido", "next.none": "Temporada terminada", "next.vs": "contra",
@@ -714,6 +744,7 @@ var I18N = {
     "foot.season": "XNRGY Amsterdam 1 · Temporada 2026/2027", "foot.sponsor": "Patrocinado por", "foot.flags": "Banderas:"
   },
   en: {
+    "st.title": "Stats", "st.note": "Updated automatically with every result.", "st.locked": "Sign in to see the team stats.", "st.empty": "Stats will appear as soon as the first results are entered.", "st.t.pj": "Matches", "st.t.w": "Won", "st.t.l": "Lost", "st.t.pct": "Win %", "st.t.sets": "Sets", "st.t.games": "Games", "st.players": "By player", "st.pairs": "By pair", "st.player": "Player", "st.pair": "Pair", "st.pj": "P", "st.w": "W", "st.l": "L", "st.fine": "Sorted by matches won, then win %, set difference and game difference.",
     "nav.me": "My profile", "prof.upcoming": "Upcoming matches", "prof.results": "Results", "prof.noUpcoming": "No matches planned for you at the moment.", "prof.noResults": "You have not played a match this season yet.", "prof.played": "Played", "prof.won": "Won", "prof.lost": "Lost", "res.w": "Won", "res.l": "Lost", "res.p": "No result yet", "prof.team": "Team", "prof.back": "Back to the team site", "adm.ddScore": "Sets (e.g. 6-4 6-3)", "adm.ddOut": "Result", "adm.none": "—", "nav.matches": "Matches", "nav.table": "Standings", "nav.players": "Players", "nav.club": "Club",
     "hero.season": "League runs from 13 November to 14 March.",
     "next.title": "Next match", "next.none": "Season finished", "next.vs": "vs",
@@ -758,6 +789,7 @@ var I18N = {
     "foot.season": "XNRGY Amsterdam 1 · Season 2026/2027", "foot.sponsor": "Sponsored by", "foot.flags": "Flags:"
   },
   tr: {
+    "st.title": "İstatistikler", "st.note": "Her sonuçla otomatik güncellenir.", "st.locked": "Takım istatistiklerini görmek için giriş yap.", "st.empty": "İlk sonuçlar girilir girilmez istatistikler burada görünecek.", "st.t.pj": "Maç", "st.t.w": "Galibiyet", "st.t.l": "Mağlubiyet", "st.t.pct": "Galibiyet %", "st.t.sets": "Setler", "st.t.games": "Oyunlar", "st.players": "Oyuncuya göre", "st.pairs": "Çifte göre", "st.player": "Oyuncu", "st.pair": "Çift", "st.pj": "O", "st.w": "G", "st.l": "M", "st.fine": "Kazanılan maça, sonra galibiyet yüzdesine, set ve oyun farkına göre sıralanır.",
     "nav.me": "Profilim", "prof.upcoming": "Yaklaşan maçlar", "prof.results": "Sonuçlar", "prof.noUpcoming": "Şu an için planlanmış bir maç yok.", "prof.noResults": "Bu sezon henüz maç oynamadın.", "prof.played": "Oynanan", "prof.won": "Kazanılan", "prof.lost": "Kaybedilen", "res.w": "Kazandı", "res.l": "Kaybetti", "res.p": "Sonuç yok", "prof.team": "Takım", "prof.back": "Takım sayfasına dön", "adm.ddScore": "Setler (örn. 6-4 6-3)", "adm.ddOut": "Sonuç", "adm.none": "—", "nav.matches": "Maçlar", "nav.table": "Puan durumu", "nav.players": "Oyuncular", "nav.club": "Kulüp",
     "hero.season": "Lig 13 Kasım'dan 14 Mart'a kadar sürüyor.",
     "next.title": "Sıradaki maç", "next.none": "Sezon bitti", "next.vs": "karşı",
@@ -802,6 +834,7 @@ var I18N = {
     "foot.season": "XNRGY Amsterdam 1 · 2026/2027 Sezonu", "foot.sponsor": "Sponsor", "foot.flags": "Bayraklar:"
   },
   nl: {
+    "st.title": "Statistieken", "st.note": "Worden automatisch bijgewerkt bij elke uitslag.", "st.locked": "Log in om de teamstatistieken te zien.", "st.empty": "De statistieken verschijnen zodra de eerste uitslagen zijn ingevoerd.", "st.t.pj": "Wedstrijden", "st.t.w": "Gewonnen", "st.t.l": "Verloren", "st.t.pct": "Winst %", "st.t.sets": "Sets", "st.t.games": "Games", "st.players": "Per speelster", "st.pairs": "Per koppel", "st.player": "Speelster", "st.pair": "Koppel", "st.pj": "G", "st.w": "W", "st.l": "V", "st.fine": "Gesorteerd op gewonnen wedstrijden, dan winst %, setsaldo en gamesaldo.",
     "nav.me": "Mijn profiel", "prof.upcoming": "Komende wedstrijden", "prof.results": "Uitslagen", "prof.noUpcoming": "Er zijn op dit moment geen wedstrijden gepland.", "prof.noResults": "Je hebt dit seizoen nog geen partij gespeeld.", "prof.played": "Gespeeld", "prof.won": "Gewonnen", "prof.lost": "Verloren", "res.w": "Gewonnen", "res.l": "Verloren", "res.p": "Nog geen uitslag", "prof.team": "Team", "prof.back": "Terug naar de teampagina", "adm.ddScore": "Sets (bijv. 6-4 6-3)", "adm.ddOut": "Uitslag", "adm.none": "—", "nav.matches": "Wedstrijden", "nav.table": "Stand", "nav.players": "Speelsters", "nav.club": "Club",
     "hero.season": "Competitie van 13 november tot 14 maart.",
     "next.title": "Volgende wedstrijd", "next.none": "Seizoen afgelopen", "next.vs": "tegen",
@@ -1160,6 +1193,60 @@ function renderPlayers() {
   });
   document.getElementById("players").innerHTML = cards.join("");
   document.getElementById("pl-note").textContent = t("pl.count", { n: cards.length });
+}
+
+/* ───────────── Estadísticas ───────────── */
+// Se calculan solas a partir de las alineaciones y los resultados que apunta la capitana
+function computeStats() {
+  var per = {}, pairs = {}, team = { pj: 0, w: 0, l: 0, sw: 0, sl: 0, gw: 0, gl: 0 };
+  function add(o, rs, sets) {
+    o.pj++; if (rs.won) o.w++; else o.l++;
+    sets.forEach(function (x) { if (x[0] > x[1]) o.sw++; else if (x[1] > x[0]) o.sl++; o.gw += +x[0]; o.gl += +x[1]; });
+  }
+  function blank() { return { pj: 0, w: 0, l: 0, sw: 0, sl: 0, gw: 0, gl: 0 }; }
+  ROUNDS.forEach(function (m) {
+    var pr = pairsOf(m.r), res = resultsOf(m.r);
+    [0, 1, 2, 3].forEach(function (i) {
+      var rs = res[i] || {};
+      if (rs.won !== true && rs.won !== false) return;
+      var sets = setsOf(rs).map(function (x) { return [+x[0], +x[1]]; });
+      add(team, rs, sets);
+      var ids = (pr[i] || []).filter(function (id) { return id && state.players[id]; });
+      ids.forEach(function (id) { add(per[id] = per[id] || blank(), rs, sets); });
+      if (ids.length === 2) { var k = ids.slice().sort().join("|"); add(pairs[k] = pairs[k] || blank(), rs, sets); }
+    });
+  });
+  return { per: per, pairs: pairs, team: team };
+}
+function pct(o) { return o.pj ? Math.round(100 * o.w / o.pj) : 0; }
+function byPerf(a, b) { return (b.o.w - a.o.w) || (pct(b.o) - pct(a.o)) || ((b.o.sw - b.o.sl) - (a.o.sw - a.o.sl)) || ((b.o.gw - b.o.gl) - (a.o.gw - a.o.gl)) || (b.o.pj - a.o.pj); }
+function shortName(p) { return p ? (p.firstName + " " + ((p.lastName || "")[0] || "").toUpperCase() + ".").trim() : ""; }
+function pctCell(o) { var v = pct(o); return '<span class="st-bar" aria-hidden="true"><i style="width:' + v + '%"></i></span>' + v + '%'; }
+function renderStats() {
+  var box = document.getElementById("stats-box"), note = document.getElementById("st-note");
+  if (!box) return;
+  if (!state.uid || state.phase !== "ready") {
+    box.innerHTML = '<div class="notice"><p style="margin:0">' + esc(t("st.locked")) + ' <a href="#perfil">' + esc(t("login.submit")) + ' →</a></p></div>';
+    note.textContent = ""; return;
+  }
+  var S = computeStats(), T = S.team;
+  note.textContent = t("st.note");
+  if (!T.pj) { box.innerHTML = '<p class="muted" style="margin:0">' + esc(t("st.empty")) + '</p>'; return; }
+  var tiles = [["pj", T.pj, ""], ["w", T.w, "w"], ["l", T.l, "l"], ["pct", pct(T) + "%", ""], ["sets", T.sw + "–" + T.sl, ""], ["games", T.gw + "–" + T.gl, ""]];
+  var head = '<thead><tr><th>#</th><th>{who}</th><th class="n">' + esc(t("st.pj")) + '</th><th class="n">' + esc(t("st.w")) + '</th><th class="n">' + esc(t("st.l")) + '</th><th class="n">%</th><th class="n hide-sm">' + esc(t("adm.setsTot")) + '</th><th class="n hide-sm">' + esc(t("adm.games")) + '</th></tr></thead>';
+  function row(i, who, o, mine) {
+    return '<tr' + (mine ? ' class="me"' : '') + '><td class="pos">' + (i + 1) + '</td><td class="who">' + who + '</td><td class="n">' + o.pj + '</td><td class="n">' + o.w + '</td><td class="n">' + o.l + '</td><td class="n pc">' + pctCell(o) + '</td>' +
+      '<td class="n hide-sm">' + o.sw + '–' + o.sl + '</td><td class="n hide-sm">' + o.gw + '–' + o.gl + '</td></tr>';
+  }
+  var players = Object.keys(S.per).map(function (id) { return { id: id, o: S.per[id] }; }).sort(byPerf);
+  var prs = Object.keys(S.pairs).map(function (k) { return { ids: k.split("|"), o: S.pairs[k] }; }).sort(byPerf);
+  box.innerHTML =
+    '<div class="st-tiles">' + tiles.map(function (x) { return '<div class="st-tile ' + x[2] + '"><b>' + x[1] + '</b><span>' + esc(t("st.t." + x[0])) + '</span></div>'; }).join("") + '</div>' +
+    '<div class="st-block"><h3 class="st-h">' + esc(t("st.players")) + '</h3><div class="table-wrap"><table class="st-tbl">' + head.replace("{who}", esc(t("st.player"))) + '<tbody>' +
+      players.map(function (x, i) { return row(i, esc(fullName(state.players[x.id])), x.o, x.id === state.uid); }).join("") + '</tbody></table></div></div>' +
+    (prs.length ? '<div class="st-block"><h3 class="st-h">' + esc(t("st.pairs")) + '</h3><div class="table-wrap"><table class="st-tbl">' + head.replace("{who}", esc(t("st.pair"))) + '<tbody>' +
+      prs.map(function (x, i) { return row(i, esc(shortName(state.players[x.ids[0]])) + ' &amp; ' + esc(shortName(state.players[x.ids[1]])), x.o, x.ids.indexOf(state.uid) >= 0); }).join("") + '</tbody></table></div></div>' : '') +
+    '<p class="fineprint">' + esc(t("st.fine")) + '</p>';
 }
 
 /* ───────────── Mi zona ───────────── */
@@ -2085,7 +2172,7 @@ window.addEventListener("hashchange", function () {
   else window.scrollTo(0, 0);
 });
 function renderAll() {
-  paintStatic(); applyView(); renderPrivacy(); renderNext(); renderRounds(); renderStandings(); renderPlayers(); renderMe(); renderAdmin();
+  paintStatic(); applyView(); renderPrivacy(); renderNext(); renderRounds(); renderStandings(); renderPlayers(); renderStats(); renderMe(); renderAdmin();
 }
 document.querySelectorAll(".langs button").forEach(function (b) {
   b.addEventListener("click", function () {
@@ -2177,7 +2264,7 @@ function setSession(session) {
   if (!uid) { state.editing = false; state.needPassword = false; formMounted = false; }
   if (changed) { formMounted = false; loadData(); }
 }
-var APP_VERSION = "2026-11-02-5";
+var APP_VERSION = "2026-11-02-6";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
