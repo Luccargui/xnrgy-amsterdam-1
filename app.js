@@ -268,6 +268,85 @@ function tickCountdown() {
     return '<div class="cd-u"><b>' + (i ? pad2(p[0]) : p[0]) + '</b><span>' + esc(t(p[1])) + '</span></div>';
   }).join("") + (m.time ? "" : '<div class="cd-note">' + esc(t("cd.tbc")) + '</div>');
 }
+/* ───────────── Portada personalizada (con sesión) ───────────── */
+function renderMeHome() {
+  var box = document.getElementById("me-home"), me = state.players[state.uid];
+  document.body.classList.toggle("authed", !!(state.uid && state.phase === "ready"));
+  if (!state.uid || state.phase !== "ready" || !me) { box.innerHTML = ""; return; }
+  var gm = myGames(), g = gm.up[0], next = upcomingRounds()[0], cards = [];
+  // 1) Mi próximo partido
+  if (g) {
+    var m = g.m, rival = m.home === US ? m.away : m.home, partner = g.partnerId ? state.players[g.partnerId] : null, ml = meetLine(m);
+    cards.push('<div class="mh-card mh-main"><span class="label">' + esc(t("mh.next")) + '</span>' +
+      '<div class="mh-title">' + SLOTS[g.i] + ' · ' + esc(t("me.vsTeam")) + ' ' + esc(rival) + '</div>' +
+      '<div class="mm-meta"><b>' + esc(fmtDate(m.date, true)) + '</b> · <b>' + esc(timeStr(m)) + '</b> · ' + esc(m.home === US ? t("home") : t("away")) + ' · ' + esc(m.venue.name) + '</div>' +
+      (ml ? '<div class="mm-meta">' + esc(t("meet.title")) + ': <b>' + esc(ml) + '</b></div>' : '') +
+      '<div class="partner">' + (partner ? miniHtml(partner) + '<span><span class="label">' + esc(t("me.partner")) + '</span><br>' + esc(fullName(partner)) + '</span>' : '<span class="muted">' + esc(t("me.noPartner")) + '</span>') + '</div>' +
+      '<div class="form-actions" style="margin:0">' + (ackValid(state.uid, m.r) ? '<span class="ack ok">✓ ' + esc(t("ack.done")) + '</span>' : '<button type="button" class="btn small solid" data-ack-home="' + m.r + '">' + esc(t("ack.btn")) + '</button>') +
+        '<a class="btn small" href="' + routeUrl(m.venue) + '" target="_blank" rel="noopener">' + esc(t("route")) + '</a><a class="btn small" href="#mis-partidos">' + esc(t("mh.all")) + '</a></div></div>');
+  } else if (next) {
+    var rv = next.home === US ? next.away : next.home;
+    cards.push('<div class="mh-card mh-main"><span class="label">' + esc(t("mh.nextRound")) + '</span>' +
+      '<div class="mh-title">' + esc(t("round")) + ' ' + next.r + ' · ' + esc(rv) + '</div>' +
+      '<div class="mm-meta"><b>' + esc(fmtDate(next.date, true)) + '</b> · ' + esc(timeStr(next)) + '</div>' +
+      '<p class="muted" style="margin:0">' + esc(t("mh.notIn")) + '</p></div>');
+  }
+  // 2) Disponibilidad sin marcar: botones directos para la primera jornada pendiente
+  var pend = upcomingRounds().filter(function (m) { return !(availOf(state.uid, m.r) || {}).status; });
+  if (pend.length) {
+    var pm = pend[0], prv = pm.home === US ? pm.away : pm.home;
+    cards.push('<div class="mh-card mh-ask"><span class="label">' + esc(t("mh.availT")) + '</span>' +
+      '<div class="mh-title">' + esc(t("round")) + ' ' + pm.r + ' · ' + esc(prv) + '</div>' +
+      '<div class="mm-meta">' + esc(fmtDate(pm.date, true)) + ' · ' + esc(timeStr(pm)) + '</div>' +
+      '<div class="av-btns" role="group" aria-label="' + esc(t("av.title")) + ' · ' + esc(t("round")) + ' ' + pm.r + '">' +
+        ["yes", "maybe", "no"].map(function (v) { return '<button type="button" class="av-btn av-' + v + '" data-av-home="' + pm.r + '" data-v="' + v + '" aria-pressed="false">' + esc(t("av." + v)) + '</button>'; }).join("") + '</div>' +
+      (pend.length > 1 ? '<a class="mh-link" href="#perfil" data-goto="mi-disponibilidad">' + esc(t("mh.availMore", { n: pend.length - 1 })) + ' →</a>' : '') + '</div>');
+  }
+  // 3) Capitanas: solicitudes pendientes
+  if (canManage() && state.requests.length) {
+    cards.push('<div class="mh-card"><span class="label">' + esc(t("req.title")) + '</span><div class="mh-title">' + esc(t("mh.requests", { n: state.requests.length })) + '</div><a class="btn small" href="#perfil">' + esc(t("mh.review")) + '</a></div>');
+  }
+  box.innerHTML = '<section class="me-home"><div class="wrap"><p class="kicker">' + esc(t("mh.hello", { name: me.firstName })) + '</p><div class="mh-grid">' + cards.join("") + '</div></div></section>';
+  box.querySelectorAll("[data-av-home]").forEach(function (b) {
+    b.addEventListener("click", function () { saveAvail(+b.getAttribute("data-av-home"), { status: b.getAttribute("data-v") }); renderMeHome(); renderMe(); });
+  });
+  box.querySelectorAll("[data-ack-home]").forEach(function (b) { b.addEventListener("click", function () { ackLineup(+b.getAttribute("data-ack-home"), b); }); });
+  box.querySelectorAll("[data-goto]").forEach(function (a) {
+    a.addEventListener("click", function () { var id = a.getAttribute("data-goto"); setTimeout(function () { var el = document.getElementById(id); if (el) el.scrollIntoView(); }, 50); });
+  });
+}
+
+/* ───────────── Barra inferior en el móvil (con sesión) ───────────── */
+var TAB_ICONS = {
+  home: '<path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/>',
+  matches: '<rect x="3" y="5" width="18" height="16" rx="1"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  stats: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  players: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.6c2.9 0 5 1.6 5.5 4.4"/>',
+  lineups: '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+  profile: '<circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.2 4-6.5 8-6.5s7.2 2.3 8 6.5"/>'
+};
+function renderTabbar() {
+  var bar = document.getElementById("tabbar");
+  var on = !!(state.uid && state.phase === "ready");
+  bar.hidden = !on; document.body.classList.toggle("has-tabs", on);
+  if (!on) return;
+  bar.setAttribute("aria-label", t("tabs.label"));
+  var items = [["home", "#inicio", t("tabs.home")], ["matches", "#mis-partidos", t("tabs.matches")], ["stats", "#estadisticas", t("st.title")],
+    canManage() ? ["lineups", "#alineaciones", t("nav.lineups")] : ["players", "#jugadoras", t("nav.players")], ["profile", "#perfil", t("tabs.profile")]];
+  var h = location.hash || "#inicio", view = applyViewName();
+  function active(href) {
+    if (href === "#perfil") return view === "profile" && h !== "#mis-partidos";
+    if (href === "#mis-partidos") return h === "#mis-partidos";
+    if (href === "#alineaciones") return view === "lineups";
+    if (href === "#inicio") return view === "home" && (h === "#inicio" || h === "" || ["#estadisticas", "#jugadoras"].indexOf(h) < 0);
+    return h === href;
+  }
+  bar.innerHTML = items.map(function (x) {
+    var a = active(x[1]);
+    return '<a href="' + x[1] + '"' + (a ? ' aria-current="page"' : '') + '><svg viewBox="0 0 24 24" aria-hidden="true">' + TAB_ICONS[x[0]] + '</svg><span>' + esc(x[2]) + '</span></a>';
+  }).join("");
+}
+
 function renderNext() {
   var vs = document.getElementById("next-vs"), meta = document.getElementById("next-meta"), count = document.getElementById("next-count");
   var m = nextRound();
@@ -589,7 +668,7 @@ function ackLineup(r, btn) {
   btn.disabled = true;
   state.sb.from("lineup_ack").upsert({ r: r, user_id: state.uid, seen_at: new Date().toISOString() }).select("seen_at").then(function (res) {
     if (res.error) throw res.error;
-    state.acks[state.uid + ":" + r] = res.data[0].seen_at; renderMe();
+    state.acks[state.uid + ":" + r] = res.data[0].seen_at; renderMe(); renderMeHome();
   }).catch(function () { btn.disabled = false; });
 }
 
@@ -808,6 +887,51 @@ function renderMe() {
   });
 }
 
+/* ───────────── CAPTCHA invisible (Cloudflare Turnstile) ─────────────
+   Solo se activa si config.js tiene turnstileSiteKey. Normalmente no se ve nada:
+   Cloudflare solo pide pulsar una casilla si sospecha que es un bot. */
+function captchaKey() { return (window.XNRGY_CONFIG || {}).turnstileSiteKey || ""; }
+var turnstileLoading = null;
+function loadTurnstile() {
+  if (window.turnstile) return Promise.resolve();
+  if (turnstileLoading) return turnstileLoading;
+  turnstileLoading = new Promise(function (ok, ko) {
+    var sc = document.createElement("script");
+    sc.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"; sc.async = true;
+    sc.onload = function () { ok(); }; sc.onerror = function () { turnstileLoading = null; ko(); };
+    document.head.appendChild(sc);
+  });
+  return turnstileLoading;
+}
+function mountCaptcha() {
+  var el = document.getElementById("l-captcha");
+  if (!captchaKey() || !el) return;
+  state.capToken = null;
+  loadTurnstile().then(function () {
+    if (!document.body.contains(el)) return;
+    state.capWidget = window.turnstile.render(el, {
+      sitekey: captchaKey(), appearance: "interaction-only", size: "flexible", language: lang,
+      theme: document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark",
+      callback: function (tok) { state.capToken = tok; },
+      "expired-callback": function () { state.capToken = null; },
+      "error-callback": function () { state.capToken = null; }
+    });
+  }).catch(function () {});
+}
+// Espera (máx. 10 s) a que Turnstile dé su visto bueno y devuelve el token; cada token sirve una sola vez
+function getCaptcha() {
+  if (!captchaKey()) return Promise.resolve(undefined);
+  return new Promise(function (ok, ko) {
+    var n = 0;
+    (function wait() {
+      if (state.capToken) { var tk = state.capToken; state.capToken = null; ok(tk); return; }
+      if (++n > 50) { ko(new Error("captcha")); return; }
+      setTimeout(wait, 200);
+    })();
+  });
+}
+function resetCaptcha() { try { if (window.turnstile && state.capWidget != null) window.turnstile.reset(state.capWidget); } catch (e) {} }
+
 /* ───────────── Inicio de sesión ───────────── */
 var authTab = "login";
 function mountLogin(root) {
@@ -825,10 +949,12 @@ function mountLogin(root) {
       '<div class="field"><label for="l-pass">' + esc(t(signup ? "pw.new" : "login.password")) + '</label><input type="password" id="l-pass" autocomplete="' + (signup ? "new-password" : "current-password") + '" required></div>' +
       (signup ? '<div class="field"><label for="l-pass2">' + esc(t("pw.repeat")) + '</label><input type="password" id="l-pass2" autocomplete="new-password" required></div>' +
         '<label class="consent" for="l-consent"><input type="checkbox" id="l-consent" required><span>' + esc(t("su.consent1")) + ' <a href="#privacidad" target="_blank" rel="noopener">' + esc(t("su.consentLink")) + '</a> ' + esc(t("su.consent2")) + '</span></label>' : '') +
+      (captchaKey() ? '<div id="l-captcha" class="captcha"></div>' : '') +
       '<div class="form-actions"><button type="submit" class="btn solid" id="l-go">' + esc(t(signup ? "su.submit" : "login.submit")) + '</button></div>' +
       (signup ? '' : '<button type="button" class="linkbtn" id="l-forgot">' + esc(t("login.forgotBtn")) + '</button>') +
       '<span class="status" id="l-status" role="status" aria-live="polite"></span>' +
     '</form></div>';
+  mountCaptcha();
   document.getElementById("tab-login").addEventListener("click", function () { authTab = "login"; mountLogin(root); });
   document.getElementById("tab-signup").addEventListener("click", function () { authTab = "signup"; mountLogin(root); });
   var f = document.getElementById("lf"), st = document.getElementById("l-status");
@@ -838,11 +964,13 @@ function mountLogin(root) {
     var email = f.querySelector("#l-email").value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { bad(t("login.needEmail")); f.querySelector("#l-email").focus(); return; }
     fg.disabled = true;
-    state.sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }).then(function (res) {
-      fg.disabled = false;
+    getCaptcha().then(function (cap) {
+      return state.sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname, captchaToken: cap });
+    }).then(function (res) {
+      fg.disabled = false; resetCaptcha();
       if (res && res.error && /rate|limit/i.test(res.error.message || "")) { bad(t("login.rate")); return; }
       st.textContent = t("login.resetSent"); st.className = "status";
-    }).catch(function () { fg.disabled = false; bad(t("login.errNet")); });
+    }).catch(function (e) { fg.disabled = false; resetCaptcha(); bad(e && e.message === "captcha" ? t("cap.wait") : t("login.errNet")); });
   });
   f.addEventListener("submit", function (ev) {
     ev.preventDefault();
@@ -851,10 +979,12 @@ function mountLogin(root) {
     if (!signup) {
       if (!email || !pass) { bad(t("login.err")); return; }
       btn.disabled = true; st.textContent = t("login.sending"); st.className = "status";
-      state.sb.auth.signInWithPassword({ email: email, password: pass }).then(function (res) {
-        btn.disabled = false;
+      getCaptcha().then(function (cap) {
+        return state.sb.auth.signInWithPassword({ email: email, password: pass, options: { captchaToken: cap } });
+      }).then(function (res) {
+        btn.disabled = false; resetCaptcha();
         if (res.error) bad(/fetch|network/i.test(res.error.message || "") ? t("login.errNet") : t("login.err"));
-      }).catch(function () { btn.disabled = false; bad(t("login.errNet")); });
+      }).catch(function (e) { btn.disabled = false; resetCaptcha(); bad(e && e.message === "captcha" ? t("cap.wait") : t("login.errNet")); });
       return;
     }
     var first = f.querySelector("#l-first").value.trim(), last = f.querySelector("#l-last").value.trim(), pass2 = f.querySelector("#l-pass2").value;
@@ -864,8 +994,8 @@ function mountLogin(root) {
     if (pass !== pass2) { bad(t("pw.errMatch")); return; }
     if (!f.querySelector("#l-consent").checked) { bad(t("su.errConsent")); f.querySelector("#l-consent").focus(); return; }
     btn.disabled = true; st.textContent = t("su.sending"); st.className = "status";
-    state.sb.auth.signUp({ email: email, password: pass, options: { emailRedirectTo: location.origin + location.pathname, data: { first_name: first, last_name: last, privacy_version: PRIVACY_VERSION, privacy_accepted_at: new Date().toISOString() } } }).then(function (res) {
-      btn.disabled = false;
+    getCaptcha().then(function (cap) { return state.sb.auth.signUp({ email: email, password: pass, options: { captchaToken: cap, emailRedirectTo: location.origin + location.pathname, data: { first_name: first, last_name: last, privacy_version: PRIVACY_VERSION, privacy_accepted_at: new Date().toISOString() } } }); }).then(function (res) {
+      btn.disabled = false; resetCaptcha();
       if (res.error) {
         var m = res.error.message || "";
         if (/registered|exists/i.test(m)) bad(t("su.exists"));
@@ -876,7 +1006,7 @@ function mountLogin(root) {
       }
       // Sin sesión: Supabase pide confirmar el email antes de entrar
       if (!res.data || !res.data.session) { st.textContent = t("su.confirm"); st.className = "status"; }
-    }).catch(function () { btn.disabled = false; bad(t("login.errNet")); });
+    }).catch(function (e) { btn.disabled = false; resetCaptcha(); bad(e && e.message === "captcha" ? t("cap.wait") : t("login.errNet")); });
   });
 }
 
@@ -1486,9 +1616,12 @@ function closeAccMenu() {
   });
   document.getElementById("menu-logout").addEventListener("click", function () { closeAccMenu(); if (state.sb) signOutAll(); location.hash = "#perfil"; });
 })();
-function applyView() {
+function applyViewName() {
   var h = location.hash;
-  var view = (h === "#perfil" || h === "#mis-partidos") ? "profile" : h === "#privacidad" ? "privacy" : (h === "#alineaciones" && canManage()) ? "lineups" : "home";
+  return (h === "#perfil" || h === "#mis-partidos") ? "profile" : h === "#privacidad" ? "privacy" : (h === "#alineaciones" && canManage()) ? "lineups" : "home";
+}
+function applyView() {
+  var view = applyViewName();
   document.querySelectorAll("[data-view]").forEach(function (el) { el.hidden = el.getAttribute("data-view") !== view; });
   document.getElementById("nav-profile").setAttribute("aria-current", view === "home" ? "false" : "page");
   document.getElementById("menu-lineups").hidden = !canManage();
@@ -1498,14 +1631,14 @@ function applyView() {
 }
 window.addEventListener("hashchange", function () {
   closeAccMenu();
-  var view = applyView(); renderAdmin();
+  var view = applyView(); renderAdmin(); renderMeHome(); renderTabbar();
   if (location.hash === "#mis-partidos") { var mp = document.getElementById("mis-partidos"); if (mp) mp.scrollIntoView(); else window.scrollTo(0, 0); }
   else if (view !== "home") window.scrollTo(0, 0);
   else if (location.hash && location.hash !== "#inicio") { var el = document.querySelector(location.hash); if (el) el.scrollIntoView(); }
   else window.scrollTo(0, 0);
 });
 function renderAll() {
-  paintStatic(); applyView(); renderPrivacy(); renderNext(); renderRounds(); renderStandings(); renderPlayers(); renderStats(); renderMe(); renderAdmin();
+  paintStatic(); applyView(); renderPrivacy(); renderNext(); renderRounds(); renderStandings(); renderPlayers(); renderStats(); renderMe(); renderAdmin(); renderMeHome(); renderTabbar();
 }
 document.querySelectorAll(".langs button").forEach(function (b) {
   b.addEventListener("click", function () {
@@ -1615,6 +1748,7 @@ function checkVersion() {
 }
 function boot() {
   checkVersion();
+  document.getElementById("skip-link").addEventListener("click", function (e) { e.preventDefault(); var m = document.getElementById("main"); m.focus(); m.scrollIntoView(); });
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () {});
   window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); state.installEvt = e; renderMe(); });
   window.addEventListener("appinstalled", function () { state.installEvt = null; renderMe(); });

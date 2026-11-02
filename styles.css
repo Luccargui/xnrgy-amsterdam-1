@@ -40,9 +40,9 @@
   --line: #d6d6d6;
   --text: #0a0a0a;
   --muted: #5e5e5e;
-  --win: #1f8a3a;
-  --loss: #c8372a;
-  --warn: #b07a00;
+  --win: #16692c;
+  --loss: #b3261e;
+  --warn: #7f5700;
   --header-bg: rgba(255,255,255,.94);
   --soft: #333;
   --faint: #777;
@@ -108,7 +108,7 @@ nav a:hover { color: var(--text); }
 .kicker { margin: 0 0 12px; font-weight: 600; font-size: 14px; }
 h1 { font-family: var(--display); font-weight: 800; text-transform: uppercase; font-size: clamp(40px, 11.5vw, 112px); line-height: .88; overflow-wrap: anywhere; margin: 0; text-wrap: balance; }
 h1 .num { -webkit-text-stroke: 2px var(--text); color: transparent; }
-h2 { font-family: var(--display); font-weight: 800; text-transform: uppercase; font-size: clamp(34px, 5vw, 48px); line-height: 1; margin: 0; text-wrap: balance; }
+h2, h1.page-title { font-family: var(--display); font-weight: 800; text-transform: uppercase; font-size: clamp(34px, 5vw, 48px); line-height: 1; margin: 0; text-wrap: balance; }
 h3 { font-family: var(--display); font-weight: 700; text-transform: uppercase; font-size: 24px; line-height: 1.1; margin: 0; }
 .muted { color: var(--muted); }
 .fineprint { color: var(--muted); font-size: 14px; margin: 18px 0 0; max-width: 70ch; }
@@ -471,3 +471,49 @@ footer { padding: 36px 0 44px; }
 .ack-line { grid-column: 1 / -1; display: flex; gap: 14px; flex-wrap: wrap; }
 .dd-line .ack-line { grid-column: 2 / -1; }
 @media (max-width: 700px) { .dd-line .ack-line { grid-column: 1 / -1; } }
+
+/* ───────── Portada personalizada ───────── */
+.me-home { padding: 28px 0 8px; }
+.me-home .kicker { margin-bottom: 14px; }
+.mh-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.mh-card { border: 1px solid var(--line); background: var(--surface); padding: 18px; display: grid; gap: 10px; align-content: start; }
+.mh-main { border-color: var(--text); }
+.mh-title { font-family: var(--display); font-weight: 800; font-size: 26px; line-height: 1.05; text-transform: uppercase; }
+.mh-link { font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--text); }
+/* Con sesión, la portada general se compacta: lo importante ya está arriba */
+body.authed .hero { padding: 28px 0 36px; }
+body.authed .hero h1 { font-size: clamp(36px, 7vw, 72px); }
+
+/* ───────── Barra inferior (móvil, con sesión) ───────── */
+.tabbar { display: none; }
+@media (max-width: 900px) {
+  body.has-tabs { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  body.has-tabs .bar nav { display: none !important; }
+  body.has-tabs section { scroll-margin-top: 70px; }
+  .tabbar:not([hidden]) { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; position: fixed; left: 0; right: 0; bottom: 0; z-index: 15;
+    background: var(--header-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+  .tabbar a { display: grid; justify-items: center; gap: 3px; padding: 9px 2px 8px; text-decoration: none; color: var(--muted); font-family: var(--display); font-weight: 700; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; min-height: 56px; }
+  .tabbar svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+  .tabbar a[aria-current="page"] { color: var(--text); box-shadow: inset 0 2px 0 var(--text); }
+  .tabbar span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+}
+/* Cabecera compacta en el móvil */
+@media (max-width: 560px) {
+  .bar { min-height: 52px; padding-top: 6px; }
+  body.has-tabs .bar { padding-top: 0; padding-bottom: 0; }
+  .bar nav, .bar nav[hidden] { padding: 4px 0 8px; gap: 18px; }
+  .bar nav a { font-size: 13px; }
+  .theme-btn { width: 32px; height: 32px; }
+  .me-home { padding: 18px 0 4px; }
+  .mh-title { font-size: 22px; }
+  .mh-card { padding: 14px; }
+}
+.mh-card > .btn { justify-self: start; }
+
+/* Foco visible al navegar con teclado */
+:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.btn:focus-visible, .av-btn:focus-visible, .langs button:focus-visible, .tabbar a:focus-visible { outline-offset: 3px; }
+.skip { position: absolute; left: 12px; top: -60px; z-index: 50; background: var(--text); color: var(--bg); padding: 10px 14px; font-family: var(--display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; }
+.skip:focus { top: 12px; }
+main:focus { outline: none; }
+.captcha:empty { display: none; } .captcha { margin: 4px 0; }

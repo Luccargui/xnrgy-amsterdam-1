@@ -7,9 +7,14 @@ Está alojada en GitHub Pages y guarda los datos en Supabase.
 
 | Archivo | Para qué sirve |
 |---|---|
-| `index.html` | La web entera (diseño, textos en ES/EN/TR/NL y funcionamiento) |
-| `config.js` | Dirección y clave pública de Supabase |
-| `flags.json`, `regions.json` | Banderas y lista de regiones |
+| `index.html` | Estructura de la página |
+| `styles.css` | Diseño (modo oscuro y claro, móvil y escritorio) |
+| `i18n.js` | Textos en ES/EN/TR/NL y política de privacidad |
+| `app.js` | Funcionamiento de la web |
+| `sw.js` | Service worker: avisos push y app instalable |
+| `tools/bump-version.sh` | Sube la versión tras cada cambio (las jugadoras reciben la web nueva sin borrar caché) |
+| `config.js` | Dirección y clave pública de Supabase, clave pública de los avisos y clave del CAPTCHA |
+| `flags/`, `flags-index.json`, `regions.json` | Banderas (una imagen por país/región) y lista de regiones |
 | `fonts/` | Fuentes Barlow y Barlow Condensed servidas desde la web (sin Google Fonts) · SIL Open Font License |
 | `og-image.jpg` | Imagen que se ve al compartir el enlace en WhatsApp y redes |
 | `favicon.svg`, `*.png`, `site.webmanifest` | Icono de la web y de la app en el móvil |
@@ -18,6 +23,7 @@ Está alojada en GitHub Pages y guarda los datos en Supabase.
 | `supabase-owner.sql` | Te hace dueña de la web (se ejecuta una vez) |
 | `supabase-extras.sql` | Disponibilidad y coches, quedada, clasificación, suscripción al calendario y última visita |
 | `supabase/functions/calendar/` | Función que genera el calendario personal (.ics) de cada jugadora |
+| `supabase/functions/notify/` | Avisos push: alineación publicada, recordatorio de disponibilidad (cada día a las 18:00, 4 días antes de cada jornada) y prueba |
 | `404.html` | Página de error con el estilo de la web |
 | `.github/workflows/supabase-keepalive.yml` | Mantiene Supabase activo mientras haya visitas en los últimos 3 meses |
 | `supabase-rivals.sql` | Jugadoras de los equipos rivales (de MijnKNLTB) para elegir contra quién se jugó |
@@ -68,3 +74,12 @@ La política de privacidad está en la propia web (`#privacidad`, enlazada en el
 - La clave de `config.js` es la pública (publishable/anon). Nunca pongas ahí la clave secreta ni la `service_role`.
 
 Banderas: [Vexillo](https://github.com/kreativekorp/vexillo) (MPL-2.0), [region-flags](https://github.com/fonttools/region-flags), regiones de [country-region-data](https://github.com/country-regions/country-region-data) (MIT), [supabase-js](https://github.com/supabase/supabase-js) (MIT).
+
+## Novedades (noviembre 2026)
+
+- **Fotos** en Supabase Storage (bucket privado `photos`): solo las ven jugadoras aprobadas, con enlaces firmados que el navegador guarda 7 días.
+- **Edición simultánea**: si dos capitanas guardan la misma jornada, la segunda recibe un aviso y puede recargar, en lugar de borrar los cambios de la otra.
+- **App instalable y avisos push** (Mi perfil → App y avisos). En iPhone hace falta añadir la web a la pantalla de inicio primero.
+- **Portada personalizada** con sesión iniciada y **barra inferior** en el móvil.
+- **«He visto la alineación»**: la capitana ve un ✓ junto a cada jugadora.
+- **CAPTCHA invisible** (Cloudflare Turnstile) en entrar/crear cuenta: se activa al poner `turnstileSiteKey` en `config.js` y la clave secreta en Supabase → Authentication → Attack Protection.
