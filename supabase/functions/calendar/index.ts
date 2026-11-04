@@ -4,7 +4,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 
 const US = "XNRGY AMSTERDAM 1";
-const SITE = "https://luccargui.github.io/xnrgy-amsterdam-1/";
+const SITE = "https://xnrgyams1.com/";
 const MATCH_HOURS = 2;
 const SLOTS = ["DD1", "DD2", "DD3", "DD4"];
 const HOME = { name: "XNRGY Amsterdam", street: "De Flinesstraat 10", city: "1099 CB Amsterdam" };
@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
         SITE + "#mis-partidos",
       ].filter(Boolean).join("\n");
       const title = tx.title.replace("{slot}", SLOTS[i]).replace("{rival}", rival);
+      // El UID mantiene el dominio antiguo a propósito: si cambiara, los calendarios suscritos duplicarían los partidos
       L.push("BEGIN:VEVENT", `UID:xnrgy-r${m.r}-${SLOTS[i].toLowerCase()}-${uid}@luccargui.github.io`, "DTSTAMP:" + now);
       if (m.time) {
         const st = amsToUtc(m.date, m.time);

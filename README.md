@@ -1,7 +1,8 @@
 # XNRGY Amsterdam 1 · web del equipo
 
 Web del equipo de pádel XNRGY Amsterdam 1 (AA Drink Winter Padel 2026/2027, Padel Dames Zaterdag 3e klasse).
-Está alojada en GitHub Pages y guarda los datos en Supabase.
+Está en **https://xnrgyams1.com** (alojada en GitHub Pages; el dominio está en Porkbun) y guarda los datos en Supabase.
+Email del equipo: team@xnrgyams1.com e info@xnrgyams1.com (reenvío de Porkbun a Gmail).
 
 ## Qué hay en cada archivo
 

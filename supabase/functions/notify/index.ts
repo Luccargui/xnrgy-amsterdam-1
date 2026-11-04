@@ -7,7 +7,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import { generateVapid, sendPush, type Vapid } from "./webpush.ts";
 
 const US = "XNRGY AMSTERDAM 1";
-const SITE = "https://luccargui.github.io/xnrgy-amsterdam-1/";
+const SITE = "https://xnrgyams1.com/";
 const SUBJECT = "mailto:bodaagustinymaru@gmail.com";
 const SLOTS = ["DD1", "DD2", "DD3", "DD4"];
 const STAFF = ["owner", "captain", "manager"];

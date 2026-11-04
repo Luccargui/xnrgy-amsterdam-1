@@ -1736,7 +1736,7 @@ function setSession(session) {
   if (!uid) { state.editing = false; state.needPassword = false; formMounted = false; }
   if (changed) { formMounted = false; loadData(); }
 }
-var APP_VERSION = "2026-11-03-1";
+var APP_VERSION = "2026-11-04-1";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
