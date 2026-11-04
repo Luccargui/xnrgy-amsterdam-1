@@ -39,7 +39,8 @@ Email del equipo: team@xnrgyams1.com e info@xnrgyams1.com (reenvío de Porkbun a
 
 Ajustes necesarios en Supabase → **Authentication**:
 - **Allow new users to sign up**: activado.
-- **Confirm email**: desactivado. El servicio de email gratuito de Supabase solo envía correos a los miembros de tu cuenta de Supabase, así que la confirmación no les llegaría a las jugadoras.
+- **Confirm email**: activado. Los emails salen por Brevo (SMTP `smtp-relay.brevo.com:587`) desde `team@xnrgyams1.com`, con las plantillas de `email-templates/`.
+- **URL Configuration**: Site URL `https://xnrgyams1.com` y Redirect URLs `https://xnrgyams1.com/**` y `https://www.xnrgyams1.com/**`.
 
 ## Si una jugadora olvida la contraseña
 
