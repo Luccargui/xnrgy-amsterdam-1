@@ -1,7 +1,7 @@
 # Plantillas de email de la cuenta (Supabase → Authentication → Email Templates)
 
 Cada plantilla lleva los 4 idiomas y muestra el de la jugadora (`lang` en los datos de su cuenta;
-la web lo guarda al registrarse y cada vez que cambia de idioma). Sin idioma guardado, sale en español.
+la web lo guarda al registrarse y cada vez que cambia de idioma). Sin idioma guardado, sale en inglés.
 
 | Archivo | Plantilla en Supabase |
 |---|---|
