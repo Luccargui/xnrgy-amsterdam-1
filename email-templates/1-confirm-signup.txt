@@ -8,34 +8,16 @@
 <span style="font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:3px;color:#9a9a9a;text-transform:uppercase">&nbsp;&nbsp;Amsterdam 1</span>
 </td></tr>
 <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:32px 28px">
-{{ $l := printf "%v" .Data.lang }}{{ if eq $l "es" }}<h1 style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.15;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#0a0a0a">Confirma tu cuenta</h1>
-<p style="margin:0 0 24px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.55;color:#333333">Has creado una cuenta en la web del equipo. Pulsa el botón para confirmar tu email. Después, un miembro del equipo aprobará tu cuenta.</p>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#0a0a0a" style="background:#0a0a0a">
-<a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:15px 26px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#ffffff;text-decoration:none">Confirmar mi email</a>
-</td></tr></table>
-<p style="margin:24px 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#6a6a6a">Si no has creado ninguna cuenta, ignora este email.</p>
-<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#8a8a8a">¿El botón no funciona? Copia este enlace en el navegador:<br><a href="{{ .ConfirmationURL }}" style="color:#8a8a8a;word-break:break-all">{{ .ConfirmationURL }}</a></p>{{ else if eq $l "tr" }}<h1 style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.15;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#0a0a0a">Hesabını onayla</h1>
-<p style="margin:0 0 24px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.55;color:#333333">Takım sitesinde bir hesap oluşturdun. E-postanı onaylamak için düğmeye dokun. Ardından bir takım üyesi hesabını onaylayacak.</p>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#0a0a0a" style="background:#0a0a0a">
-<a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:15px 26px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#ffffff;text-decoration:none">E-postamı onayla</a>
-</td></tr></table>
-<p style="margin:24px 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#6a6a6a">Hesap oluşturmadıysan bu e-postayı yok sayabilirsin.</p>
-<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#8a8a8a">Düğme çalışmıyor mu? Bu bağlantıyı tarayıcına kopyala:<br><a href="{{ .ConfirmationURL }}" style="color:#8a8a8a;word-break:break-all">{{ .ConfirmationURL }}</a></p>{{ else if eq $l "nl" }}<h1 style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.15;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#0a0a0a">Bevestig je account</h1>
-<p style="margin:0 0 24px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.55;color:#333333">Je hebt een account aangemaakt op de teamsite. Tik op de knop om je e-mailadres te bevestigen. Daarna keurt een teamlid je account goed.</p>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#0a0a0a" style="background:#0a0a0a">
-<a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:15px 26px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#ffffff;text-decoration:none">Mijn e-mail bevestigen</a>
-</td></tr></table>
-<p style="margin:24px 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#6a6a6a">Heb je geen account aangemaakt? Dan kun je deze e-mail negeren.</p>
-<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#8a8a8a">Werkt de knop niet? Kopieer deze link in je browser:<br><a href="{{ .ConfirmationURL }}" style="color:#8a8a8a;word-break:break-all">{{ .ConfirmationURL }}</a></p>{{ else }}<h1 style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.15;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#0a0a0a">Confirm your account</h1>
+<h1 style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.15;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#0a0a0a">Confirm your account</h1>
 <p style="margin:0 0 24px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.55;color:#333333">You created an account on the team website. Tap the button to confirm your email. A team member will then approve your account.</p>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#0a0a0a" style="background:#0a0a0a">
 <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:15px 26px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#ffffff;text-decoration:none">Confirm my email</a>
 </td></tr></table>
 <p style="margin:24px 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#6a6a6a">If you didn’t create an account, you can ignore this email.</p>
-<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#8a8a8a">Button not working? Copy this link into your browser:<br><a href="{{ .ConfirmationURL }}" style="color:#8a8a8a;word-break:break-all">{{ .ConfirmationURL }}</a></p>{{ end }}
+<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#8a8a8a">Button not working? Copy this link into your browser:<br><a href="{{ .ConfirmationURL }}" style="color:#8a8a8a;word-break:break-all">{{ .ConfirmationURL }}</a></p>
 </td></tr>
 <tr><td style="padding:18px 28px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#8a8a8a">
-XNRGY Amsterdam 1 · AA Drink Winter Padel 2026/2027<br>{{ if eq $l "es" }}Web del equipo{{ else if eq $l "tr" }}Takım sitesi{{ else if eq $l "nl" }}Teamsite{{ else }}Team website{{ end }}: <a href="https://xnrgyams1.com" style="color:#8a8a8a">xnrgyams1.com</a> · <a href="mailto:team@xnrgyams1.com" style="color:#8a8a8a">team@xnrgyams1.com</a>
+XNRGY Amsterdam 1 · AA Drink Winter Padel 2026/2027<br>Team website: <a href="https://xnrgyams1.com" style="color:#8a8a8a">xnrgyams1.com</a> · <a href="mailto:team@xnrgyams1.com" style="color:#8a8a8a">team@xnrgyams1.com</a>
 </td></tr>
 </table></td></tr></table>
 </body></html>
