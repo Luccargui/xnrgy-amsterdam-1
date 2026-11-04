@@ -994,7 +994,7 @@ function mountLogin(root) {
     if (pass !== pass2) { bad(t("pw.errMatch")); return; }
     if (!f.querySelector("#l-consent").checked) { bad(t("su.errConsent")); f.querySelector("#l-consent").focus(); return; }
     btn.disabled = true; st.textContent = t("su.sending"); st.className = "status";
-    getCaptcha().then(function (cap) { return state.sb.auth.signUp({ email: email, password: pass, options: { captchaToken: cap, emailRedirectTo: location.origin + location.pathname, data: { first_name: first, last_name: last, privacy_version: PRIVACY_VERSION, privacy_accepted_at: new Date().toISOString() } } }); }).then(function (res) {
+    getCaptcha().then(function (cap) { return state.sb.auth.signUp({ email: email, password: pass, options: { captchaToken: cap, emailRedirectTo: location.origin + location.pathname, data: { first_name: first, last_name: last, privacy_version: PRIVACY_VERSION, lang: lang, privacy_accepted_at: new Date().toISOString() } } }); }).then(function (res) {
       btn.disabled = false; resetCaptcha();
       if (res.error) {
         var m = res.error.message || "";
@@ -1644,6 +1644,7 @@ document.querySelectorAll(".langs button").forEach(function (b) {
   b.addEventListener("click", function () {
     lang = b.getAttribute("data-lang");
     try { localStorage.setItem("xnrgy-lang", lang); } catch (e) {}
+    syncEmailLang();
     if (state.pushOn) refreshPushState();
     formMounted = false; renderAll();
   });
@@ -1735,8 +1736,18 @@ function setSession(session) {
   if (uid) authTab = "login"; // al cerrar sesión se vuelve a ver "Entrar", no "Crear cuenta"
   if (!uid) { state.editing = false; state.needPassword = false; formMounted = false; }
   if (changed) { formMounted = false; loadData(); }
+  syncEmailLang();
 }
-var APP_VERSION = "2026-11-04-1";
+// Los emails de la cuenta (confirmar, contraseña) salen en el idioma guardado en la cuenta
+function syncEmailLang() {
+  if (!state.uid || !state.sb || (state.meta && state.meta.lang === lang) || state.langSyncing === lang) return;
+  state.langSyncing = lang;
+  state.sb.auth.updateUser({ data: { lang: lang } }).then(function (res) {
+    if (!res.error && res.data && res.data.user) state.meta = res.data.user.user_metadata || state.meta;
+    state.langSyncing = null;
+  }).catch(function () { state.langSyncing = null; });
+}
+var APP_VERSION = "2026-11-05-1";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
