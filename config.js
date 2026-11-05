@@ -9,5 +9,5 @@ window.XNRGY_CONFIG = {
   // Clave pública de los avisos push (la privada solo la tiene Supabase)
   vapidPublicKey: "BHNNsXeHkBGFWxqUCcKmSFRmyrBfAmnxuPpXW_pXDnQ7yNNU-kowcGtDqkGBg0txWZikCh_kfcsG9iCELe32G_k",
   // CAPTCHA invisible de Cloudflare Turnstile para crear cuenta y entrar. Vacío = desactivado.
-  turnstileSiteKey: ""
+  turnstileSiteKey: "0x4AAAAAAF1NftpXOJsM3YHD"
 };
