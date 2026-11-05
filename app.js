@@ -345,7 +345,7 @@ function renderMeHome() {
   }
   // 3) Capitanas: solicitudes pendientes
   if (canManage() && state.requests.length) {
-    cards.push('<div class="mh-card"><span class="label">' + esc(t("req.title")) + '</span><div class="mh-title">' + esc(t("mh.requests", { n: state.requests.length })) + '</div><a class="btn small" href="#perfil">' + esc(t("mh.review")) + '</a></div>');
+    cards.push('<div class="mh-card"><span class="label">' + esc(t("req.title")) + '</span><div class="mh-title">' + esc(t("mh.requests", { n: state.requests.length })) + '</div><a class="btn small solid" href="#alineaciones">' + esc(t("mh.review")) + '</a></div>');
   }
   box.innerHTML = '<section class="me-home"><div class="wrap"><p class="kicker">' + esc(t("mh.hello", { name: me.firstName })) + '</p><div class="mh-grid">' + cards.join("") + '</div></div></section>';
   box.querySelectorAll("[data-av-home]").forEach(function (b) {
@@ -2044,7 +2044,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-05-6";
+var APP_VERSION = "2026-11-05-7";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
