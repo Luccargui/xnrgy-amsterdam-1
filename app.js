@@ -1265,25 +1265,41 @@ function resetCaptcha() { try { if (window.turnstile && state.capWidget != null)
 /* ───────────── Inicio de sesión ───────────── */
 var authTab = "login";
 function mountLogin(root) {
-  if (root.querySelector("#lf") && root.getAttribute("data-tab") === authTab && root.getAttribute("data-lang") === lang) return; // no repintar mientras escribe
+  if (root.querySelector("#lf") && root.getAttribute("data-tab") === authTab && root.getAttribute("data-lang") === lang) {
+    // No se repinta mientras escribe; si los países llegan después, se rellenan sin borrar nada
+    var cs = root.querySelector("#f-country");
+    if (cs && cs.options.length < 2 && state.regions) cs.innerHTML = countryOptions(cs.value);
+    return;
+  }
   root.setAttribute("data-tab", authTab); root.setAttribute("data-lang", lang);
-  var signup = authTab === "signup";
+  var signup = authTab === "signup", req = ' <span class="req" aria-hidden="true">*</span>';
+  // Para crear la cuenta hay que rellenar también la ficha de jugadora (sin foto: esa se sube al entrar)
+  var fields = signup ?
+    '<h3 class="su-h">' + esc(t("su.secAccount")) + '</h3>' +
+    '<div class="form-grid">' +
+      field("first", "su.first", "text", "", { required: true, attrs: ' autocomplete="given-name" maxlength="60"' }) +
+      field("last", "su.last", "text", "", { required: true, attrs: ' autocomplete="family-name" maxlength="80"' }) +
+      '<div class="field full"><label for="l-email">' + esc(t("login.email")) + req + '</label><input type="email" id="l-email" autocomplete="email" maxlength="120" required></div>' +
+      '<div class="field"><label for="l-pass">' + esc(t("pw.new")) + req + '</label><input type="password" id="l-pass" autocomplete="new-password" required></div>' +
+      '<div class="field"><label for="l-pass2">' + esc(t("pw.repeat")) + req + '</label><input type="password" id="l-pass2" autocomplete="new-password" required></div>' +
+    '</div>' +
+    '<div><h3 class="su-h">' + esc(t("su.secProfile")) + '</h3><p class="hint" style="margin:6px 0 0">' + esc(t("su.profileHint")) + '</p></div>' +
+    '<div class="form-grid">' + profileFieldsHtml({}, { names: false, email: false }) + '</div>' +
+    '<label class="consent" for="l-consent"><input type="checkbox" id="l-consent" required><span>' + esc(t("su.consent1")) + ' <a href="#privacidad" target="_blank" rel="noopener">' + esc(t("su.consentLink")) + '</a> ' + esc(t("su.consent2")) + '</span></label>'
+  :
+    '<div class="field"><label for="l-email">' + esc(t("login.email")) + '</label><input type="email" id="l-email" autocomplete="username" maxlength="120" required></div>' +
+    '<div class="field"><label for="l-pass">' + esc(t("login.password")) + '</label><input type="password" id="l-pass" autocomplete="current-password" required></div>';
   root.innerHTML = '<div class="notice" style="margin-bottom:24px"><h3>' + esc(t("me.noaccess.t")) + '</h3><p>' + esc(t(signup ? "su.intro" : "me.noaccess.p")) + '</p></div>' +
-    '<div style="max-width:460px"><div class="tabs" role="tablist">' +
+    '<div style="max-width:' + (signup ? 720 : 460) + 'px"><div class="tabs" role="tablist">' +
       '<button type="button" role="tab" id="tab-login" aria-selected="' + !signup + '">' + esc(t("su.tabLogin")) + '</button>' +
       '<button type="button" role="tab" id="tab-signup" aria-selected="' + signup + '">' + esc(t("su.tabSignup")) + '</button></div>' +
-    '<form class="panel" id="lf" novalidate>' +
-      (signup ? '<div class="form-grid"><div class="field"><label for="l-first">' + esc(t("su.first")) + '</label><input type="text" id="l-first" autocomplete="given-name" maxlength="60" required></div>' +
-                '<div class="field"><label for="l-last">' + esc(t("su.last")) + '</label><input type="text" id="l-last" autocomplete="family-name" maxlength="80" required></div></div>' : '') +
-      '<div class="field"><label for="l-email">' + esc(t("login.email")) + '</label><input type="email" id="l-email" autocomplete="' + (signup ? "email" : "username") + '" maxlength="120" required></div>' +
-      '<div class="field"><label for="l-pass">' + esc(t(signup ? "pw.new" : "login.password")) + '</label><input type="password" id="l-pass" autocomplete="' + (signup ? "new-password" : "current-password") + '" required></div>' +
-      (signup ? '<div class="field"><label for="l-pass2">' + esc(t("pw.repeat")) + '</label><input type="password" id="l-pass2" autocomplete="new-password" required></div>' +
-        '<label class="consent" for="l-consent"><input type="checkbox" id="l-consent" required><span>' + esc(t("su.consent1")) + ' <a href="#privacidad" target="_blank" rel="noopener">' + esc(t("su.consentLink")) + '</a> ' + esc(t("su.consent2")) + '</span></label>' : '') +
+    '<form class="panel" id="lf" novalidate>' + fields +
       (captchaKey() ? '<div id="l-captcha" class="captcha"></div>' : '') +
       '<div class="form-actions"><button type="submit" class="btn solid" id="l-go">' + esc(t(signup ? "su.submit" : "login.submit")) + '</button></div>' +
       (signup ? '' : '<button type="button" class="linkbtn" id="l-forgot">' + esc(t("login.forgotBtn")) + '</button>') +
       '<span class="status" id="l-status" role="status" aria-live="polite"></span>' +
     '</form></div>';
+  if (signup) wireProfileFields(document.getElementById("lf"));
   mountCaptcha();
   document.getElementById("tab-login").addEventListener("click", function () { authTab = "login"; mountLogin(root); });
   document.getElementById("tab-signup").addEventListener("click", function () { authTab = "signup"; mountLogin(root); });
@@ -1317,14 +1333,19 @@ function mountLogin(root) {
       }).catch(function (e) { btn.disabled = false; resetCaptcha(); bad(e && e.message === "captcha" ? t("cap.wait") : t("login.errNet")); });
       return;
     }
-    var first = f.querySelector("#l-first").value.trim(), last = f.querySelector("#l-last").value.trim(), pass2 = f.querySelector("#l-pass2").value;
-    if (!first || !last) { bad(t("su.errName")); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { bad(t("su.errEmail")); return; }
-    if (pass.length < 8) { bad(t("pw.errLen")); return; }
-    if (pass !== pass2) { bad(t("pw.errMatch")); return; }
+    var v = readProfile(f), pass2 = f.querySelector("#l-pass2").value;
+    var firstBad = checkProfile(f, v);
+    if (firstBad === f.first || firstBad === f.last) { bad(t("su.errName")); firstBad.focus(); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { bad(t("su.errEmail")); f.querySelector("#l-email").focus(); return; }
+    if (pass.length < 8) { bad(t("pw.errLen")); f.querySelector("#l-pass").focus(); return; }
+    if (pass !== pass2) { bad(t("pw.errMatch")); f.querySelector("#l-pass2").focus(); return; }
+    if (firstBad) { bad(t("f.errForm")); firstBad.focus(); return; }
     if (!f.querySelector("#l-consent").checked) { bad(t("su.errConsent")); f.querySelector("#l-consent").focus(); return; }
+    // La ficha viaja con la cuenta y se crea sola cuando el equipo la aprueba
+    var profile = { country: v.country, region: v.region, region_name: regionInfo(v.country, v.region).name || null, side: v.side || null, hand: v.hand || null,
+      birthday: v.birthday || null, phone: v.phone || null, knltb: v.knltb || null };
     btn.disabled = true; st.textContent = t("su.sending"); st.className = "status";
-    getCaptcha().then(function (cap) { return state.sb.auth.signUp({ email: email, password: pass, options: { captchaToken: cap, emailRedirectTo: location.origin + location.pathname, data: { first_name: first, last_name: last, privacy_version: PRIVACY_VERSION, lang: lang, privacy_accepted_at: new Date().toISOString() } } }); }).then(function (res) {
+    getCaptcha().then(function (cap) { return state.sb.auth.signUp({ email: email, password: pass, options: { captchaToken: cap, emailRedirectTo: location.origin + location.pathname, data: { first_name: v.firstName, last_name: v.lastName, privacy_version: PRIVACY_VERSION, lang: lang, privacy_accepted_at: new Date().toISOString(), profile: profile } } }); }).then(function (res) {
       btn.disabled = false; resetCaptcha();
       if (res.error) {
         var m = res.error.message || "";
@@ -1426,52 +1447,35 @@ function field(id, key, type, val, extra) {
     (extra && extra.hint ? '<span class="hint" id="h-' + id + '">' + esc(t(extra.hint)) + '</span>' : '') +
     '<span class="err" id="e-' + id + '"></span></div>';
 }
-function mountForm(me) {
-  formMounted = true;
-  me = me || {};
-  formPhoto = me.photo || null;
-  var root = document.getElementById("me-root");
-  var intro = hasProfile(state.players[state.uid]) ? '' : '<div class="notice" style="margin-bottom:24px"><h3>' + esc(t("me.welcome.t")) + '</h3><p>' + esc(t("me.welcome.p")) + '</p></div>';
-  root.innerHTML = intro + '<form class="panel" id="pf" novalidate>' +
-    '<div class="field" id="pf-photo-field" style="scroll-margin-top:90px"><span class="label">' + esc(t("f.photo")) + '</span><div class="photo-pick"><div style="width:240px;max-width:100%;border:1px solid var(--line)"><div class="photo" id="pf-photo" style="width:100%;border:0"></div><div id="pf-kit"></div></div>' +
-      '<div style="display:grid;gap:8px;justify-items:start"><label class="btn small" for="f-photo" style="color:var(--text)">' + esc(t("f.photoPick")) + '</label>' +
-      '<input type="file" id="f-photo" accept="image/*" style="position:absolute;opacity:0;width:1px;height:1px">' +
-      '<button type="button" class="btn small" id="pf-photo-rm">' + esc(t("f.photoRemove")) + '</button>' +
-      '<span class="hint">' + esc(t("f.photoHint")) + '</span><span class="err" id="e-photo"></span></div></div></div>' +
-    '<div class="form-grid">' +
+// Campos de la ficha de jugadora: los usan "Mis datos" y el formulario de registro
+function profileFieldsHtml(me, o) {
+  me = me || {}; o = o || {};
+  return (o.names === false ? '' :
       field("first", "f.first", "text", me.firstName, { required: true, attrs: ' autocomplete="given-name" maxlength="60"' }) +
-      field("last", "f.last", "text", me.lastName, { required: true, attrs: ' autocomplete="family-name" maxlength="80"' }) +
-      '<div class="field"><label for="f-country">' + esc(t("f.country")) + ' <span class="req" aria-hidden="true">*</span></label>' +
-        '<input type="search" class="opt-search" id="s-country" autocomplete="xnrgy-search" placeholder="' + esc(t("f.searchCountry")) + '" aria-label="' + esc(t("f.searchCountry")) + '" aria-controls="f-country">' +
-        '<select id="f-country" name="xnrgy_bc" autocomplete="xnrgy-birth-country" required aria-describedby="e-country">' + countryOptions(me.country) + '</select><span class="err" id="e-country"></span></div>' +
-      '<div class="field"><label for="f-region">' + esc(t("f.region")) + ' <span class="req" aria-hidden="true">*</span></label>' +
-        '<input type="search" class="opt-search" id="s-region" autocomplete="xnrgy-search" placeholder="' + esc(t("f.searchRegion")) + '" aria-label="' + esc(t("f.searchRegion")) + '" aria-controls="f-region">' +
-        '<select id="f-region" name="xnrgy_br" autocomplete="xnrgy-birth-region" required aria-describedby="e-region">' + regionOptions(me.country, me.region) + '</select><span class="err" id="e-region"></span></div>' +
-      '<div class="field full"><span class="hint">' + esc(t("f.regionHint")) + '</span> <span class="hint" id="pf-flagnote"></span></div>' +
-      field("birthday", "f.birthday", "date", me.birthday, { attrs: ' autocomplete="bday" min="1930-01-01" max="2025-12-31"' }) +
-      field("phone", "f.phone", "tel", me.phone, { attrs: ' autocomplete="tel" maxlength="25" placeholder="+31 6 12345678"' }) +
-      field("email", "f.email", "email", me.email, { attrs: ' autocomplete="email" maxlength="120"' }) +
-      field("knltb", "f.knltb", "text", me.knltb, { hint: "f.knltbHint", attrs: ' inputmode="numeric" maxlength="10"' }) +
-      '<fieldset class="field" id="fs-side"><legend>' + esc(t("f.side")) + ' <span class="opt">(' + esc(t("f.optional")) + ')</span></legend>' + radios("side", ["left", "right", "any"], "side.", me.side) + '<span class="err" id="e-side"></span></fieldset>' +
-      '<fieldset class="field" id="fs-hand"><legend>' + esc(t("f.hand")) + ' <span class="opt">(' + esc(t("f.optional")) + ')</span></legend>' + radios("hand", ["right", "left", "both"], "hand.", me.hand) + '<span class="err" id="e-hand"></span></fieldset>' +
-    '</div>' +
-    '<div class="form-actions"><button type="submit" class="btn solid" id="pf-save">' + esc(t("f.save")) + '</button>' +
-      (hasProfile(state.players[state.uid]) ? '<button type="button" class="btn" id="pf-cancel">' + esc(t("f.cancel")) + '</button>' : '') +
-      '<span class="status" id="pf-status" role="status" aria-live="polite"></span></div>' +
-  '</form>';
-
-  var f = document.getElementById("pf");
-  function paintPhoto() {
-    document.getElementById("pf-photo").innerHTML = photoHtml({ photo: formPhoto, firstName: f.first.value, lastName: f.last.value });
-    document.getElementById("pf-photo-rm").hidden = !formPhoto;
-  }
+      field("last", "f.last", "text", me.lastName, { required: true, attrs: ' autocomplete="family-name" maxlength="80"' })) +
+    '<div class="field"><label for="f-country">' + esc(t("f.country")) + ' <span class="req" aria-hidden="true">*</span></label>' +
+      '<input type="search" class="opt-search" id="s-country" autocomplete="xnrgy-search" placeholder="' + esc(t("f.searchCountry")) + '" aria-label="' + esc(t("f.searchCountry")) + '" aria-controls="f-country">' +
+      '<select id="f-country" name="xnrgy_bc" autocomplete="xnrgy-birth-country" required aria-describedby="e-country">' + countryOptions(me.country) + '</select><span class="err" id="e-country"></span></div>' +
+    '<div class="field"><label for="f-region">' + esc(t("f.region")) + ' <span class="req" aria-hidden="true">*</span></label>' +
+      '<input type="search" class="opt-search" id="s-region" autocomplete="xnrgy-search" placeholder="' + esc(t("f.searchRegion")) + '" aria-label="' + esc(t("f.searchRegion")) + '" aria-controls="f-region">' +
+      '<select id="f-region" name="xnrgy_br" autocomplete="xnrgy-birth-region" required aria-describedby="e-region">' + regionOptions(me.country, me.region) + '</select><span class="err" id="e-region"></span></div>' +
+    '<div class="field full"><span class="hint">' + esc(t("f.regionHint")) + '</span> <span class="hint" id="pf-flagnote"></span></div>' +
+    field("birthday", "f.birthday", "date", me.birthday, { attrs: ' autocomplete="bday" min="1930-01-01" max="2025-12-31"' }) +
+    field("phone", "f.phone", "tel", me.phone, { attrs: ' autocomplete="tel" maxlength="25" placeholder="+31 6 12345678"' }) +
+    (o.email === false ? '' : field("email", "f.email", "email", me.email, { attrs: ' autocomplete="email" maxlength="120"' })) +
+    field("knltb", "f.knltb", "text", me.knltb, { hint: "f.knltbHint", attrs: ' inputmode="numeric" maxlength="10"' }) +
+    '<fieldset class="field" id="fs-side"><legend>' + esc(t("f.side")) + ' <span class="opt">(' + esc(t("f.optional")) + ')</span></legend>' + radios("side", ["left", "right", "any"], "side.", me.side) + '<span class="err" id="e-side"></span></fieldset>' +
+    '<fieldset class="field" id="fs-hand"><legend>' + esc(t("f.hand")) + ' <span class="opt">(' + esc(t("f.optional")) + ')</span></legend>' + radios("hand", ["right", "left", "both"], "hand.", me.hand) + '<span class="err" id="e-hand"></span></fieldset>';
+}
+// Buscadores de país y región y aviso de banderas; devuelve la función que repinta las banderas
+function wireProfileFields(f) {
   function paintFlags() {
     var cc = f.xnrgy_bc.value, rc = f.xnrgy_br.value, ri = cc ? regionInfo(cc, rc) : { name: "", hasFlag: true };
-    document.getElementById("pf-kit").innerHTML = kitHtml({ country: cc, region: rc, regionName: ri.name, firstName: f.first.value, lastName: f.last.value }, false);
-    document.getElementById("pf-flagnote").textContent = (cc && rc && !ri.hasFlag) ? t("f.noRegionFlag") : "";
+    var kit = document.getElementById("pf-kit");
+    if (kit) kit.innerHTML = kitHtml({ country: cc, region: rc, regionName: ri.name, firstName: f.first.value, lastName: f.last.value }, false);
+    var note = document.getElementById("pf-flagnote");
+    if (note) note.textContent = (cc && rc && !ri.hasFlag) ? t("f.noRegionFlag") : "";
   }
-  paintPhoto(); paintFlags();
-  f.first.addEventListener("input", function () { paintPhoto(); paintFlags(); }); f.last.addEventListener("input", function () { paintPhoto(); paintFlags(); });
   var sC = document.getElementById("s-country"), sR = document.getElementById("s-region");
   function pickCountry() { sR.value = ""; f.xnrgy_br.innerHTML = regionOptions(f.xnrgy_bc.value, ""); paintFlags(); }
   f.xnrgy_bc.addEventListener("change", pickCountry);
@@ -1494,6 +1498,58 @@ function mountForm(me) {
   wireSearch(sC, f.xnrgy_bc, function (sel, q) { return countryOptions(sel, q); }, pickCountry);
   wireSearch(sR, f.xnrgy_br, function (sel, q) { return regionOptions(f.xnrgy_bc.value, sel, q); }, paintFlags);
   f.xnrgy_br.addEventListener("change", paintFlags);
+  paintFlags();
+  return paintFlags;
+}
+function readProfile(f) {
+  return {
+    firstName: f.first.value.trim(), lastName: f.last.value.trim(), phone: f.phone.value.trim(), email: f.email ? f.email.value.trim() : "",
+    knltb: f.knltb.value.replace(/\s/g, ""), side: (f.querySelector('input[name=side]:checked') || {}).value || "",
+    hand: (f.querySelector('input[name=hand]:checked') || {}).value || "", country: f.xnrgy_bc.value, region: f.xnrgy_br.value,
+    birthday: f.birthday.value || ""
+  };
+}
+// Marca los errores junto a cada campo y devuelve el primero que falla (o null)
+function checkProfile(f, v) {
+  var bad = null;
+  function check(id, ok, msg, el) { setErr(id, ok ? "" : msg, el); if (!ok && !bad) bad = el || document.getElementById("f-" + id); }
+  check("first", !!v.firstName, t("f.errRequired"), f.first);
+  check("last", !!v.lastName, t("f.errRequired"), f.last);
+  check("country", !!v.country, t("f.errRequired"), f.xnrgy_bc);
+  check("region", !!v.region, t("f.errRequired"), f.xnrgy_br);
+  // Opcionales: solo se comprueban si están rellenos
+  check("birthday", !v.birthday || /^(19[3-9]\d|20[0-2]\d)-\d\d-\d\d$/.test(v.birthday), t("f.errBirthday"), f.birthday);
+  check("phone", !v.phone || (v.phone.replace(/\D/g, "").length >= 9 && v.phone.length <= 25), t("f.errPhone"), f.phone);
+  if (f.email) check("email", !v.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email), t("f.errEmail"), f.email);
+  check("knltb", !v.knltb || /^\d{6,10}$/.test(v.knltb), t("f.errKnltb"), f.knltb);
+  return bad;
+}
+function mountForm(me) {
+  formMounted = true;
+  me = me || {};
+  formPhoto = me.photo || null;
+  var root = document.getElementById("me-root");
+  var intro = hasProfile(state.players[state.uid]) ? '' : '<div class="notice" style="margin-bottom:24px"><h3>' + esc(t("me.welcome.t")) + '</h3><p>' + esc(t("me.welcome.p")) + '</p></div>';
+  root.innerHTML = intro + '<form class="panel" id="pf" novalidate>' +
+    '<div class="field" id="pf-photo-field" style="scroll-margin-top:90px"><span class="label">' + esc(t("f.photo")) + '</span><div class="photo-pick"><div style="width:240px;max-width:100%;border:1px solid var(--line)"><div class="photo" id="pf-photo" style="width:100%;border:0"></div><div id="pf-kit"></div></div>' +
+      '<div style="display:grid;gap:8px;justify-items:start"><label class="btn small" for="f-photo" style="color:var(--text)">' + esc(t("f.photoPick")) + '</label>' +
+      '<input type="file" id="f-photo" accept="image/*" style="position:absolute;opacity:0;width:1px;height:1px">' +
+      '<button type="button" class="btn small" id="pf-photo-rm">' + esc(t("f.photoRemove")) + '</button>' +
+      '<span class="hint">' + esc(t("f.photoHint")) + '</span><span class="err" id="e-photo"></span></div></div></div>' +
+    '<div class="form-grid">' + profileFieldsHtml(me) + '</div>' +
+    '<div class="form-actions"><button type="submit" class="btn solid" id="pf-save">' + esc(t("f.save")) + '</button>' +
+      (hasProfile(state.players[state.uid]) ? '<button type="button" class="btn" id="pf-cancel">' + esc(t("f.cancel")) + '</button>' : '') +
+      '<span class="status" id="pf-status" role="status" aria-live="polite"></span></div>' +
+  '</form>';
+
+  var f = document.getElementById("pf");
+  function paintPhoto() {
+    document.getElementById("pf-photo").innerHTML = photoHtml({ photo: formPhoto, firstName: f.first.value, lastName: f.last.value });
+    document.getElementById("pf-photo-rm").hidden = !formPhoto;
+  }
+  var paintFlags = wireProfileFields(f);
+  paintPhoto();
+  f.first.addEventListener("input", function () { paintPhoto(); paintFlags(); }); f.last.addEventListener("input", function () { paintPhoto(); paintFlags(); });
   document.getElementById("pf-photo-rm").addEventListener("click", function () { formPhoto = null; paintPhoto(); });
   document.getElementById("f-photo").addEventListener("change", function (ev) {
     var file = ev.target.files && ev.target.files[0]; ev.target.value = "";
@@ -1531,23 +1587,8 @@ function setErr(id, msg, el) {
   if (el) el.setAttribute("aria-invalid", msg ? "true" : "false");
 }
 function saveProfile(f) {
-  var v = {
-    firstName: f.first.value.trim(), lastName: f.last.value.trim(), phone: f.phone.value.trim(), email: f.email.value.trim(),
-    knltb: f.knltb.value.replace(/\s/g, ""), side: (f.querySelector('input[name=side]:checked') || {}).value || "",
-    hand: (f.querySelector('input[name=hand]:checked') || {}).value || "", country: f.xnrgy_bc.value, region: f.xnrgy_br.value,
-    birthday: f.birthday.value || ""
-  };
-  var bad = null;
-  function check(id, ok, msg, el) { setErr(id, ok ? "" : msg, el); if (!ok && !bad) bad = el || document.getElementById("f-" + id); }
-  check("first", !!v.firstName, t("f.errRequired"), f.first);
-  check("last", !!v.lastName, t("f.errRequired"), f.last);
-  // Opcionales: solo se comprueban si están rellenos
-  check("birthday", !v.birthday || /^(19[3-9]\d|20[0-2]\d)-\d\d-\d\d$/.test(v.birthday), t("f.errBirthday"), f.birthday);
-  check("phone", !v.phone || (v.phone.replace(/\D/g, "").length >= 9 && v.phone.length <= 25), t("f.errPhone"), f.phone);
-  check("email", !v.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email), t("f.errEmail"), f.email);
-  check("knltb", !v.knltb || /^\d{6,10}$/.test(v.knltb), t("f.errKnltb"), f.knltb);
-  check("country", !!v.country, t("f.errRequired"), f.xnrgy_bc);
-  check("region", !!v.region, t("f.errRequired"), f.xnrgy_br);
+  var v = readProfile(f);
+  var bad = checkProfile(f, v);
   var st = document.getElementById("pf-status");
   if (bad) { st.textContent = t("f.errForm"); st.className = "status bad"; bad.focus(); return; }
   v.regionName = regionInfo(v.country, v.region).name;
@@ -2179,7 +2220,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-05-12";
+var APP_VERSION = "2026-11-06-01";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
