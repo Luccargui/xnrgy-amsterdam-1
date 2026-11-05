@@ -611,3 +611,7 @@ body.authed .hero-grid { grid-template-columns: 1fr; }
 .pref .hint { font-weight: 400; color: var(--muted); }
 .pref b { font-weight: 600; }
 .sw::after { background: var(--muted); }
+/* Resaltado breve al llegar desde «Primeros pasos» o un aviso */
+@keyframes flashring { 0%, 60% { box-shadow: 0 0 0 3px var(--warn); } 100% { box-shadow: 0 0 0 3px transparent; } }
+.flash { animation: flashring 1.8s ease-out; }
+@media (prefers-reduced-motion: reduce) { .flash { animation: none; outline: 3px solid var(--warn); } }

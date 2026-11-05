@@ -353,7 +353,13 @@ function renderMeHome() {
     b.addEventListener("click", function () { saveAvail(+b.getAttribute("data-av-home"), { status: b.getAttribute("data-v") }); renderMeHome(); renderMe(); });
   });
   box.querySelectorAll("[data-ack-home]").forEach(function (b) { b.addEventListener("click", function () { ackLineup(+b.getAttribute("data-ack-home"), b); }); });
-  box.querySelectorAll("[data-onb-edit]").forEach(function (a) { a.addEventListener("click", function () { state.editing = true; formMounted = false; }); });
+  box.querySelectorAll("[data-goto]").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      if (a.hasAttribute("data-onb-edit")) { state.editing = true; formMounted = false; }
+      goTo(a.getAttribute("href"), a.getAttribute("data-goto"));
+    });
+  });
   wireRequestButtons(box);
   var oh = document.getElementById("onb-hide");
   if (oh) oh.addEventListener("click", function () { try { localStorage.setItem("xnrgy-onb-" + state.uid, "1"); } catch (e) {} renderMeHome(); });
@@ -362,12 +368,12 @@ function renderMeHome() {
 /* Primeros pasos: se tachan solos y desaparecen al completarlos (o al ocultarlos) */
 function onboardingSteps(me) {
   var steps = [];
-  steps.push({ k: "photo", ok: !!(me.photoPath || me.photo), href: "#avisos", edit: true });
+  steps.push({ k: "photo", ok: !!(me.photoPath || me.photo), href: "#avisos", anchor: "pf-photo-field", edit: true });
   var up = upcomingRounds();
-  steps.push({ k: "avail", ok: up.length > 0 && up.every(function (m) { return (availOf(state.uid, m.r) || {}).status; }), href: "#mi-disponibilidad" });
-  if (pushSupported() || isIOS()) steps.push({ k: "push", ok: !!state.pushOn, href: "#avisos" });
+  steps.push({ k: "avail", ok: up.length > 0 && up.every(function (m) { return (availOf(state.uid, m.r) || {}).status; }), href: "#mi-disponibilidad", anchor: "mi-disponibilidad" });
+  if (pushSupported() || isIOS()) steps.push({ k: "push", ok: !!state.pushOn, href: "#avisos", anchor: "push-on" });
   var mobile = window.matchMedia && matchMedia("(pointer: coarse)").matches;
-  if (mobile) steps.push({ k: "app", ok: isStandalone(), href: "#avisos" });
+  if (mobile) steps.push({ k: "app", ok: isStandalone(), href: "#avisos", anchor: "avisos" });
   return steps;
 }
 function onboardingHtml(me) {
@@ -378,7 +384,7 @@ function onboardingHtml(me) {
     '<div class="onb-bar" aria-hidden="true"><i style="width:' + Math.round(100 * done / steps.length) + '%"></i></div>' +
     '<ul class="onb-list">' + steps.map(function (x) {
       return '<li class="' + (x.ok ? "ok" : "") + '">' + (x.ok ? '<span class="onb-ic">✓</span><span>' + esc(t("onb." + x.k)) + '</span>'
-        : '<span class="onb-ic">○</span><a href="' + x.href + '"' + (x.edit ? ' data-onb-edit' : '') + '>' + esc(t("onb." + x.k)) + ' →</a>') + '</li>';
+        : '<span class="onb-ic">○</span><a href="' + x.href + '" data-goto="' + x.anchor + '"' + (x.edit ? ' data-onb-edit' : '') + '>' + esc(t("onb." + x.k)) + ' →</a>') + '</li>';
     }).join("") + '</ul><button type="button" class="linkbtn" id="onb-hide">' + esc(t("onb.hide")) + '</button></div>';
 }
 
@@ -1363,7 +1369,7 @@ function mountForm(me) {
   var root = document.getElementById("me-root");
   var intro = state.players[state.uid] ? '' : '<div class="notice" style="margin-bottom:24px"><h3>' + esc(t("me.welcome.t")) + '</h3><p>' + esc(t("me.welcome.p")) + '</p></div>';
   root.innerHTML = intro + '<form class="panel" id="pf" novalidate>' +
-    '<div class="field"><span class="label">' + esc(t("f.photo")) + '</span><div class="photo-pick"><div style="width:240px;max-width:100%;border:1px solid var(--line)"><div class="photo" id="pf-photo" style="width:100%;border:0"></div><div id="pf-kit"></div></div>' +
+    '<div class="field" id="pf-photo-field" style="scroll-margin-top:90px"><span class="label">' + esc(t("f.photo")) + '</span><div class="photo-pick"><div style="width:240px;max-width:100%;border:1px solid var(--line)"><div class="photo" id="pf-photo" style="width:100%;border:0"></div><div id="pf-kit"></div></div>' +
       '<div style="display:grid;gap:8px;justify-items:start"><label class="btn small" for="f-photo" style="color:var(--text)">' + esc(t("f.photoPick")) + '</label>' +
       '<input type="file" id="f-photo" accept="image/*" style="position:absolute;opacity:0;width:1px;height:1px">' +
       '<button type="button" class="btn small" id="pf-photo-rm">' + esc(t("f.photoRemove")) + '</button>' +
@@ -1965,11 +1971,31 @@ function applyView() {
   document.getElementById("plan-btn").hidden = !canManage();
   return view;
 }
+/* Llevar a un sitio concreto de la web (y resaltarlo un momento) */
+var PROFILE_ANCHOR = { "#avisos": "avisos", "#mi-disponibilidad": "mi-disponibilidad" };
+function scrollToAnchor(id) {
+  var el = document.getElementById(id) || (id === "push-on" && document.getElementById("avisos"));
+  if (!el) return false;
+  // Lo alto (p. ej. toda la disponibilidad) se ve desde arriba; lo pequeño, centrado
+  el.scrollIntoView({ behavior: "smooth", block: el.offsetHeight > window.innerHeight * 0.6 ? "start" : "center" });
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  setTimeout(function () { el.classList.remove("flash"); }, 1800);
+  return true;
+}
+function goTo(hash, anchor) {
+  if (location.hash === hash) {
+    if (PROFILE_HASH[hash]) state.profTab = PROFILE_HASH[hash];
+    applyView(); renderMe(); renderTabbar();
+    setTimeout(function () { scrollToAnchor(anchor); }, 30);
+  } else { state.pendingAnchor = anchor; location.hash = hash; }
+}
 window.addEventListener("hashchange", function () {
   closeAccMenu();
   if (PROFILE_HASH[location.hash]) { state.profTab = PROFILE_HASH[location.hash]; renderMe(); }
   var view = applyView(); renderAdmin(); renderMeHome(); renderTabbar();
-  if (view === "profile") window.scrollTo(0, 0);
+  var anchor = state.pendingAnchor || PROFILE_ANCHOR[location.hash]; state.pendingAnchor = null;
+  if (anchor) { window.scrollTo(0, 0); setTimeout(function () { scrollToAnchor(anchor); }, 30); }
+  else if (view === "profile") window.scrollTo(0, 0);
   else if (view !== "home") window.scrollTo(0, 0);
   else if (location.hash && location.hash !== "#inicio") { var el = document.querySelector(location.hash); if (el) el.scrollIntoView(); }
   else window.scrollTo(0, 0);
@@ -2062,6 +2088,7 @@ function loadData() {
     }
     renderAll();
     if (state.phase === "ready" && state.pushFor !== state.uid) { state.pushFor = state.uid; refreshPushState(); }
+    if (state.phase === "ready" && state.bootAnchor) { var ba = state.bootAnchor; state.bootAnchor = null; setTimeout(function () { scrollToAnchor(ba); }, 60); }
   }).catch(function () {
     loading = null;
     if (state.phase === "loading") state.phase = state.uid ? "slow" : "noaccess";
@@ -2088,7 +2115,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-05-9";
+var APP_VERSION = "2026-11-05-10";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
@@ -2101,6 +2128,7 @@ function checkVersion() {
 function boot() {
   checkVersion();
   if (PROFILE_HASH[location.hash]) state.profTab = PROFILE_HASH[location.hash];
+  state.bootAnchor = PROFILE_ANCHOR[location.hash] || null;
   document.getElementById("skip-link").addEventListener("click", function (e) { e.preventDefault(); var m = document.getElementById("main"); m.focus(); m.scrollIntoView(); });
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () {});
   window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); state.installEvt = e; renderMe(); });
