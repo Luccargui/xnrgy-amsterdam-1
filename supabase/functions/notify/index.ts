@@ -12,15 +12,6 @@ const SUBJECT = "mailto:team@xnrgyams1.com";
 const SLOTS = ["DD1", "DD2", "DD3", "DD4"];
 const STAFF = ["owner", "captain", "manager"];
 const REMIND_DAYS = 4; // días antes de la jornada
-const ROUNDS = [
-  { r: 1, date: "2026-11-14", time: "12:30", home: US, away: "STROKEL 1" },
-  { r: 2, date: "2026-11-28", time: null, home: "HEALTHCITY HOENDERDAAL 2", away: US },
-  { r: 3, date: "2026-12-12", time: "09:30", home: US, away: "GAASPERPARK 1" },
-  { r: 4, date: "2027-01-16", time: "10:30", home: "PLAZA PADEL AMERSFOORT 1", away: US },
-  { r: 5, date: "2027-01-23", time: "09:30", home: US, away: "LEISURE WORLD PADEL 1" },
-  { r: 6, date: "2027-01-30", time: "09:30", home: "VLTV 3", away: US },
-  { r: 7, date: "2027-02-13", time: "14:00", home: "NIJKERK 1", away: US },
-];
 const LOC: Record<string, string> = { es: "es-ES", en: "en-GB", tr: "tr-TR", nl: "nl-NL" };
 const T: Record<string, Record<string, string>> = {
   es: { lineupT: "Alineación jornada {r} · vs {rival}", lineupB: "Juegas {slot} con {partner}. {when}.", partnerTbd: "compañera por decidir", reminderT: "¿Juegas el {date}?", reminderB: "Jornada {r} vs {rival}. Marca tu disponibilidad para que la capitana pueda hacer la alineación.", testT: "Avisos activados", testB: "Así te llegarán las alineaciones y los recordatorios del equipo.", tbc: "hora por confirmar", meet: "Quedada {meet}" },
@@ -38,6 +29,12 @@ const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { sta
 
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
+type Round = { r: number; date: string; time: string | null; home: string; away: string };
+// Las jornadas vienen de la tabla fixtures (la capitana las edita en la web)
+async function loadRounds(): Promise<Round[]> {
+  const { data } = await sb.from("fixtures").select("r,date,time,home,away").order("date");
+  return (data ?? []) as Round[];
+}
 async function secret(k: string): Promise<string | null> {
   const { data } = await sb.from("app_secrets").select("v").eq("k", k).maybeSingle();
   return data?.v ?? null;
@@ -80,7 +77,7 @@ function addDays(date: string, n: number): string {
   const d = new Date(date + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10);
 }
 const fmtDate = (date: string, lang: string) => new Intl.DateTimeFormat(LOC[lang], { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(date + "T12:00:00Z"));
-const rivalOf = (m: typeof ROUNDS[number]) => (m.home === US ? m.away : m.home);
+const rivalOf = (m: Round) => (m.home === US ? m.away : m.home);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -94,7 +91,7 @@ Deno.serve(async (req) => {
     const s = await secret("cron");
     if (!s || req.headers.get("x-cron-secret") !== s) return json({ error: "forbidden" }, 403);
     const target = addDays(amsToday(), REMIND_DAYS);
-    const m = ROUNDS.find((x) => x.date === target);
+    const m = (await loadRounds()).find((x) => x.date === target);
     if (!m) return json({ sent: 0, note: "no round on " + target });
     const { data: roles } = await sb.from("team_roles").select("user_id");
     const { data: av } = await sb.from("availability").select("user_id").eq("r", m.r);
@@ -120,7 +117,7 @@ Deno.serve(async (req) => {
 
   if (body.action === "lineup") {
     if (!STAFF.includes(me.role)) return json({ error: "forbidden" }, 403);
-    const m = ROUNDS.find((x) => x.r === Number(body.r));
+    const m = (await loadRounds()).find((x) => x.r === Number(body.r));
     if (!m) return json({ error: "round" }, 400);
     const { data: round } = await sb.from("rounds").select("pairs,meet_time,meet_place").eq("r", m.r).maybeSingle();
     const pairs: (string | null)[][] = round?.pairs || [];

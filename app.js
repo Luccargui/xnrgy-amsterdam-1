@@ -1,4 +1,27 @@
 "use strict";
+/* ───────────── Registro de errores: si algo falla en el móvil de una jugadora, queda apuntado en Supabase ───────────── */
+(function () {
+  var sent = 0, seen = {};
+  function report(msg, stack) {
+    try {
+      var cfg = window.XNRGY_CONFIG || {};
+      msg = String(msg || "").slice(0, 1000);
+      if (!cfg.supabaseUrl || !msg || sent >= 5 || seen[msg]) return;
+      if (/ResizeObserver loop|Script error\.?$|NetworkError|Failed to fetch|Load failed|AbortError/i.test(msg)) return;
+      seen[msg] = 1; sent++;
+      fetch(cfg.supabaseUrl + "/rest/v1/client_errors", {
+        method: "POST", keepalive: true,
+        headers: { "Content-Type": "application/json", apikey: cfg.supabaseKey, Authorization: "Bearer " + cfg.supabaseKey, Prefer: "return=minimal" },
+        body: JSON.stringify({ msg: msg, stack: String(stack || "").slice(0, 4000), url: location.href.split("#")[0].slice(0, 300) + location.hash.slice(0, 40),
+          ua: navigator.userAgent.slice(0, 300), version: (typeof APP_VERSION !== "undefined" ? APP_VERSION : "?"),
+          user_id: (window.state && window.state.uid) || null })
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  window.addEventListener("error", function (e) { report(e.message, e.error && e.error.stack); });
+  window.addEventListener("unhandledrejection", function (e) { var r = e.reason || {}; report("Promise: " + (r.message || r), r.stack); });
+  window.reportError2 = report;
+})();
 /* ───────────── Política de privacidad (4 idiomas) ───────────── */
 function renderPrivacy() {
   var d = PRIVACY[lang] || PRIVACY.es;
@@ -12,8 +35,8 @@ function renderPrivacy() {
 var LANGS = ["es", "en", "tr", "nl"];
 var lang = (function () {
   try { var s = localStorage.getItem("xnrgy-lang"); if (LANGS.indexOf(s) >= 0) return s; } catch (e) {}
-  var n = (navigator.language || "es").slice(0, 2).toLowerCase();
-  return LANGS.indexOf(n) >= 0 ? n : "es";
+  var n = (navigator.language || "en").slice(0, 2).toLowerCase();
+  return LANGS.indexOf(n) >= 0 ? n : "en";
 })();
 function t(k, vars) {
   var s = (I18N[lang] && Object.prototype.hasOwnProperty.call(I18N[lang], k)) ? I18N[lang][k] : (I18N.es[k] != null ? I18N.es[k] : k);
@@ -33,6 +56,21 @@ var ROUNDS = [
   { r: 6, date: "2027-01-30", time: "09:30", home: "VLTV 3", away: US, venue: { name: "VLTV Tennis & Padel", street: "Mijdrechtse Dwarsweg 2", city: "3645 GA Vinkeveen" } },
   { r: 7, date: "2027-02-13", time: "14:00", home: "NIJKERK 1", away: US, venue: { name: "De Conijnenbergh", street: "Bloemendaalseweg 5-D", city: "3862 RN Nijkerk" } }
 ];
+/* El calendario se guarda en Supabase (tabla fixtures) y la capitana lo edita en Alineaciones.
+   La lista de arriba solo sirve para pintar la web al instante antes de cargar los datos. */
+function fixtureFromRow(x) {
+  var isHome = x.home === US;
+  var v = { name: x.venue_name || "", street: x.venue_street || "", city: x.venue_city || "" };
+  if (isHome && !v.name && !v.street) v = HOME_VENUE;
+  return { r: x.r, date: x.date, time: x.time || null, home: x.home, away: x.away, venue: v };
+}
+function applyFixtures(rows, cache) {
+  if (!rows || !rows.length) return;
+  var list = rows.map(fixtureFromRow).sort(function (a, b) { return (a.date < b.date ? -1 : a.date > b.date ? 1 : a.r - b.r); });
+  ROUNDS.splice.apply(ROUNDS, [0, ROUNDS.length].concat(list));
+  if (cache) try { localStorage.setItem("xnrgy-fixtures", JSON.stringify(rows)); } catch (e) {}
+}
+try { applyFixtures(JSON.parse(localStorage.getItem("xnrgy-fixtures") || "null")); } catch (e) {}
 var STANDINGS = ["GAASPERPARK 1", "HEALTHCITY HOENDERDAAL 2", "LEISURE WORLD PADEL 1", "NIJKERK 1", "PLAZA PADEL AMERSFOORT 1", "STROKEL 1", "VLTV 3", US];
 var KNLTB_PLAYERS = [
   { name: "Lucia Carrera Guillén", surname: "Carrera", level: "9 · 9,0000" },
@@ -274,6 +312,9 @@ function renderMeHome() {
   document.body.classList.toggle("authed", !!(state.uid && state.phase === "ready"));
   if (!state.uid || state.phase !== "ready" || !me) { box.innerHTML = ""; return; }
   var gm = myGames(), g = gm.up[0], next = upcomingRounds()[0], cards = [];
+  // 0) Primeros pasos para las nuevas
+  var onb = onboardingHtml(me);
+  if (onb) cards.push(onb);
   // 1) Mi próximo partido
   if (g) {
     var m = g.m, rival = m.home === US ? m.away : m.home, partner = g.partnerId ? state.players[g.partnerId] : null, ml = meetLine(m);
@@ -300,7 +341,7 @@ function renderMeHome() {
       '<div class="mm-meta">' + esc(fmtDate(pm.date, true)) + ' · ' + esc(timeStr(pm)) + '</div>' +
       '<div class="av-btns" role="group" aria-label="' + esc(t("av.title")) + ' · ' + esc(t("round")) + ' ' + pm.r + '">' +
         ["yes", "maybe", "no"].map(function (v) { return '<button type="button" class="av-btn av-' + v + '" data-av-home="' + pm.r + '" data-v="' + v + '" aria-pressed="false">' + esc(t("av." + v)) + '</button>'; }).join("") + '</div>' +
-      (pend.length > 1 ? '<a class="mh-link" href="#perfil" data-goto="mi-disponibilidad">' + esc(t("mh.availMore", { n: pend.length - 1 })) + ' →</a>' : '') + '</div>');
+      (pend.length > 1 ? '<a class="mh-link" href="#mi-disponibilidad">' + esc(t("mh.availMore", { n: pend.length - 1 })) + ' →</a>' : '') + '</div>');
   }
   // 3) Capitanas: solicitudes pendientes
   if (canManage() && state.requests.length) {
@@ -311,9 +352,32 @@ function renderMeHome() {
     b.addEventListener("click", function () { saveAvail(+b.getAttribute("data-av-home"), { status: b.getAttribute("data-v") }); renderMeHome(); renderMe(); });
   });
   box.querySelectorAll("[data-ack-home]").forEach(function (b) { b.addEventListener("click", function () { ackLineup(+b.getAttribute("data-ack-home"), b); }); });
-  box.querySelectorAll("[data-goto]").forEach(function (a) {
-    a.addEventListener("click", function () { var id = a.getAttribute("data-goto"); setTimeout(function () { var el = document.getElementById(id); if (el) el.scrollIntoView(); }, 50); });
-  });
+  box.querySelectorAll("[data-onb-edit]").forEach(function (a) { a.addEventListener("click", function () { state.editing = true; formMounted = false; }); });
+  var oh = document.getElementById("onb-hide");
+  if (oh) oh.addEventListener("click", function () { try { localStorage.setItem("xnrgy-onb-" + state.uid, "1"); } catch (e) {} renderMeHome(); });
+}
+
+/* Primeros pasos: se tachan solos y desaparecen al completarlos (o al ocultarlos) */
+function onboardingSteps(me) {
+  var steps = [];
+  steps.push({ k: "photo", ok: !!(me.photoPath || me.photo), href: "#avisos", edit: true });
+  var up = upcomingRounds();
+  steps.push({ k: "avail", ok: up.length > 0 && up.every(function (m) { return (availOf(state.uid, m.r) || {}).status; }), href: "#mi-disponibilidad" });
+  if (pushSupported() || isIOS()) steps.push({ k: "push", ok: !!state.pushOn, href: "#avisos" });
+  var mobile = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+  if (mobile) steps.push({ k: "app", ok: isStandalone(), href: "#avisos" });
+  return steps;
+}
+function onboardingHtml(me) {
+  try { if (localStorage.getItem("xnrgy-onb-" + state.uid)) return ""; } catch (e) {}
+  var steps = onboardingSteps(me), done = steps.filter(function (x) { return x.ok; }).length;
+  if (done === steps.length) return "";
+  return '<div class="mh-card mh-onb"><span class="label">' + esc(t("onb.title")) + ' · ' + done + '/' + steps.length + '</span>' +
+    '<div class="onb-bar" aria-hidden="true"><i style="width:' + Math.round(100 * done / steps.length) + '%"></i></div>' +
+    '<ul class="onb-list">' + steps.map(function (x) {
+      return '<li class="' + (x.ok ? "ok" : "") + '">' + (x.ok ? '<span class="onb-ic">✓</span><span>' + esc(t("onb." + x.k)) + '</span>'
+        : '<span class="onb-ic">○</span><a href="' + x.href + '"' + (x.edit ? ' data-onb-edit' : '') + '>' + esc(t("onb." + x.k)) + ' →</a>') + '</li>';
+    }).join("") + '</ul><button type="button" class="linkbtn" id="onb-hide">' + esc(t("onb.hide")) + '</button></div>';
 }
 
 /* ───────────── Barra inferior en el móvil (con sesión) ───────────── */
@@ -331,8 +395,8 @@ function renderTabbar() {
   bar.hidden = !on; document.body.classList.toggle("has-tabs", on);
   if (!on) return;
   bar.setAttribute("aria-label", t("tabs.label"));
-  var items = [["home", "#inicio", t("tabs.home")], ["matches", "#mis-partidos", t("tabs.matches")], ["stats", "#estadisticas", t("st.title")],
-    canManage() ? ["lineups", "#alineaciones", t("nav.lineups")] : ["players", "#jugadoras", t("nav.players")], ["profile", "#perfil", t("tabs.profile")]];
+  var items = [["home", "#inicio", t("tabs.home")], ["matches", "#mis-partidos", t("tabs.matches")], ["stats", "#estadisticas", t("tabs.stats")],
+    canManage() ? ["lineups", "#alineaciones", t("tabs.lineups")] : ["players", "#jugadoras", t("tabs.players")], ["profile", "#perfil", t("tabs.profile")]];
   var h = location.hash || "#inicio", view = applyViewName();
   function active(href) {
     if (href === "#perfil") return view === "profile" && h !== "#mis-partidos";
@@ -442,7 +506,7 @@ function renderPlayers() {
   var registeredNames = list.map(function (x) { return norm(fullName(x.p)); });
   var cards = list.map(function (x) {
     var p = x.p;
-    return '<article class="player"><div class="photo">' + photoHtml(p) + '</div>' + kitHtml(p, true) + '<div class="p-body">' +
+    return '<article class="player is-link" data-pid="' + esc(x.id) + '" tabindex="0" role="button" aria-haspopup="dialog" aria-label="' + esc(fullName(p)) + '"><div class="photo">' + photoHtml(p) + '</div>' + kitHtml(p, true) + '<div class="p-body">' +
       '<div><div class="p-name">' + esc(fullName(p)) + '</div>' + roleBadge(x.id) + '</div>' +
       ((p.side || p.hand) ? '<div class="p-chips">' + (p.side ? '<span class="chip">' + esc(sideLabel(p.side)) + '</span>' : '') + (p.hand ? '<span class="chip">' + esc(handLabel(p.hand)) + '</span>' : '') + '</div>' : '') +
       (p.birthday ? '<div class="p-contact"><span>' + esc(t("f.birthday")) + ': ' + esc(bdayLabel(p.birthday, false)) + '</span></div>' : '') +
@@ -459,7 +523,13 @@ function renderPlayers() {
       '<div><div class="p-name">' + esc(k.name) + '</div>' + (k.captain ? '<span class="badge">' + esc(t("pl.captain")) + '</span> ' : '') + '<span class="badge ghost">' + esc(t("pl.pending")) + '</span></div>' +
       '<div class="p-contact"><span>' + esc(t("pl.level")) + ': ' + esc(k.level) + '</span></div></div></article>');
   });
-  document.getElementById("players").innerHTML = cards.join("");
+  var box = document.getElementById("players");
+  box.innerHTML = cards.join("");
+  if (!box.getAttribute("data-wired")) {
+    box.setAttribute("data-wired", "1");
+    box.addEventListener("click", function (e) { var a = e.target.closest("[data-pid]"); if (a && !e.target.closest("a")) openPlayer(a.getAttribute("data-pid")); });
+    box.addEventListener("keydown", function (e) { var a = e.target.closest("[data-pid]"); if (a && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openPlayer(a.getAttribute("data-pid")); } });
+  }
   document.getElementById("pl-note").textContent = t("pl.count", { n: cards.length });
 }
 
@@ -515,6 +585,52 @@ function renderStats() {
     (prs.length ? '<div class="st-block"><h3 class="st-h">' + esc(t("st.pairs")) + '</h3><div class="table-wrap"><table class="st-tbl">' + head.replace("{who}", esc(t("st.pair"))) + '<tbody>' +
       prs.map(function (x, i) { return row(i, esc(shortName(state.players[x.ids[0]])) + ' &amp; ' + esc(shortName(state.players[x.ids[1]])), x.o, x.ids.indexOf(state.uid) >= 0); }).join("") + '</tbody></table></div></div>' : '') +
     '<p class="fineprint">' + esc(t("st.fine")) + '</p>';
+}
+
+/* ───────────── Ficha de una jugadora ───────────── */
+function playerMatches(id) {
+  var out = [];
+  ROUNDS.forEach(function (m) {
+    pairsOf(m.r).forEach(function (pr, i) {
+      if (!pr || (pr[0] !== id && pr[1] !== id)) return;
+      out.push({ m: m, i: i, partnerId: pr[0] === id ? pr[1] : pr[0], rs: resultsOf(m.r)[i] || {} });
+    });
+  });
+  return out;
+}
+function openPlayer(id) {
+  var p = state.players[id]; if (!p) return;
+  var dlg = document.getElementById("pl-dlg");
+  var S = computeStats(), o = S.per[id] || { pj: 0, w: 0, l: 0, sw: 0, sl: 0, gw: 0, gl: 0 };
+  var partners = Object.keys(S.pairs).filter(function (k) { return k.split("|").indexOf(id) >= 0; }).map(function (k) {
+    var other = k.split("|").filter(function (x) { return x !== id; })[0]; return { p: state.players[other], o: S.pairs[k] };
+  }).filter(function (x) { return x.p; }).sort(function (a, b) { return byPerf({ o: a.o }, { o: b.o }); });
+  var games = playerMatches(id);
+  dlg.innerHTML = '<div class="dlg-in"><button type="button" class="dlg-x" aria-label="' + esc(t("pl.close")) + '">✕</button>' +
+    '<div class="dlg-top"><div class="dlg-photo"><div class="photo">' + photoHtml(p) + '</div>' + kitHtml(p, true) + '</div>' +
+    '<div class="dlg-info"><h2 id="pl-dlg-t">' + esc(fullName(p)) + '</h2>' + roleBadge(id) +
+      ((p.side || p.hand) ? '<div class="p-chips">' + (p.side ? '<span class="chip">' + esc(sideLabel(p.side)) + '</span>' : '') + (p.hand ? '<span class="chip">' + esc(handLabel(p.hand)) + '</span>' : '') + '</div>' : '') +
+      (p.birthday ? '<p class="mm-meta" style="margin:0">' + esc(t("f.birthday")) + ': ' + esc(bdayLabel(p.birthday, false)) + '</p>' : '') +
+      (p.phone || p.email ? '<p class="mm-meta" style="margin:0">' + [p.phone, p.email, p.knltb ? "KNLTB " + p.knltb : ""].filter(Boolean).map(esc).join(" · ") + '</p>' : '') +
+    '</div></div>' +
+    '<div class="dlg-stats">' + [["st.t.pj", o.pj, ""], ["st.t.w", o.w, "w"], ["st.t.l", o.l, "l"], ["st.t.pct", pct(o) + "%", ""]].map(function (x) {
+      return '<div class="st-tile ' + x[2] + '"><b>' + x[1] + '</b><span>' + esc(t(x[0])) + '</span></div>'; }).join("") + '</div>' +
+    (partners.length ? '<h3 class="st-h">' + esc(t("pl.partners")) + '</h3><ul class="dlg-list">' + partners.map(function (x) {
+      return '<li><span class="partner">' + miniHtml(x.p) + '<b>' + esc(fullName(x.p)) + '</b></span><span class="muted">' + x.o.pj + ' ' + esc(t("st.pj")) + ' · ' + x.o.w + ' ' + esc(t("st.w")) + ' · ' + pct(x.o) + '%</span></li>';
+    }).join("") + '</ul>' : '') +
+    '<h3 class="st-h">' + esc(t("pl.matches")) + '</h3>' + (games.length ? '<ul class="dlg-list">' + games.map(function (g) {
+      var rival = g.m.home === US ? g.m.away : g.m.home, partner = g.partnerId && state.players[g.partnerId];
+      var res = hasResult(g.rs) ? '<span class="res ' + (g.rs.won ? "w" : "l") + '">' + esc(t(g.rs.won ? "res.w" : "res.l")) + (g.rs.score ? ' ' + esc(g.rs.score) : '') + '</span>' : '<span class="muted">' + esc(fmtDate(g.m.date, false)) + '</span>';
+      return '<li><span><b>' + esc(t("round")) + ' ' + g.m.r + ' · ' + SLOTS[g.i] + '</b> · ' + esc(rival) + (partner ? '<br><span class="muted">' + esc(t("me.partner")) + ': ' + esc(fullName(partner)) + '</span>' : '') + '</span>' + res + '</li>';
+    }).join("") + '</ul>' : '<p class="muted" style="margin:0">' + esc(t("pl.noMatches")) + '</p>') +
+    '</div>';
+  dlg.setAttribute("aria-labelledby", "pl-dlg-t");
+  dlg.querySelector(".dlg-x").addEventListener("click", function () { dlg.close(); });
+  if (!dlg.getAttribute("data-wired")) {
+    dlg.setAttribute("data-wired", "1");
+    dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+  }
+  if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
 }
 
 /* ───────────── Mi zona ───────────── */
@@ -741,7 +857,76 @@ function gameHtml(g, past) {
     (past ? '' : '<div class="ack-row">' + (ackValid(state.uid, m.r) ? '<span class="ack ok">✓ ' + esc(t("ack.done")) + '</span>' : '<button type="button" class="btn small solid" data-ack="' + m.r + '">' + esc(t("ack.btn")) + '</button><span class="hint">' + esc(t("ack.hint")) + '</span>') + '</div>') +
     (past ? '' : '<div class="cal-btns"><a class="btn small" href="' + esc(googleCalUrl(g)) + '" target="_blank" rel="noopener">' + esc(t("cal.google")) + '</a>' +
       '<button type="button" class="btn small" data-ics="' + m.r + '-' + g.i + '">' + esc(t("cal.apple")) + '</button></div>') +
+    pairResultHtml(g) +
     '</div>';
+}
+
+/* ───────────── Resultado apuntado por la propia pareja ───────────── */
+function hasResult(rs) { return rs && (rs.won === true || rs.won === false); }
+function canEnterResult(g) {
+  if (parse(g.m.date) > today0()) return false;
+  return !hasResult(g.rs) || (!!g.rs.by && !g.rs.reviewed);
+}
+function pairResultHtml(g) {
+  var rs = g.rs || {}, key = g.m.r + "-" + g.i, out = "";
+  if (rs.by && !rs.reviewed) {
+    var who = state.players[rs.by] ? state.players[rs.by].firstName : "";
+    out += '<div class="res-pend" style="grid-column:1/-1">⏳ ' + esc(t("res.pending", { name: who })) + '</div>';
+  }
+  if (!canEnterResult(g)) return out;
+  return out + '<div class="res-entry" style="grid-column:1/-1"><button type="button" class="btn small' + (hasResult(rs) ? '' : ' solid') + '" data-res="' + key + '">' +
+    esc(t(hasResult(rs) ? "res.edit" : "res.enter")) + '</button><div class="res-form" id="rf-' + key + '" hidden></div></div>';
+}
+function wirePairResults(root) {
+  root.querySelectorAll("[data-res]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var k = b.getAttribute("data-res").split("-").map(Number), r = k[0], i = k[1];
+      var box = document.getElementById("rf-" + r + "-" + i);
+      if (!box.hidden) { box.hidden = true; return; }
+      var m = ROUNDS.filter(function (x) { return x.r === r; })[0]; if (!m) return;
+      var rs = resultsOf(r)[i] || {}, sets = setsOf(rs), rv = Array.isArray(rs.rivals) ? rs.rivals : ["", ""];
+      var team = m.home === US ? m.away : m.home, id = "pr-" + r + "-" + i;
+      box.innerHTML = '<span class="label">' + esc(t("adm.sets")) + '</span><div class="set-row">' +
+        [0, 1, 2].map(function (s2) {
+          var v = sets[s2] || ["", ""];
+          return '<div class="set-box"><span class="set-n">' + (s2 + 1) + '</span>' +
+            '<input type="text" inputmode="numeric" maxlength="1" class="set-in" id="' + id + '-s' + s2 + 'a" aria-label="' + esc(t("adm.set")) + ' ' + (s2 + 1) + ' · ' + esc(t("adm.us")) + '" value="' + esc(v[0]) + '">' +
+            '<span class="set-dash">–</span>' +
+            '<input type="text" inputmode="numeric" maxlength="1" class="set-in" id="' + id + '-s' + s2 + 'b" aria-label="' + esc(t("adm.set")) + ' ' + (s2 + 1) + ' · ' + esc(t("adm.them")) + '" value="' + esc(v[1]) + '"></div>';
+        }).join("") + '</div>' +
+        '<span class="label">' + esc(t("adm.rivalPair")) + ' <small>' + esc(team) + '</small></span><div class="rv-row">' +
+          '<select id="' + id + '-r0" aria-label="' + esc(t("adm.rivalPair")) + ' 1">' + rivalOpts(team, rv[0]) + '</select>' +
+          '<select id="' + id + '-r1" aria-label="' + esc(t("adm.rivalPair")) + ' 2">' + rivalOpts(team, rv[1]) + '</select></div>' +
+        '<div class="form-actions" style="margin:0"><button type="button" class="btn small solid" data-res-save>' + esc(t("res.save")) + '</button>' +
+          '<button type="button" class="btn small" data-res-cancel>' + esc(t("f.cancel")) + '</button><span class="status" role="status" aria-live="polite"></span></div>' +
+        '<p class="hint" style="margin:0">' + esc(t("res.hint")) + '</p>';
+      box.hidden = false;
+      var st = box.querySelector(".status");
+      box.querySelector("[data-res-cancel]").addEventListener("click", function () { box.hidden = true; });
+      box.querySelector("[data-res-save]").addEventListener("click", function () {
+        var out = [], bad = false;
+        [0, 1, 2].forEach(function (s2) {
+          var a = document.getElementById(id + "-s" + s2 + "a").value.trim(), c = document.getElementById(id + "-s" + s2 + "b").value.trim();
+          if (a === "" && c === "") return;
+          if (!/^[0-7]$/.test(a) || !/^[0-7]$/.test(c)) { bad = true; return; }
+          out.push([+a, +c]);
+        });
+        if (bad || !out.length) { st.textContent = t("res.errSets"); st.className = "status bad"; return; }
+        var rivals = [document.getElementById(id + "-r0").value, document.getElementById(id + "-r1").value];
+        var btn = this; btn.disabled = true; st.textContent = t("f.saving"); st.className = "status";
+        state.sb.rpc("submit_pair_result", { p_r: r, p_i: i, p_sets: out, p_rivals: rivals }).then(function (res) {
+          btn.disabled = false;
+          if (res.error) {
+            var msg = res.error.message || "";
+            st.textContent = /too early/.test(msg) ? t("res.errEarly") : /locked/.test(msg) ? t("res.errLocked") : t("f.errSave");
+            st.className = "status bad"; return;
+          }
+          st.textContent = t("res.saved"); st.className = "status";
+          loadData();
+        }).catch(function () { btn.disabled = false; st.textContent = t("f.errSave"); st.className = "status bad"; });
+      });
+    });
+  });
 }
 
 /* ───────────── Partidos en el calendario (Google / Apple / Outlook) ───────────── */
@@ -825,32 +1010,51 @@ function renderMe() {
   note.textContent = fullName(me);
   var gm = myGames();
   var won = gm.done.filter(function (g) { return g.rs.won === true; }).length, lost = gm.done.filter(function (g) { return g.rs.won === false; }).length;
-  var gamesBlock =
-    '<div class="stats"><div class="stat"><b>' + (won + lost) + '</b><span>' + esc(t("prof.played")) + '</span></div><div class="stat w"><b>' + won + '</b><span>' + esc(t("prof.won")) + '</span></div><div class="stat l"><b>' + lost + '</b><span>' + esc(t("prof.lost")) + '</span></div></div>' +
-    availHtml() + appHtml() +
-    '<div class="p-sec" id="mis-partidos" style="scroll-margin-top:80px"><div class="admin-head"><h3>' + esc(t("prof.upcoming")) + '</h3>' + (gm.up.length > 1 ? '<button type="button" class="btn small solid" id="ics-all">' + esc(t("cal.all")) + '</button>' : '') + '</div>' +
-      subscribeHtml() +
-      (gm.up.length ? '<p class="hint" style="margin:0">' + esc(t("cal.hint")) + '</p>' + gm.up.map(function (g) { return gameHtml(g, false); }).join("") : '<p class="muted" style="margin:0">' + esc(t("prof.noUpcoming")) + '</p>') + '</div>' +
-    '<div class="p-sec"><h3>' + esc(t("prof.results")) + '</h3>' + (gm.done.length ? gm.done.slice().reverse().map(function (g) { return gameHtml(g, true); }).join("") : '<p class="muted" style="margin:0">' + esc(t("prof.noResults")) + '</p>') + '</div>';
-  root.innerHTML = '<div class="panel"><div class="me-grid">' +
-    '<div class="me-side"><div class="card-photo"><div class="photo" style="border:0">' + photoHtml(me) + '</div>' + kitHtml(me, true) + '</div></div>' +
-    '<div><h3>' + esc(fullName(me)) + '</h3>' +
-      '<dl class="facts">' +
-        '<div><dt>' + esc(t("f.birthday")) + '</dt><dd>' + esc(bdayLabel(me.birthday, true) || "—") + '</dd></div>' +
-        '<div><dt>' + esc(t("f.phone")) + '</dt><dd>' + esc(me.phone || "—") + '</dd></div>' +
-        '<div><dt>' + esc(t("f.email")) + '</dt><dd>' + esc(me.email || "—") + '</dd></div>' +
-        '<div><dt>' + esc(t("f.knltb")) + '</dt><dd>' + esc(me.knltb || "—") + '</dd></div>' +
-        '<div><dt>' + esc(t("f.side")) + '</dt><dd>' + esc(sideLabel(me.side) || "—") + '</dd></div>' +
-        '<div><dt>' + esc(t("f.hand")) + '</dt><dd>' + esc(handLabel(me.hand) || "—") + '</dd></div>' +
-      '</dl>' +
-      '<div class="form-actions" style="margin-top:20px"><button type="button" class="btn small" id="edit-btn">' + esc(t("me.edit")) + '</button>' +
-        '<button type="button" class="btn small" id="pw-btn">' + esc(t("pw.change")) + '</button>' +
-        '<button type="button" class="btn small" id="logout-btn">' + esc(t("logout")) + '</button></div>' +
-      '<div id="del-box" style="margin-top:16px">' + (state.isOwner ? '<p class="hint" style="margin:0">' + esc(t("del.owner")) + '</p>' : '<button type="button" class="btn small danger" id="del-btn">' + esc(t("del.btn")) + '</button>') + '</div>' +
-    '</div></div></div>' + gamesBlock;
+  var tab = state.profTab || "partidos";
+  var tabs = [["partidos", t("ptab.matches")], ["disp", t("ptab.avail")], ["datos", t("ptab.me")]];
+  var pend = upcomingRounds().filter(function (m) { return !(availOf(state.uid, m.r) || {}).status; }).length;
+  var head = '<div class="ptabs" role="tablist" aria-label="' + esc(t("me.title")) + '">' + tabs.map(function (x) {
+    return '<button type="button" role="tab" data-ptab="' + x[0] + '" aria-selected="' + (tab === x[0]) + '">' + esc(x[1]) +
+      (x[0] === "disp" && pend ? ' <span class="pbadge">' + pend + '</span>' : '') + '</button>';
+  }).join("") + '</div>';
+  var body;
+  if (tab === "disp") {
+    body = availHtml() || '<p class="muted">' + esc(t("prof.noUpcoming")) + '</p>';
+  } else if (tab === "datos") {
+    body = '<div class="panel"><div class="me-grid">' +
+      '<div class="me-side"><div class="card-photo"><div class="photo" style="border:0">' + photoHtml(me) + '</div>' + kitHtml(me, true) + '</div></div>' +
+      '<div><h3>' + esc(fullName(me)) + '</h3>' +
+        '<dl class="facts">' +
+          '<div><dt>' + esc(t("f.birthday")) + '</dt><dd>' + esc(bdayLabel(me.birthday, true) || "—") + '</dd></div>' +
+          '<div><dt>' + esc(t("f.phone")) + '</dt><dd>' + esc(me.phone || "—") + '</dd></div>' +
+          '<div><dt>' + esc(t("f.email")) + '</dt><dd>' + esc(me.email || "—") + '</dd></div>' +
+          '<div><dt>' + esc(t("f.knltb")) + '</dt><dd>' + esc(me.knltb || "—") + '</dd></div>' +
+          '<div><dt>' + esc(t("f.side")) + '</dt><dd>' + esc(sideLabel(me.side) || "—") + '</dd></div>' +
+          '<div><dt>' + esc(t("f.hand")) + '</dt><dd>' + esc(handLabel(me.hand) || "—") + '</dd></div>' +
+        '</dl>' +
+        '<div class="form-actions" style="margin-top:20px"><button type="button" class="btn small" id="edit-btn">' + esc(t("me.edit")) + '</button>' +
+          '<button type="button" class="btn small" id="pw-btn">' + esc(t("pw.change")) + '</button>' +
+          '<button type="button" class="btn small" id="logout-btn">' + esc(t("logout")) + '</button></div>' +
+        '<div id="del-box" style="margin-top:16px">' + (state.isOwner ? '<p class="hint" style="margin:0">' + esc(t("del.owner")) + '</p>' : '<button type="button" class="btn small danger" id="del-btn">' + esc(t("del.btn")) + '</button>') + '</div>' +
+      '</div></div></div>' + appHtml();
+  } else {
+    body = '<div class="stats"><div class="stat"><b>' + (won + lost) + '</b><span>' + esc(t("prof.played")) + '</span></div><div class="stat w"><b>' + won + '</b><span>' + esc(t("prof.won")) + '</span></div><div class="stat l"><b>' + lost + '</b><span>' + esc(t("prof.lost")) + '</span></div></div>' +
+      '<div class="p-sec" id="mis-partidos" style="scroll-margin-top:80px"><div class="admin-head"><h3>' + esc(t("prof.upcoming")) + '</h3>' + (gm.up.length > 1 ? '<button type="button" class="btn small solid" id="ics-all">' + esc(t("cal.all")) + '</button>' : '') + '</div>' +
+        subscribeHtml() +
+        (gm.up.length ? '<p class="hint" style="margin:0">' + esc(t("cal.hint")) + '</p>' + gm.up.map(function (g) { return gameHtml(g, false); }).join("") : '<p class="muted" style="margin:0">' + esc(t("prof.noUpcoming")) + '</p>') + '</div>' +
+      '<div class="p-sec"><h3>' + esc(t("prof.results")) + '</h3>' + (gm.done.length ? gm.done.slice().reverse().map(function (g) { return gameHtml(g, true); }).join("") : '<p class="muted" style="margin:0">' + esc(t("prof.noResults")) + '</p>') + '</div>';
+  }
+  root.innerHTML = head + '<div class="ptab-body" role="tabpanel">' + body + '</div>';
+  root.querySelectorAll("[data-ptab]").forEach(function (b) {
+    b.addEventListener("click", function () { state.profTab = b.getAttribute("data-ptab"); renderMe(); });
+  });
+  wirePairResults(root);
+  var eb = document.getElementById("edit-btn");
+  if (eb) {
   document.getElementById("edit-btn").addEventListener("click", function () { state.editing = true; formMounted = false; renderMe(); });
   document.getElementById("pw-btn").addEventListener("click", function () { state.needPassword = true; renderMe(); });
   document.getElementById("logout-btn").addEventListener("click", function () { signOutAll(); });
+  }
   wireAvail(root); wireSubscribe(root);
   var allBtn = document.getElementById("ics-all");
   if (allBtn) allBtn.addEventListener("click", function () { downloadIcs(gm.up, "xnrgy-mis-partidos.ics"); });
@@ -1354,6 +1558,7 @@ function renderAdmin() {
           '<div class="dd-line"><span class="label">' + esc(t("adm.rivalPair")) + '<small>' + esc(rival) + '</small></span>' +
             '<select class="rv-sel" id="' + id + '-r0" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.rivalPair")) + ' 1">' + rivalOpts(rival, rv[0]) + '</select>' +
             '<select class="rv-sel" id="' + id + '-r1" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.rivalPair")) + ' 2">' + rivalOpts(rival, rv[1]) + '</select></div>' +
+          (rs.by && !rs.reviewed ? '<div class="res-pend">⏳ ' + esc(t("adm.pairRes", { name: state.players[rs.by] ? state.players[rs.by].firstName : "" })) + '</div>' : '') +
           '<div class="dd-sets"><span class="label">' + esc(t("adm.sets")) + '</span><div class="set-row">' +
             [0, 1, 2].map(function (k) {
               var sv = setsOf(rs)[k] || ["", ""];
@@ -1383,6 +1588,8 @@ function renderAdmin() {
   });
   list.innerHTML = ""; list.appendChild(frag);
   renderAdminFilters(); applyAdminFilters();
+  var fxBox = document.getElementById("fixtures-edit");
+  if (!fxBox.contains(document.activeElement)) renderFixturesEditor();
 }
 /* Desplegable de rivales (como el de nuestras jugadoras). Si hay un nombre guardado que ya no está en KNLTB, se conserva. */
 function rivalOpts(team, cur) {
@@ -1438,10 +1645,94 @@ function updateRoundTotals(r, el) {
 }
 var adminOpen = {};
 var admFilter = { rival: "", round: "", from: "", to: "" };
+/* ───────────── Calendario editable (capitana y managers) ───────────── */
+var fxDraft = null;
+function fxRowsFromRounds() {
+  return ROUNDS.map(function (m) {
+    return { r: m.r, date: m.date, time: m.time || "", home: m.home === US, rival: m.home === US ? m.away : m.home,
+      venue_name: m.venue.name || "", venue_street: m.venue.street || "", venue_city: m.venue.city || "" };
+  });
+}
+function renderFixturesEditor() {
+  var box = document.getElementById("fixtures-edit");
+  if (!fxDraft) fxDraft = fxRowsFromRounds();
+  var teams = STANDINGS.filter(function (x) { return x !== US; });
+  var open = box.open;
+  box.innerHTML = '<summary class="admin-sum"><span class="admin-sum-t"><span class="sum-title">' + esc(t("fx.title")) + '</span><span class="muted">' + esc(t("fx.sub", { n: fxDraft.length })) + '</span></span><span class="caret" aria-hidden="true">›</span></summary>' +
+    '<div class="fx-body"><p class="hint" style="margin:0">' + esc(t("fx.hint")) + '</p>' +
+    fxDraft.map(function (x, k) {
+      var id = "fx" + k, rivals = teams.indexOf(x.rival) >= 0 || !x.rival ? teams : teams.concat([x.rival]);
+      return '<div class="fx-row" data-k="' + k + '"><div class="fx-head"><b>' + esc(t("round")) + ' ' + x.r + '</b>' +
+        '<button type="button" class="linkbtn" data-fx-del="' + k + '">' + esc(t("fx.remove")) + '</button></div>' +
+        '<div class="fx-grid">' +
+          '<div class="field"><label for="' + id + '-d">' + esc(t("fx.date")) + '</label><input type="date" id="' + id + '-d" data-f="date" value="' + esc(x.date) + '"></div>' +
+          '<div class="field"><label for="' + id + '-t">' + esc(t("fx.time")) + '</label><input type="time" id="' + id + '-t" data-f="time" value="' + esc(x.time) + '"></div>' +
+          '<div class="field"><label for="' + id + '-h">' + esc(t("fx.where")) + '</label><select id="' + id + '-h" data-f="home"><option value="1"' + (x.home ? " selected" : "") + '>' + esc(t("home")) + '</option><option value="0"' + (!x.home ? " selected" : "") + '>' + esc(t("away")) + '</option></select></div>' +
+          '<div class="field"><label for="' + id + '-r">' + esc(t("fx.rival")) + '</label><select id="' + id + '-r" data-f="rival"><option value="">—</option>' + rivals.map(function (n) { return '<option' + (n === x.rival ? " selected" : "") + '>' + esc(n) + '</option>'; }).join("") + '</select></div>' +
+          '<div class="field fx-wide"><label for="' + id + '-vn">' + esc(t("fx.venue")) + '</label><input type="text" maxlength="100" id="' + id + '-vn" data-f="venue_name" value="' + esc(x.venue_name) + '"></div>' +
+          '<div class="field"><label for="' + id + '-vs">' + esc(t("fx.street")) + '</label><input type="text" maxlength="100" id="' + id + '-vs" data-f="venue_street" value="' + esc(x.venue_street) + '"></div>' +
+          '<div class="field"><label for="' + id + '-vc">' + esc(t("fx.city")) + '</label><input type="text" maxlength="100" id="' + id + '-vc" data-f="venue_city" value="' + esc(x.venue_city) + '"></div>' +
+        '</div></div>';
+    }).join("") +
+    '<div class="form-actions"><button type="button" class="btn small solid" id="fx-save">' + esc(t("fx.save")) + '</button>' +
+      '<button type="button" class="btn small" id="fx-add">' + esc(t("fx.add")) + '</button>' +
+      '<button type="button" class="btn small" id="fx-reset">' + esc(t("fx.reset")) + '</button>' +
+      '<span class="status" id="fx-status" role="status" aria-live="polite"></span></div></div>';
+  box.open = open;
+  box.querySelectorAll(".fx-row").forEach(function (row) {
+    var k = +row.getAttribute("data-k");
+    row.querySelectorAll("[data-f]").forEach(function (el) {
+      el.addEventListener("change", function () {
+        var f = el.getAttribute("data-f"), v = el.value;
+        if (f === "home") {
+          fxDraft[k].home = v === "1";
+          if (fxDraft[k].home) { fxDraft[k].venue_name = HOME_VENUE.name; fxDraft[k].venue_street = HOME_VENUE.street; fxDraft[k].venue_city = HOME_VENUE.city; renderFixturesEditor(); return; }
+        } else fxDraft[k][f] = v;
+      });
+    });
+  });
+  box.querySelectorAll("[data-fx-del]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var k = +b.getAttribute("data-fx-del"), x = fxDraft[k], st = document.getElementById("fx-status");
+      var used = pairsOf(x.r).some(function (pr) { return pr && (pr[0] || pr[1]); });
+      if (used) { st.textContent = t("fx.errUsed", { r: x.r }); st.className = "status bad"; return; }
+      fxDraft.splice(k, 1); renderFixturesEditor();
+    });
+  });
+  document.getElementById("fx-add").addEventListener("click", function () {
+    var next = fxDraft.reduce(function (a, x) { return Math.max(a, x.r); }, 0) + 1;
+    fxDraft.push({ r: next, date: "", time: "", home: true, rival: "", venue_name: HOME_VENUE.name, venue_street: HOME_VENUE.street, venue_city: HOME_VENUE.city });
+    renderFixturesEditor();
+  });
+  document.getElementById("fx-reset").addEventListener("click", function () { fxDraft = null; renderFixturesEditor(); });
+  document.getElementById("fx-save").addEventListener("click", function () {
+    var st = document.getElementById("fx-status"), btn = this;
+    var bad = fxDraft.filter(function (x) { return !/^\d{4}-\d\d-\d\d$/.test(x.date) || !x.rival || (x.time && !/^\d\d:\d\d$/.test(x.time)); });
+    if (bad.length) { st.textContent = t("fx.errRow", { r: bad[0].r }); st.className = "status bad"; return; }
+    var rows = fxDraft.map(function (x) {
+      return { r: x.r, date: x.date, time: x.time || null, home: x.home ? US : x.rival, away: x.home ? x.rival : US,
+        venue_name: x.venue_name.trim() || null, venue_street: x.venue_street.trim() || null, venue_city: x.venue_city.trim() || null, updated_at: new Date().toISOString() };
+    });
+    var keep = rows.map(function (x) { return x.r; });
+    var gone = (state.fixtureRows || []).map(function (x) { return x.r; }).filter(function (r) { return keep.indexOf(r) < 0; });
+    btn.disabled = true; st.textContent = t("f.saving"); st.className = "status";
+    state.sb.from("fixtures").upsert(rows).then(function (res) {
+      if (res.error) throw res.error;
+      return gone.length ? state.sb.from("fixtures").delete().in("r", gone) : { error: null };
+    }).then(function (res) {
+      if (res.error) throw res.error;
+      btn.disabled = false; fxDraft = null;
+      return loadData();
+    }).then(function () { var s2 = document.getElementById("fx-status"); if (s2) { s2.textContent = t("fx.saved"); s2.className = "status"; } })
+      .catch(function () { btn.disabled = false; st.textContent = t("f.errSave"); st.className = "status bad"; });
+  });
+}
+
 function renderAdminFilters() {
   var box = document.getElementById("adm-filters");
-  if (box.getAttribute("data-lang") === lang && box.childElementCount) return;
-  box.setAttribute("data-lang", lang);
+  var sig = lang + "|" + ROUNDS.map(function (m) { return m.r + m.home + m.away; }).join(",");
+  if (box.getAttribute("data-lang") === sig && box.childElementCount) return;
+  box.setAttribute("data-lang", sig);
   var rivals = ROUNDS.map(function (m) { return m.home === US ? m.away : m.home; });
   box.innerHTML =
     '<div class="field"><label for="flt-rival">' + esc(t("flt.rival")) + '</label><select id="flt-rival"><option value="">' + esc(t("flt.all")) + '</option>' +
@@ -1533,7 +1824,9 @@ function saveRound(r, el) {
   var results = [0, 1, 2, 3].map(function (i) {
     var sets = readSets(r, i, el).sets, oc = matchOutcome(sets);
     var rv = [0, 1].map(function (k) { return el.querySelector("#a" + r + "-" + i + "-r" + k).value.trim().slice(0, 80); });
-    return { sets: sets, score: sets.map(function (x) { return x[0] + "-" + x[1]; }).join(" "), won: oc.won, rivals: rv };
+    var prevRs = resultsOf(r)[i] || {}, o = { sets: sets, score: sets.map(function (x) { return x[0] + "-" + x[1]; }).join(" "), won: oc.won, rivals: rv };
+    if (prevRs.by) { o.by = prevRs.by; o.at = prevRs.at; o.reviewed = true; } // al guardar la capitana, el resultado de la pareja queda revisado
+    return o;
   });
   // Resultado de la jornada = partidos ganados y perdidos (se calcula solo)
   var played = calc.tot.pw + calc.tot.pl;
@@ -1616,9 +1909,10 @@ function closeAccMenu() {
   });
   document.getElementById("menu-logout").addEventListener("click", function () { closeAccMenu(); if (state.sb) signOutAll(); location.hash = "#perfil"; });
 })();
+var PROFILE_HASH = { "#perfil": null, "#mis-partidos": "partidos", "#mi-disponibilidad": "disp", "#avisos": "datos" };
 function applyViewName() {
   var h = location.hash;
-  return (h === "#perfil" || h === "#mis-partidos") ? "profile" : h === "#privacidad" ? "privacy" : (h === "#alineaciones" && canManage()) ? "lineups" : "home";
+  return PROFILE_HASH.hasOwnProperty(h) ? "profile" : h === "#privacidad" ? "privacy" : (h === "#alineaciones" && canManage()) ? "lineups" : "home";
 }
 function applyView() {
   var view = applyViewName();
@@ -1631,8 +1925,9 @@ function applyView() {
 }
 window.addEventListener("hashchange", function () {
   closeAccMenu();
+  if (PROFILE_HASH[location.hash]) { state.profTab = PROFILE_HASH[location.hash]; renderMe(); }
   var view = applyView(); renderAdmin(); renderMeHome(); renderTabbar();
-  if (location.hash === "#mis-partidos") { var mp = document.getElementById("mis-partidos"); if (mp) mp.scrollIntoView(); else window.scrollTo(0, 0); }
+  if (view === "profile") window.scrollTo(0, 0);
   else if (view !== "home") window.scrollTo(0, 0);
   else if (location.hash && location.hash !== "#inicio") { var el = document.querySelector(location.hash); if (el) el.scrollIntoView(); }
   else window.scrollTo(0, 0);
@@ -1673,6 +1968,7 @@ function loadData() {
   var sb = state.sb;
   var q = {
     rounds: sb.from("rounds").select("*"),
+    fixtures: sb.from("fixtures").select("*").order("r"),
     standings: sb.from("standings").select("*")
   };
   if (state.uid) {
@@ -1693,6 +1989,7 @@ function loadData() {
     if (res.rounds.error) throw res.rounds.error;
     var rounds = {}; rows("rounds").forEach(function (row) { rounds["r" + row.r] = { pairs: row.pairs, results: row.results, us: row.us, them: row.them, meetTime: row.meet_time || "", meetPlace: row.meet_place || "", updatedAt: row.updated_at || null, updatedBy: row.updated_by || null }; });
     state.rounds = rounds;
+    if (res.fixtures && !res.fixtures.error) { state.fixtureRows = res.fixtures.data || []; applyFixtures(state.fixtureRows, true); }
     state.standings = rows("standings");
     if (state.uid) {
       if (res.players.error || res.roles.error) throw (res.players.error || res.roles.error);
@@ -1747,7 +2044,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-05-4";
+var APP_VERSION = "2026-11-05-5";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
@@ -1759,6 +2056,7 @@ function checkVersion() {
 }
 function boot() {
   checkVersion();
+  if (PROFILE_HASH[location.hash]) state.profTab = PROFILE_HASH[location.hash];
   document.getElementById("skip-link").addEventListener("click", function (e) { e.preventDefault(); var m = document.getElementById("main"); m.focus(); m.scrollIntoView(); });
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () {});
   window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); state.installEvt = e; renderMe(); });

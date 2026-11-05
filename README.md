@@ -85,3 +85,11 @@ Banderas: [Vexillo](https://github.com/kreativekorp/vexillo) (MPL-2.0), [region-
 - **Portada personalizada** con sesión iniciada y **barra inferior** en el móvil.
 - **«He visto la alineación»**: la capitana ve un ✓ junto a cada jugadora.
 - **CAPTCHA invisible** (Cloudflare Turnstile) en entrar/crear cuenta: se activa al poner `turnstileSiteKey` en `config.js` y la clave secreta en Supabase → Authentication → Attack Protection.
+
+## Novedades (5 noviembre 2026)
+
+- **Calendario editable**: las jornadas están en la tabla `fixtures` de Supabase. La capitana o las managers las cambian en **Alineaciones → Calendario de la liga**; la web, los calendarios suscritos y los avisos leen de ahí.
+- **Resultados por pareja**: cada pareja apunta su resultado en **Mis partidos** desde el día del partido (función `submit_pair_result`). La capitana lo ve marcado como pendiente y lo confirma al guardar la jornada.
+- **Perfil en pestañas** (Partidos · Disponibilidad · Mis datos), **ficha de cada jugadora** al pulsar su tarjeta y **primeros pasos** en la portada para las nuevas.
+- **Registro de errores**: si la web falla en el móvil de alguien, queda en la tabla `client_errors` (se borra a los 90 días).
+- **Prueba automática**: `.github/workflows/smoke-test.yml` abre la web en móvil y escritorio, claro y oscuro y en los 4 idiomas en cada cambio (`tests/smoke.mjs`). Si algo se rompe, GitHub avisa por email.

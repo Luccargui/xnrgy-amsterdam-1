@@ -8,15 +8,16 @@ const SITE = "https://xnrgyams1.com/";
 const MATCH_HOURS = 2;
 const SLOTS = ["DD1", "DD2", "DD3", "DD4"];
 const HOME = { name: "XNRGY Amsterdam", street: "De Flinesstraat 10", city: "1099 CB Amsterdam" };
-const ROUNDS = [
-  { r: 1, date: "2026-11-14", time: "12:30", home: US, away: "STROKEL 1", venue: HOME },
-  { r: 2, date: "2026-11-28", time: null, home: "HEALTHCITY HOENDERDAAL 2", away: US, venue: { name: "Health Centre Hoenderdaal", street: "Hoendersteeg 7", city: "3972 NA Driebergen-Rijsenburg" } },
-  { r: 3, date: "2026-12-12", time: "09:30", home: US, away: "GAASPERPARK 1", venue: HOME },
-  { r: 4, date: "2027-01-16", time: "10:30", home: "PLAZA PADEL AMERSFOORT 1", away: US, venue: { name: "Plaza Padel Amersfoort", street: "Bunschoterstraat 23", city: "3828 NR Hoogland" } },
-  { r: 5, date: "2027-01-23", time: "09:30", home: US, away: "LEISURE WORLD PADEL 1", venue: HOME },
-  { r: 6, date: "2027-01-30", time: "09:30", home: "VLTV 3", away: US, venue: { name: "VLTV Tennis & Padel", street: "Mijdrechtse Dwarsweg 2", city: "3645 GA Vinkeveen" } },
-  { r: 7, date: "2027-02-13", time: "14:00", home: "NIJKERK 1", away: US, venue: { name: "De Conijnenbergh", street: "Bloemendaalseweg 5-D", city: "3862 RN Nijkerk" } },
-];
+type Round = { r: number; date: string; time: string | null; home: string; away: string; venue: { name: string; street: string; city: string } };
+// Las jornadas vienen de la tabla fixtures (la capitana las edita en la web)
+async function loadRounds(sb: any): Promise<Round[]> {
+  const { data } = await sb.from("fixtures").select("*").order("date");
+  return (data ?? []).map((x: any) => {
+    const isHome = x.home === US;
+    const venue = (isHome && !x.venue_name && !x.venue_street) ? HOME : { name: x.venue_name ?? "", street: x.venue_street ?? "", city: x.venue_city ?? "" };
+    return { r: x.r, date: x.date, time: x.time ?? null, home: x.home, away: x.away, venue };
+  });
+}
 const T: Record<string, Record<string, string>> = {
   es: { cal: "XNRGY Amsterdam 1 · Mis partidos", title: "Pádel {slot} · XNRGY vs {rival}", round: "Jornada", home: "En casa", away: "Fuera", partner: "Compañera", tbd: "por decidir", rivals: "Pareja rival", meet: "Quedada", tbc: "Hora por confirmar." },
   en: { cal: "XNRGY Amsterdam 1 · My matches", title: "Padel {slot} · XNRGY vs {rival}", round: "Round", home: "Home", away: "Away", partner: "Partner", tbd: "to be decided", rivals: "Opponents", meet: "Meet-up", tbc: "Time to be confirmed." },
@@ -59,7 +60,8 @@ Deno.serve(async (req) => {
   const { data: role } = await sb.from("team_roles").select("role").eq("user_id", uid).maybeSingle();
   if (!role) return new Response("Not found", { status: 404 });
 
-  const [{ data: rounds }, { data: players }] = await Promise.all([
+  const [ROUNDS, { data: rounds }, { data: players }] = await Promise.all([
+    loadRounds(sb),
     sb.from("rounds").select("r,pairs,results,meet_time,meet_place"),
     sb.from("players").select("id,first_name,last_name"),
   ]);
@@ -94,7 +96,7 @@ Deno.serve(async (req) => {
         const st = amsToUtc(m.date, m.time);
         L.push("DTSTART:" + utc(st), "DTEND:" + utc(new Date(st.getTime() + MATCH_HOURS * 3600000)));
       } else L.push("DTSTART;VALUE=DATE:" + day(m.date), "DTEND;VALUE=DATE:" + day(m.date, 1));
-      L.push("SUMMARY:" + esc(title), "LOCATION:" + esc(`${m.venue.name}, ${m.venue.street}, ${m.venue.city}`), "DESCRIPTION:" + esc(desc),
+      L.push("SUMMARY:" + esc(title), "LOCATION:" + esc([m.venue.name, m.venue.street, m.venue.city].filter(Boolean).join(", ")), "DESCRIPTION:" + esc(desc),
         "BEGIN:VALARM", "TRIGGER:-PT2H", "ACTION:DISPLAY", "DESCRIPTION:" + esc(title), "END:VALARM", "END:VEVENT");
     });
   }
