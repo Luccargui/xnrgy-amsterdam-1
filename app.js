@@ -1010,11 +1010,11 @@ function renderMe() {
   note.textContent = fullName(me);
   var gm = myGames();
   var won = gm.done.filter(function (g) { return g.rs.won === true; }).length, lost = gm.done.filter(function (g) { return g.rs.won === false; }).length;
-  var tab = state.profTab || "partidos";
-  var tabs = [["partidos", t("ptab.matches")], ["disp", t("ptab.avail")], ["datos", t("ptab.me")]];
+  var tab = state.profTab || "datos";
+  var tabs = [["datos", t("ptab.me"), TAB_ICONS.profile], ["disp", t("ptab.avail"), '<rect x="3" y="5" width="18" height="16" rx="1"/><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4"/>'], ["partidos", t("ptab.matches"), '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6c3.3 3.3 3.3 9.5 0 12.8M18.4 5.6c-3.3 3.3-3.3 9.5 0 12.8"/>']];
   var pend = upcomingRounds().filter(function (m) { return !(availOf(state.uid, m.r) || {}).status; }).length;
   var head = '<div class="ptabs" role="tablist" aria-label="' + esc(t("me.title")) + '">' + tabs.map(function (x) {
-    return '<button type="button" role="tab" data-ptab="' + x[0] + '" aria-selected="' + (tab === x[0]) + '">' + esc(x[1]) +
+    return '<button type="button" role="tab" data-ptab="' + x[0] + '" aria-selected="' + (tab === x[0]) + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + x[2] + '</svg><span>' + esc(x[1]) + '</span>' +
       (x[0] === "disp" && pend ? ' <span class="pbadge">' + pend + '</span>' : '') + '</button>';
   }).join("") + '</div>';
   var body;
@@ -2044,7 +2044,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-05-5";
+var APP_VERSION = "2026-11-05-6";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();

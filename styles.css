@@ -534,13 +534,21 @@ body.authed .hero-grid { grid-template-columns: 1fr; }
 .onb-list li.ok .onb-ic { color: var(--win); text-decoration: none; }
 
 /* ───────── Perfil en pestañas ───────── */
-.ptabs { display: flex; border-bottom: 1px solid var(--line); margin-bottom: 20px; overflow-x: auto; scrollbar-width: none; }
-.ptabs::-webkit-scrollbar { display: none; }
-.ptabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; padding: 12px 16px; cursor: pointer; white-space: nowrap; margin-bottom: -1px; }
-.ptabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--text); }
-.pbadge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; background: var(--warn); color: #000; font-size: 11px; letter-spacing: 0; border-radius: 9px; vertical-align: 2px; }
+/* Pestañas del perfil: control segmentado, la activa en bloque relleno */
+.ptabs { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--text); margin-bottom: 22px; }
+.ptabs button { display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--bg); border: 0; border-right: 1px solid var(--text); color: var(--text); font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; padding: 13px 10px; min-height: 50px; cursor: pointer; white-space: nowrap; }
+.ptabs button:last-child { border-right: 0; }
+.ptabs button svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.ptabs button:hover { background: var(--surface); }
+.ptabs button[aria-selected="true"] { background: var(--text); color: var(--bg); }
+.pbadge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; background: #ffd166; color: #000; font-size: 12px; letter-spacing: 0; border-radius: 10px; }
 .ptab-body { display: grid; gap: 20px; }
-@media (max-width: 560px) { .ptabs button { padding: 10px 12px; font-size: 13px; flex: 1; } }
+@media (max-width: 560px) {
+  .ptabs button { flex-direction: column; gap: 4px; font-size: 12px; letter-spacing: .05em; padding: 10px 4px; min-height: 62px; white-space: normal; text-align: center; line-height: 1.1; }
+  .ptabs button svg { width: 20px; height: 20px; }
+  .ptabs button { position: relative; }
+  .pbadge { position: absolute; top: 5px; left: calc(50% + 6px); min-width: 18px; height: 18px; font-size: 11px; }
+}
 
 /* ───────── Resultado de la pareja ───────── */
 .res-pend { font-size: 13px; color: var(--warn); font-weight: 600; }
