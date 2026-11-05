@@ -55,8 +55,13 @@ async function userFrom(req: Request): Promise<string | null> {
   return data?.user?.id ?? null;
 }
 type Msg = { title: string; body: string; url: string; tag: string };
-// Envía a todas las suscripciones de esas jugadoras; borra las caducadas
-async function sendTo(userIds: string[], make: (lang: string, uid: string) => Msg): Promise<number> {
+// Envía a todas las suscripciones de esas jugadoras (si no han desactivado ese tipo de aviso); borra las caducadas
+async function sendTo(userIds: string[], make: (lang: string, uid: string) => Msg, kind?: "lineup" | "reminder" | "requests"): Promise<number> {
+  if (kind && userIds.length) {
+    const { data: prefs } = await sb.from("notification_prefs").select("*").in("user_id", userIds);
+    const off = new Set((prefs || []).filter((p) => p[kind] === false).map((p) => p.user_id));
+    userIds = userIds.filter((id) => !off.has(id));
+  }
   if (!userIds.length) return 0;
   const { data: subs } = await sb.from("push_subscriptions").select("*").in("user_id", userIds);
   const v = await vapid();
@@ -102,7 +107,7 @@ Deno.serve(async (req) => {
       title: fill(T[lang].reminderT, { date: fmtDate(m.date, lang) }),
       body: fill(T[lang].reminderB, { r: m.r, rival: rivalOf(m) }),
       url: SITE + "#mi-disponibilidad", tag: "avail-" + m.r,
-    }));
+    }), "reminder");
     return json({ sent, pending: pending.length });
   }
 
@@ -113,7 +118,7 @@ Deno.serve(async (req) => {
     const { data: staff } = await sb.from("team_roles").select("user_id").in("role", STAFF);
     const sent = await sendTo((staff || []).map((x) => x.user_id), (lang) => ({
       title: T[lang].reqT, body: fill(T[lang].reqB, { name }), url: SITE + "#inicio", tag: "join-request",
-    }));
+    }), "requests");
     return json({ sent });
   }
 
@@ -146,7 +151,7 @@ Deno.serve(async (req) => {
         body: fill(T[lang].lineupB, { slot: SLOTS[i] || "", partner: (partnerId && first.get(partnerId)) || T[lang].partnerTbd, when }),
         url: SITE + "#mis-partidos", tag: "lineup-" + m.r,
       };
-    });
+    }, "lineup");
     return json({ sent, players: new Set(ids).size });
   }
   return json({ error: "action" }, 400);

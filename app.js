@@ -781,12 +781,37 @@ function appHtml() {
   var push;
   if (!pushSupported()) push = '<p class="hint" style="margin:0">' + esc(isIOS() && !isStandalone() ? t("push.iosFirst") : t("push.unsupported")) + '</p>';
   else if (Notification.permission === "denied") push = '<p class="hint" style="margin:0">' + esc(t("push.blocked")) + '</p>';
-  else if (state.pushOn) push = '<div class="app-row"><p style="margin:0"><b>✓ ' + esc(t("push.on")) + '</b></p><div class="form-actions" style="margin:0"><button type="button" class="btn small" id="push-test">' + esc(t("push.test")) + '</button><button type="button" class="btn small" id="push-off">' + esc(t("push.off")) + '</button></div></div>';
+  else if (state.pushOn) push = '<div class="app-row"><p style="margin:0"><b>✓ ' + esc(t("push.on")) + '</b></p><div class="form-actions" style="margin:0"><button type="button" class="btn small" id="push-test">' + esc(t("push.test")) + '</button><button type="button" class="btn small" id="push-off">' + esc(t("push.off")) + '</button></div></div>' + prefsHtml();
   else push = '<div class="app-row"><p class="hint" style="margin:0">' + esc(t("push.why")) + '</p><button type="button" class="btn small solid" id="push-on">' + esc(t("push.enable")) + '</button></div>';
   parts.push(push + '<span class="status" id="push-status" role="status" aria-live="polite"></span>');
   return '<div class="p-sec" id="avisos" style="scroll-margin-top:80px"><h3>' + esc(t("app.title")) + '</h3>' + parts.join("") + '</div>';
 }
+/* Qué avisos quiere recibir cada jugadora (vale para todos sus dispositivos) */
+function prefKinds() { return ["lineup", "reminder"].concat(canManage() ? ["requests"] : []); }
+function prefsHtml() {
+  var pr = state.prefs || {};
+  return '<fieldset class="prefs"><legend class="label">' + esc(t("push.prefsT")) + '</legend>' + prefKinds().map(function (k) {
+    var on = pr[k] !== false;
+    return '<label class="pref"><input type="checkbox" class="sw" data-pref="' + k + '"' + (on ? " checked" : "") + '>' +
+      '<span><b>' + esc(t("push.k." + k)) + '</b><br><span class="hint">' + esc(t("push.d." + k)) + '</span></span></label>';
+  }).join("") + '<span class="status" id="pref-status" role="status" aria-live="polite"></span></fieldset>';
+}
+function bindPrefs() {
+  document.querySelectorAll("[data-pref]").forEach(function (cb) {
+    cb.addEventListener("change", function () {
+      var st = document.getElementById("pref-status"), k = cb.getAttribute("data-pref");
+      state.prefs = Object.assign({ lineup: true, reminder: true, requests: true }, state.prefs || {});
+      state.prefs[k] = cb.checked;
+      var row = { user_id: state.uid, lineup: state.prefs.lineup, reminder: state.prefs.reminder, requests: state.prefs.requests, updated_at: new Date().toISOString() };
+      state.sb.from("notification_prefs").upsert(row).then(function (res) {
+        if (res.error) throw res.error;
+        st.textContent = t("av.saved"); st.className = "status";
+      }).catch(function () { cb.checked = !cb.checked; state.prefs[k] = cb.checked; st.textContent = t("f.errSave"); st.className = "status bad"; });
+    });
+  });
+}
 function bindAppSection() {
+  bindPrefs();
   var st = document.getElementById("push-status");
   var ib = document.getElementById("app-install");
   if (ib) ib.addEventListener("click", function () { var e = state.installEvt; if (!e) return; e.prompt(); e.userChoice.then(function () { state.installEvt = null; renderMe(); }); });
@@ -1997,6 +2022,7 @@ function loadData() {
     q.avail = sb.from("availability").select("*");
     q.caltoken = sb.from("calendar_tokens").select("token");
     q.acks = sb.from("lineup_ack").select("r,user_id,seen_at");
+    q.prefs = sb.from("notification_prefs").select("lineup,reminder,requests");
   }
   var keys = Object.keys(q);
   loading = Promise.all(keys.map(function (k) { return q[k]; })).then(function (arr) {
@@ -2019,6 +2045,7 @@ function loadData() {
       state.avail = {}; rows("avail").forEach(function (x) { state.avail[x.user_id + ":" + x.r] = x; });
       state.calToken = (rows("caltoken")[0] || {}).token || null;
       state.acks = {}; rows("acks").forEach(function (x) { state.acks[x.user_id + ":" + x.r] = x.seen_at; });
+      state.prefs = rows("prefs")[0] || { lineup: true, reminder: true, requests: true };
       var reqRows = rows("requests");
       state.requests = reqRows.filter(function (x) { return x.user_id !== state.uid && !state.roles[x.user_id]; });
       state.myRequest = reqRows.filter(function (x) { return x.user_id === state.uid; })[0] || null;
@@ -2061,7 +2088,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-05-8";
+var APP_VERSION = "2026-11-05-9";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();

@@ -598,3 +598,16 @@ body.authed .hero-grid { grid-template-columns: 1fr; }
 /* Solicitudes en la portada: destacadas, con Aprobar / Rechazar a mano */
 .mh-req { border-color: var(--warn); }
 .mh-req .req-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--line); }
+/* Preferencias de avisos: interruptores */
+.prefs { border: 1px solid var(--line); padding: 12px 14px; margin: 4px 0 0; display: grid; gap: 12px; min-width: 0; }
+.prefs legend { padding: 0 6px; }
+.pref { display: grid; grid-template-columns: 48px 1fr; gap: 12px; align-items: center; cursor: pointer; text-transform: none; letter-spacing: 0; font-family: var(--body); font-size: 15px; }
+.pref .hint { font-size: 13px; }
+.sw { appearance: none; -webkit-appearance: none; width: 46px; height: 26px; border-radius: 13px; background: var(--line); position: relative; cursor: pointer; margin: 0; transition: background .15s; flex: none; }
+.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--bg); transition: transform .15s; }
+.sw:checked { background: var(--win); }
+.sw:checked::after { transform: translateX(20px); background: #fff; }
+.sw:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.pref .hint { font-weight: 400; color: var(--muted); }
+.pref b { font-weight: 600; }
+.sw::after { background: var(--muted); }
