@@ -8,7 +8,7 @@ import { generateVapid, sendPush, type Vapid } from "./webpush.ts";
 
 const US = "XNRGY AMSTERDAM 1";
 const SITE = "https://xnrgyams1.com/";
-const SUBJECT = "mailto:bodaagustinymaru@gmail.com";
+const SUBJECT = "mailto:team@xnrgyams1.com";
 const SLOTS = ["DD1", "DD2", "DD3", "DD4"];
 const STAFF = ["owner", "captain", "manager"];
 const REMIND_DAYS = 4; // días antes de la jornada
