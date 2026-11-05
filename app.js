@@ -343,9 +343,10 @@ function renderMeHome() {
         ["yes", "maybe", "no"].map(function (v) { return '<button type="button" class="av-btn av-' + v + '" data-av-home="' + pm.r + '" data-v="' + v + '" aria-pressed="false">' + esc(t("av." + v)) + '</button>'; }).join("") + '</div>' +
       (pend.length > 1 ? '<a class="mh-link" href="#mi-disponibilidad">' + esc(t("mh.availMore", { n: pend.length - 1 })) + ' →</a>' : '') + '</div>');
   }
-  // 3) Capitanas: solicitudes pendientes
+  // 3) Capitanas: solicitudes pendientes, con Aprobar / Rechazar directamente (van las primeras)
   if (canManage() && state.requests.length) {
-    cards.push('<div class="mh-card"><span class="label">' + esc(t("req.title")) + '</span><div class="mh-title">' + esc(t("mh.requests", { n: state.requests.length })) + '</div><a class="btn small solid" href="#alineaciones">' + esc(t("mh.review")) + '</a></div>');
+    cards.unshift('<div class="mh-card mh-req"><span class="label">' + esc(t("req.title")) + ' · ' + state.requests.length + '</span>' +
+      '<p class="hint" style="margin:0">' + esc(t("req.hint")) + '</p>' + requestRowsHtml() + '</div>');
   }
   box.innerHTML = '<section class="me-home"><div class="wrap"><p class="kicker">' + esc(t("mh.hello", { name: me.firstName })) + '</p><div class="mh-grid">' + cards.join("") + '</div></div></section>';
   box.querySelectorAll("[data-av-home]").forEach(function (b) {
@@ -353,6 +354,7 @@ function renderMeHome() {
   });
   box.querySelectorAll("[data-ack-home]").forEach(function (b) { b.addEventListener("click", function () { ackLineup(+b.getAttribute("data-ack-home"), b); }); });
   box.querySelectorAll("[data-onb-edit]").forEach(function (a) { a.addEventListener("click", function () { state.editing = true; formMounted = false; }); });
+  wireRequestButtons(box);
   var oh = document.getElementById("onb-hide");
   if (oh) oh.addEventListener("click", function () { try { localStorage.setItem("xnrgy-onb-" + state.uid, "1"); } catch (e) {} renderMeHome(); });
 }
@@ -378,6 +380,35 @@ function onboardingHtml(me) {
       return '<li class="' + (x.ok ? "ok" : "") + '">' + (x.ok ? '<span class="onb-ic">✓</span><span>' + esc(t("onb." + x.k)) + '</span>'
         : '<span class="onb-ic">○</span><a href="' + x.href + '"' + (x.edit ? ' data-onb-edit' : '') + '>' + esc(t("onb." + x.k)) + ' →</a>') + '</li>';
     }).join("") + '</ul><button type="button" class="linkbtn" id="onb-hide">' + esc(t("onb.hide")) + '</button></div>';
+}
+
+/* Solicitudes de acceso: aprobar o rechazar (portada y Alineaciones) */
+function requestRowsHtml() {
+  return (state.requests || []).map(function (q) {
+    return '<div class="req-row"><span><b>' + esc(q.first_name + " " + q.last_name) + '</b><br><span class="muted">' + esc(q.email) + '</span></span>' +
+      '<span class="form-actions" style="margin:0"><button type="button" class="btn small solid" data-approve="' + esc(q.user_id) + '">' + esc(t("req.approve")) + '</button>' +
+      '<button type="button" class="btn small" data-reject="' + esc(q.user_id) + '">' + esc(t("req.reject")) + '</button></span></div>';
+  }).join("");
+}
+function wireRequestButtons(root) {
+  root.querySelectorAll("[data-approve]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var id = b.getAttribute("data-approve"), row = b.closest(".req-row");
+      row.querySelectorAll("button").forEach(function (x) { x.disabled = true; });
+      state.sb.from("team_roles").insert({ user_id: id, role: "player" }).then(function (res) {
+        if (res.error) throw res.error;
+        return state.sb.from("join_requests").delete().eq("user_id", id);
+      }).then(function () { return loadData(); }).catch(function () { row.querySelectorAll("button").forEach(function (x) { x.disabled = false; }); });
+    });
+  });
+  root.querySelectorAll("[data-reject]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var id = b.getAttribute("data-reject"), row = b.closest(".req-row");
+      row.querySelectorAll("button").forEach(function (x) { x.disabled = true; });
+      state.sb.from("join_requests").delete().eq("user_id", id).then(function () { return loadData(); })
+        .catch(function () { row.querySelectorAll("button").forEach(function (x) { x.disabled = false; }); });
+    });
+  });
 }
 
 /* ───────────── Barra inferior en el móvil (con sesión) ───────────── */
@@ -1467,21 +1498,7 @@ function renderAdmin() {
         '<span class="form-actions"><button type="button" class="btn small solid" data-approve="' + esc(q.user_id) + '">' + esc(t("req.approve")) + '</button>' +
         '<button type="button" class="btn small" data-reject="' + esc(q.user_id) + '">' + esc(t("req.reject")) + '</button></span></div>';
     }).join("") : '<p class="muted" style="margin:6px 0 0">' + esc(t("req.none")) + '</p>');
-  rb.querySelectorAll("[data-approve]").forEach(function (b) {
-    b.addEventListener("click", function () {
-      var id = b.getAttribute("data-approve"); b.disabled = true;
-      state.sb.from("team_roles").insert({ user_id: id, role: "player" }).then(function (res) {
-        if (res.error) throw res.error;
-        return state.sb.from("join_requests").delete().eq("user_id", id);
-      }).then(function () { return loadData(); }).catch(function () { b.disabled = false; });
-    });
-  });
-  rb.querySelectorAll("[data-reject]").forEach(function (b) {
-    b.addEventListener("click", function () {
-      var id = b.getAttribute("data-reject"); b.disabled = true;
-      state.sb.from("join_requests").delete().eq("user_id", id).then(function () { return loadData(); }).catch(function () { b.disabled = false; });
-    });
-  });
+  wireRequestButtons(rb);
   // Roles del equipo: dueña, capitana y managers nombran managers; solo la dueña nombra capitana
   var mb = document.getElementById("managers-box");
   var others = players.filter(function (x) { return x.id !== state.uid && state.roles[x.id] && state.roles[x.id] !== "owner"; });
@@ -2044,7 +2061,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-05-7";
+var APP_VERSION = "2026-11-05-8";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();

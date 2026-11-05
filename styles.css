@@ -595,3 +595,6 @@ body.authed .hero-grid { grid-template-columns: 1fr; }
 .res-form .set-box { display: flex; align-items: center; gap: 6px; padding: 6px 8px; }
 .res-form .set-in { width: 46px; min-width: 0; text-align: center; padding: 8px 4px; }
 @media (max-width: 900px) { .tabbar a { font-size: 10px; letter-spacing: .03em; } }
+/* Solicitudes en la portada: destacadas, con Aprobar / Rechazar a mano */
+.mh-req { border-color: var(--warn); }
+.mh-req .req-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--line); }

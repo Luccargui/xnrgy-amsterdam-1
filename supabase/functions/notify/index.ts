@@ -3,6 +3,7 @@
 //  POST {action:"test"}          + sesión     -> aviso de prueba a una misma
 //  POST {action:"lineup", r}     + sesión de capitana/manager -> avisa a las alineadas en la jornada r
 //  POST {action:"reminder"}      + cabecera x-cron-secret     -> recordatorio de disponibilidad (lo lanza pg_cron cada día)
+//  POST {action:"new_request", name} + cabecera x-cron-secret -> aviso a capitana y managers de una solicitud nueva (lo lanza la base de datos)
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import { generateVapid, sendPush, type Vapid } from "./webpush.ts";
 
@@ -14,10 +15,10 @@ const STAFF = ["owner", "captain", "manager"];
 const REMIND_DAYS = 4; // días antes de la jornada
 const LOC: Record<string, string> = { es: "es-ES", en: "en-GB", tr: "tr-TR", nl: "nl-NL" };
 const T: Record<string, Record<string, string>> = {
-  es: { lineupT: "Alineación jornada {r} · vs {rival}", lineupB: "Juegas {slot} con {partner}. {when}.", partnerTbd: "compañera por decidir", reminderT: "¿Juegas el {date}?", reminderB: "Jornada {r} vs {rival}. Marca tu disponibilidad para que la capitana pueda hacer la alineación.", testT: "Avisos activados", testB: "Así te llegarán las alineaciones y los recordatorios del equipo.", tbc: "hora por confirmar", meet: "Quedada {meet}" },
-  en: { lineupT: "Line-up round {r} · vs {rival}", lineupB: "You play {slot} with {partner}. {when}.", partnerTbd: "partner to be decided", reminderT: "Are you playing on {date}?", reminderB: "Round {r} vs {rival}. Mark your availability so the captain can set the line-up.", testT: "Notifications on", testB: "This is how team line-ups and reminders will reach you.", tbc: "time to be confirmed", meet: "Meet-up {meet}" },
-  tr: { lineupT: "{r}. hafta kadrosu · {rival}", lineupB: "{partner} ile {slot} oynuyorsun. {when}.", partnerTbd: "partner belli değil", reminderT: "{date} günü oynuyor musun?", reminderB: "{r}. hafta, rakip {rival}. Kaptanın kadroyu kurabilmesi için uygunluğunu işaretle.", testT: "Bildirimler açık", testB: "Takım kadroları ve hatırlatmalar sana böyle gelecek.", tbc: "saat belli değil", meet: "Buluşma {meet}" },
-  nl: { lineupT: "Opstelling ronde {r} · tegen {rival}", lineupB: "Je speelt {slot} met {partner}. {when}.", partnerTbd: "partner nog niet bekend", reminderT: "Speel je op {date}?", reminderB: "Ronde {r} tegen {rival}. Geef je beschikbaarheid door zodat de aanvoerder de opstelling kan maken.", testT: "Meldingen aan", testB: "Zo krijg je de opstellingen en herinneringen van het team.", tbc: "tijd nog niet bekend", meet: "Verzamelen {meet}" },
+  es: { lineupT: "Alineación jornada {r} · vs {rival}", lineupB: "Juegas {slot} con {partner}. {when}.", partnerTbd: "compañera por decidir", reminderT: "¿Juegas el {date}?", reminderB: "Jornada {r} vs {rival}. Marca tu disponibilidad para que la capitana pueda hacer la alineación.", reqT: "Nueva solicitud de acceso", reqB: "{name} quiere unirse al equipo. Acéptala o recházala desde la portada.", testT: "Avisos activados", testB: "Así te llegarán las alineaciones y los recordatorios del equipo.", tbc: "hora por confirmar", meet: "Quedada {meet}" },
+  en: { lineupT: "Line-up round {r} · vs {rival}", lineupB: "You play {slot} with {partner}. {when}.", partnerTbd: "partner to be decided", reminderT: "Are you playing on {date}?", reminderB: "Round {r} vs {rival}. Mark your availability so the captain can set the line-up.", reqT: "New account request", reqB: "{name} wants to join the team. Approve or reject her from the home page.", testT: "Notifications on", testB: "This is how team line-ups and reminders will reach you.", tbc: "time to be confirmed", meet: "Meet-up {meet}" },
+  tr: { lineupT: "{r}. hafta kadrosu · {rival}", lineupB: "{partner} ile {slot} oynuyorsun. {when}.", partnerTbd: "partner belli değil", reminderT: "{date} günü oynuyor musun?", reminderB: "{r}. hafta, rakip {rival}. Kaptanın kadroyu kurabilmesi için uygunluğunu işaretle.", reqT: "Yeni erişim isteği", reqB: "{name} takıma katılmak istiyor. Ana sayfadan onayla veya reddet.", testT: "Bildirimler açık", testB: "Takım kadroları ve hatırlatmalar sana böyle gelecek.", tbc: "saat belli değil", meet: "Buluşma {meet}" },
+  nl: { lineupT: "Opstelling ronde {r} · tegen {rival}", lineupB: "Je speelt {slot} met {partner}. {when}.", partnerTbd: "partner nog niet bekend", reminderT: "Speel je op {date}?", reminderB: "Ronde {r} tegen {rival}. Geef je beschikbaarheid door zodat de aanvoerder de opstelling kan maken.", reqT: "Nieuwe toegangsaanvraag", reqB: "{name} wil bij het team. Keur goed of wijs af vanaf de startpagina.", testT: "Meldingen aan", testB: "Zo krijg je de opstellingen en herinneringen van het team.", tbc: "tijd nog niet bekend", meet: "Verzamelen {meet}" },
 };
 const fill = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(v[k] ?? ""));
 const cors = {
@@ -82,7 +83,7 @@ const rivalOf = (m: Round) => (m.home === US ? m.away : m.home);
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "method" }, 405);
-  let body: { action?: string; r?: number } = {};
+  let body: { action?: string; r?: number; name?: string } = {};
   try { body = await req.json(); } catch { /* vacío */ }
 
   if (body.action === "vapid") return json({ publicKey: (await vapid()).publicKey });
@@ -103,6 +104,17 @@ Deno.serve(async (req) => {
       url: SITE + "#mi-disponibilidad", tag: "avail-" + m.r,
     }));
     return json({ sent, pending: pending.length });
+  }
+
+  if (body.action === "new_request") {
+    const s = await secret("cron");
+    if (!s || req.headers.get("x-cron-secret") !== s) return json({ error: "forbidden" }, 403);
+    const name = String((body as { name?: string }).name || "").slice(0, 60) || "?";
+    const { data: staff } = await sb.from("team_roles").select("user_id").in("role", STAFF);
+    const sent = await sendTo((staff || []).map((x) => x.user_id), (lang) => ({
+      title: T[lang].reqT, body: fill(T[lang].reqB, { name }), url: SITE + "#inicio", tag: "join-request",
+    }));
+    return json({ sent });
   }
 
   const uid = await userFrom(req);
