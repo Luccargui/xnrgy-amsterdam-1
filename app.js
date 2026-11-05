@@ -125,6 +125,8 @@ function countryName(cc) {
 }
 function initials(a, b) { return ((a || "?")[0] + ((b || "")[0] || "")).toUpperCase(); }
 function fullName(p) { return p ? (p.firstName + " " + p.lastName).trim() : ""; }
+// La ficha se crea al aprobarla, pero el perfil no está completo hasta que ella pone país y región
+function hasProfile(p) { return !!(p && p.country && p.region); }
 function today0() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
 function roundDoc(r) { return state.rounds["r" + r] || null; }
 function meetLine(m) {
@@ -310,7 +312,7 @@ function tickCountdown() {
 function renderMeHome() {
   var box = document.getElementById("me-home"), me = state.players[state.uid];
   document.body.classList.toggle("authed", !!(state.uid && state.phase === "ready"));
-  if (!state.uid || state.phase !== "ready" || !me) { box.innerHTML = ""; return; }
+  if (!state.uid || state.phase !== "ready" || !hasProfile(me)) { box.innerHTML = ""; return; }
   var gm = myGames(), g = gm.up[0], next = upcomingRounds()[0], cards = [];
   // 0) Primeros pasos para las nuevas
   var onb = onboardingHtml(me);
@@ -545,7 +547,7 @@ function renderPlayers() {
   var cards = list.map(function (x) {
     var p = x.p;
     return '<article class="player is-link" data-pid="' + esc(x.id) + '" tabindex="0" role="button" aria-haspopup="dialog" aria-label="' + esc(fullName(p)) + '"><div class="photo">' + photoHtml(p) + '</div>' + kitHtml(p, true) + '<div class="p-body">' +
-      '<div><div class="p-name">' + esc(fullName(p)) + '</div>' + roleBadge(x.id) + '</div>' +
+      '<div><div class="p-name">' + esc(fullName(p)) + '</div>' + roleBadge(x.id) + (hasProfile(p) ? '' : ' <span class="badge ghost">' + esc(t("pl.pending")) + '</span>') + '</div>' +
       ((p.side || p.hand) ? '<div class="p-chips">' + (p.side ? '<span class="chip">' + esc(sideLabel(p.side)) + '</span>' : '') + (p.hand ? '<span class="chip">' + esc(handLabel(p.hand)) + '</span>' : '') + '</div>' : '') +
       (p.birthday ? '<div class="p-contact"><span>' + esc(t("f.birthday")) + ': ' + esc(bdayLabel(p.birthday, false)) + '</span></div>' : '') +
       (p.phone ? '<div class="p-contact"><span>' + esc(p.phone) + '</span><span>' + esc(p.email) + '</span><span>KNLTB ' + esc(p.knltb) + '</span></div>' : '') +
@@ -646,7 +648,7 @@ function openPlayer(id) {
   var games = playerMatches(id);
   dlg.innerHTML = '<div class="dlg-in"><button type="button" class="dlg-x" aria-label="' + esc(t("pl.close")) + '">✕</button>' +
     '<div class="dlg-top"><div class="dlg-photo"><div class="photo">' + photoHtml(p) + '</div>' + kitHtml(p, true) + '</div>' +
-    '<div class="dlg-info"><h2 id="pl-dlg-t">' + esc(fullName(p)) + '</h2>' + roleBadge(id) +
+    '<div class="dlg-info"><h2 id="pl-dlg-t">' + esc(fullName(p)) + '</h2>' + roleBadge(id) + (hasProfile(p) ? '' : '<span class="badge ghost">' + esc(t("pl.pending")) + '</span>') +
       ((p.side || p.hand) ? '<div class="p-chips">' + (p.side ? '<span class="chip">' + esc(sideLabel(p.side)) + '</span>' : '') + (p.hand ? '<span class="chip">' + esc(handLabel(p.hand)) + '</span>' : '') + '</div>' : '') +
       (p.birthday ? '<p class="mm-meta" style="margin:0">' + esc(t("f.birthday")) + ': ' + esc(bdayLabel(p.birthday, false)) + '</p>' : '') +
       (p.phone || p.email ? '<p class="mm-meta" style="margin:0">' + [p.phone, p.email, p.knltb ? "KNLTB " + p.knltb : ""].filter(Boolean).map(esc).join(" · ") + '</p>' : '') +
@@ -1126,7 +1128,7 @@ function renderMe() {
   if (state.phase === "pending") { formMounted = false; mountPending(root); return; }
   if (state.needPassword) { formMounted = false; mountSetPassword(root); return; }
   var me = state.players[state.uid];
-  if (state.editing || !me) {
+  if (state.editing || !hasProfile(me)) {
     if (!formMounted) mountForm(me);
     return;
   }
@@ -1367,7 +1369,7 @@ function mountSetPassword(root) {
       '<div class="field"><label for="p-new">' + esc(t("pw.new")) + '</label><input type="password" id="p-new" autocomplete="new-password" minlength="8" required></div>' +
       '<div class="field"><label for="p-rep">' + esc(t("pw.repeat")) + '</label><input type="password" id="p-rep" autocomplete="new-password" minlength="8" required></div>' +
       '<div class="form-actions"><button type="submit" class="btn solid" id="p-go">' + esc(t("pw.save")) + '</button>' +
-        (state.players[state.uid] ? '<button type="button" class="btn" id="p-cancel">' + esc(t("f.cancel")) + '</button>' : '') + '</div>' +
+        (hasProfile(state.players[state.uid]) ? '<button type="button" class="btn" id="p-cancel">' + esc(t("f.cancel")) + '</button>' : '') + '</div>' +
       '<span class="status" id="p-status" role="status" aria-live="polite"></span>' +
     '</form>';
   var f = document.getElementById("pwf"), st = document.getElementById("p-status");
@@ -1429,7 +1431,7 @@ function mountForm(me) {
   me = me || {};
   formPhoto = me.photo || null;
   var root = document.getElementById("me-root");
-  var intro = state.players[state.uid] ? '' : '<div class="notice" style="margin-bottom:24px"><h3>' + esc(t("me.welcome.t")) + '</h3><p>' + esc(t("me.welcome.p")) + '</p></div>';
+  var intro = hasProfile(state.players[state.uid]) ? '' : '<div class="notice" style="margin-bottom:24px"><h3>' + esc(t("me.welcome.t")) + '</h3><p>' + esc(t("me.welcome.p")) + '</p></div>';
   root.innerHTML = intro + '<form class="panel" id="pf" novalidate>' +
     '<div class="field" id="pf-photo-field" style="scroll-margin-top:90px"><span class="label">' + esc(t("f.photo")) + '</span><div class="photo-pick"><div style="width:240px;max-width:100%;border:1px solid var(--line)"><div class="photo" id="pf-photo" style="width:100%;border:0"></div><div id="pf-kit"></div></div>' +
       '<div style="display:grid;gap:8px;justify-items:start"><label class="btn small" for="f-photo" style="color:var(--text)">' + esc(t("f.photoPick")) + '</label>' +
@@ -1454,7 +1456,7 @@ function mountForm(me) {
       '<fieldset class="field" id="fs-hand"><legend>' + esc(t("f.hand")) + ' <span class="opt">(' + esc(t("f.optional")) + ')</span></legend>' + radios("hand", ["right", "left", "both"], "hand.", me.hand) + '<span class="err" id="e-hand"></span></fieldset>' +
     '</div>' +
     '<div class="form-actions"><button type="submit" class="btn solid" id="pf-save">' + esc(t("f.save")) + '</button>' +
-      (state.players[state.uid] ? '<button type="button" class="btn" id="pf-cancel">' + esc(t("f.cancel")) + '</button>' : '') +
+      (hasProfile(state.players[state.uid]) ? '<button type="button" class="btn" id="pf-cancel">' + esc(t("f.cancel")) + '</button>' : '') +
       '<span class="status" id="pf-status" role="status" aria-live="polite"></span></div>' +
   '</form>';
 
@@ -2177,7 +2179,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-05-11";
+var APP_VERSION = "2026-11-05-12";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
