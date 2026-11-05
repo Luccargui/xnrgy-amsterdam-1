@@ -357,6 +357,7 @@ function renderMeHome() {
     a.addEventListener("click", function (e) {
       e.preventDefault();
       if (a.hasAttribute("data-onb-edit")) { state.editing = true; formMounted = false; }
+      if (a.getAttribute("data-goto") === "avisos" && !isStandalone()) { openInstallGuide(); return; }
       goTo(a.getAttribute("href"), a.getAttribute("data-goto"));
     });
   });
@@ -781,8 +782,7 @@ function appHtml() {
   var parts = [];
   if (!isStandalone()) {
     if (state.installEvt) parts.push('<div class="app-row"><p class="hint" style="margin:0">' + esc(t("app.installP")) + '</p><button type="button" class="btn small solid" id="app-install">' + esc(t("app.install")) + '</button></div>');
-    else if (isIOS()) parts.push('<p class="hint" style="margin:0">' + esc(t("app.ios")) + '</p>');
-    else parts.push('<p class="hint" style="margin:0">' + esc(t("app.other")) + '</p>');
+    else parts.push('<div class="app-row" id="app-guide-row"><p class="hint" style="margin:0">' + esc(t("app.installP")) + '</p><button type="button" class="btn small solid" id="app-guide">' + esc(t("ig.open")) + '</button></div>');
   }
   var push;
   if (!pushSupported()) push = '<p class="hint" style="margin:0">' + esc(isIOS() && !isStandalone() ? t("push.iosFirst") : t("push.unsupported")) + '</p>';
@@ -819,6 +819,8 @@ function bindPrefs() {
 function bindAppSection() {
   bindPrefs();
   var st = document.getElementById("push-status");
+  var gb = document.getElementById("app-guide");
+  if (gb) gb.addEventListener("click", function () { openInstallGuide(); });
   var ib = document.getElementById("app-install");
   if (ib) ib.addEventListener("click", function () { var e = state.installEvt; if (!e) return; e.prompt(); e.userChoice.then(function () { state.installEvt = null; renderMe(); }); });
   var on = document.getElementById("push-on");
@@ -834,6 +836,66 @@ function bindAppSection() {
       st.textContent = n ? t("push.testSent") : t("push.err"); st.className = "status" + (n ? "" : " bad");
     });
   });
+}
+
+/* ───────────── Guía paso a paso para instalar la app (burbujas) ─────────────
+   Cada navegador lo hace distinto: se detecta cuál es y se enseñan sus pasos uno a uno,
+   con la burbuja apuntando hacia donde está el botón del navegador. */
+var IG_ICONS = {
+  dots: '<circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>',
+  vdots: '<circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/>',
+  burger: '<path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  share: '<path d="M12 3v12M8 7l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 10H5v11h14V10h-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+  plus: '<rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  check: '<path d="M5 12l5 5L19 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+  app: '<rect x="5" y="2" width="14" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="8.5" y="6" width="7" height="7" rx="1.5" fill="currentColor"/>'
+};
+function installPlatform() {
+  var ua = navigator.userAgent;
+  if (isIOS()) return /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua) ? "iosOther" : "iosSafari";
+  if (/SamsungBrowser/i.test(ua)) return "samsung";
+  if (/Android/i.test(ua)) return "android";
+  return "other";
+}
+function installSteps() {
+  var last = { k: "ig.last", pos: "center", icon: "app" };
+  return {
+    iosSafari: [{ k: "ig.ios1", pos: "bottom", icon: "dots" }, { k: "ig.ios2", pos: "bottom", icon: "share" }, { k: "ig.ios3", pos: "center", icon: "plus" }, { k: "ig.ios4", pos: "top-right", icon: "check" }, last],
+    iosOther: [{ k: "ig.ioc1", pos: "bottom-right", icon: "dots" }, { k: "ig.ios2", pos: "center", icon: "share" }, { k: "ig.ios3", pos: "center", icon: "plus" }, { k: "ig.ioc4", pos: "top-right", icon: "check" }, last],
+    android: [{ k: "ig.and1", pos: "top-right", icon: "vdots" }, { k: "ig.and2", pos: "top-right", icon: "plus" }, { k: "ig.and3", pos: "center", icon: "check" }, last],
+    samsung: [{ k: "ig.sam1", pos: "bottom-right", icon: "burger" }, { k: "ig.sam2", pos: "center", icon: "plus" }, { k: "ig.sam3", pos: "center", icon: "check" }, last],
+    other: [{ k: "ig.oth1", pos: "top-right", icon: "vdots" }, { k: "ig.and3", pos: "center", icon: "check" }, last]
+  }[installPlatform()];
+}
+function openInstallGuide() {
+  // En Android con Chrome hay instalación directa: no hace falta guía
+  if (state.installEvt) { var e = state.installEvt; e.prompt(); e.userChoice.then(function () { state.installEvt = null; renderMe(); }); return; }
+  var steps = installSteps(), i = 0;
+  var old = document.getElementById("ig"); if (old) old.remove();
+  var wrap = document.createElement("div");
+  wrap.id = "ig"; wrap.className = "ig-wrap"; wrap.setAttribute("role", "dialog"); wrap.setAttribute("aria-modal", "true"); wrap.setAttribute("aria-labelledby", "ig-title");
+  document.body.appendChild(wrap);
+  function close() { wrap.remove(); document.removeEventListener("keydown", onKey); }
+  function onKey(e) { if (e.key === "Escape") close(); }
+  document.addEventListener("keydown", onKey);
+  function paint() {
+    var st = steps[i], lastStep = i === steps.length - 1;
+    wrap.innerHTML = '<div class="ig-back"></div><div class="ig ig-' + st.pos + '">' +
+      '<button type="button" class="ig-x" aria-label="' + esc(t("pl.close")) + '">✕</button>' +
+      '<div class="ig-head"><span class="ig-ic"><svg viewBox="0 0 24 24" aria-hidden="true">' + IG_ICONS[st.icon] + '</svg></span>' +
+        '<span><span class="label" id="ig-title">' + esc(t("ig.title")) + '</span><br><span class="ig-step">' + esc(t("ig.step", { n: i + 1, t: steps.length })) + '</span></span></div>' +
+      '<p class="ig-text">' + esc(t(st.k)) + '</p>' +
+      '<div class="ig-dots" aria-hidden="true">' + steps.map(function (_, k) { return '<i class="' + (k === i ? "on" : k < i ? "done" : "") + '"></i>'; }).join("") + '</div>' +
+      '<div class="ig-btns">' + (i > 0 ? '<button type="button" class="btn small" data-ig="back">' + esc(t("ig.back")) + '</button>' : '<span></span>') +
+        '<button type="button" class="btn small solid" data-ig="next">' + esc(t(lastStep ? "ig.done" : "ig.next")) + '</button></div></div>';
+    wrap.querySelector(".ig-x").addEventListener("click", close);
+    wrap.querySelector(".ig-back").addEventListener("click", close);
+    var back = wrap.querySelector('[data-ig="back"]'); if (back) back.addEventListener("click", function () { i--; paint(); });
+    var nx = wrap.querySelector('[data-ig="next"]');
+    nx.addEventListener("click", function () { if (lastStep) close(); else { i++; paint(); } });
+    nx.focus();
+  }
+  paint();
 }
 
 /* "He visto la alineación": la capitana ve quién la ha visto desde el último cambio */
@@ -2115,7 +2177,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-05-10";
+var APP_VERSION = "2026-11-05-11";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
