@@ -93,3 +93,13 @@ Banderas: [Vexillo](https://github.com/kreativekorp/vexillo) (MPL-2.0), [region-
 - **Perfil en pestañas** (Partidos · Disponibilidad · Mis datos), **ficha de cada jugadora** al pulsar su tarjeta y **primeros pasos** en la portada para las nuevas.
 - **Registro de errores**: si la web falla en el móvil de alguien, queda en la tabla `client_errors` (se borra a los 90 días).
 - **Prueba automática**: `.github/workflows/smoke-test.yml` abre la web en móvil y escritorio, claro y oscuro y en los 4 idiomas en cada cambio (`tests/smoke.mjs`). Si algo se rompe, GitHub avisa por email.
+
+## Resultados y clasificación desde KNLTB
+
+Los resultados de cada jornada, la clasificación y las fechas y horas de los partidos se leen solos de MijnKNLTB con la función `supabase/functions/knltb-sync`. La web ya no deja editarlos: la base de datos solo acepta esos datos desde la función.
+
+- **Cuándo:** los sábados cada 20 minutos (de 9:00 a 23:40) y el resto de días a las 7:17 y 19:17 (tareas `xnrgy-knltb-matchday` y `xnrgy-knltb-daily` de pg_cron).
+- **Cuenta:** MijnKNLTB solo enseña la liga con sesión iniciada. La función entra con los secretos `KNLTB_LOGIN` y `KNLTB_PASSWORD` (Supabase → Edge Functions → Secrets). Si la contraseña cambia, hay que actualizarla ahí. Si falla el inicio de sesión, la función espera 12 horas antes de volver a intentarlo con los mismos datos, para que KNLTB no bloquee la cuenta.
+- **Estado:** la tabla `knltb_sync` guarda la última lectura correcta y el último error; la web lo enseña en la clasificación y en el panel de capitanas.
+- **Jugadoras:** cada nombre de KNLTB se enlaza con su ficha por el número KNLTB de "Mis datos" o, si no lo tiene, por nombre y apellidos.
+- **Liga de la próxima temporada:** cambia `LEAGUE`, `DRAW` y `US` al principio de `supabase/functions/knltb-sync/index.ts`.

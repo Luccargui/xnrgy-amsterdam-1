@@ -154,6 +154,25 @@ function meetHtml(m) {
     cars.map(function (x) { return '<div class="mm-meta">' + esc(x) + '</div>'; }).join("") + '</div>';
 }
 function rivalNames(rs) { return (rs && Array.isArray(rs.rivals)) ? rs.rivals.filter(Boolean).join(" / ") : ""; }
+// Fecha y hora de la última lectura de KNLTB, en el idioma de la web
+function fmtStamp(ts) {
+  try { return new Intl.DateTimeFormat(LOCALE[lang], { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(ts)); } catch (e) { return ts; }
+}
+// Nombre de cada jugadora de una partida: la de la web si está enlazada, o el que publica KNLTB
+function slotName(id, rs, k) {
+  var p = id && state.players[id];
+  if (p) return fullName(p);
+  return (rs && Array.isArray(rs.names) && rs.names[k]) || "—";
+}
+// En la liga una jugadora puede jugar dos partidas por jornada, pero no dos veces en la misma pareja
+function lineupError(pairs) {
+  var count = {}, bad = false;
+  pairs.forEach(function (pr) {
+    if (pr[0] && pr[0] === pr[1]) bad = true;
+    pr.forEach(function (id) { if (id) { count[id] = (count[id] || 0) + 1; if (count[id] > 2) bad = true; } });
+  });
+  return bad;
+}
 function resultsOf(r) { var d = roundDoc(r); return (d && Array.isArray(d.results)) ? d.results : [{}, {}, {}, {}]; }
 function pairsOf(r) { var d = roundDoc(r); return (d && Array.isArray(d.pairs)) ? d.pairs : [[null, null], [null, null], [null, null], [null, null]]; }
 var STAFF = ["owner", "captain", "manager"];
@@ -478,15 +497,14 @@ function renderRounds() {
     } else score = '<span class="r-score pending">' + esc(m.time || t("tbc")) + '</span>';
     var pairs = pairsOf(m.r), mine = false, anySet = false;
     var lineup = pairs.map(function (pr, i) {
-      var a = state.players[pr[0]], b = state.players[pr[1]];
-      if (pr[0] || pr[1]) anySet = true;
+      var rs = resultsOf(m.r)[i] || {}, rtxt = "";
+      if (pr[0] || pr[1] || (rs.names && rs.names.length)) anySet = true;
       var isMine = state.uid && (pr[0] === state.uid || pr[1] === state.uid);
       if (isMine) mine = true;
-      var names = [a ? fullName(a) : "—", b ? fullName(b) : "—"].join(" / ");
-      var rs = resultsOf(m.r)[i] || {}, rtxt = "";
+      var names = [slotName(pr[0], rs, 0), slotName(pr[1], rs, 1)].join(" / ");
       if (rs.won === true || rs.won === false) rtxt = '<span class="ddres ' + (rs.won ? "w" : "l") + '">' + esc(t(rs.won ? "res.w" : "res.l")) + (rs.score ? " · " + esc(rs.score) : "") + '</span>';
       var rvn = rivalNames(rs);
-      return '<div class="dd' + (isMine ? " mine" : "") + '"><span class="tag">' + SLOTS[i] + '</span><span class="names">' + esc(names) + (rvn ? '<span class="rvn"> ' + esc(t("next.vs")) + ' ' + esc(rvn) + '</span>' : '') + rtxt + '</span></div>';
+      return '<div class="dd' + (isMine ? " mine" : "") + '"><span class="tag">' + esc(rs.code || SLOTS[i]) + '</span><span class="names">' + esc(names) + (rvn ? '<span class="rvn"> ' + esc(t("next.vs")) + ' ' + esc(rvn) + '</span>' : '') + rtxt + '</span></div>';
     }).join("");
     var chip = mine ? '<span class="chip me">' + esc(t("cal.you")) + '</span>' : '<span class="chip' + (isHome ? " home" : "") + '">' + esc(isHome ? t("home") : t("away")) + '</span>';
     return '<details class="round' + (m === nx ? " is-next" : "") + '" data-r="' + m.r + '"' + (openRounds[m.r] ? " open" : "") + '>' +
@@ -512,15 +530,17 @@ function renderRounds() {
 /* ───────────── Clasificación ───────────── */
 function sortedStandings() {
   var list = state.standings && state.standings.length ? state.standings.slice() : STANDINGS.map(function (team) { return { team: team, played: 0, won: 0, drawn: 0, lost: 0, points: 0 }; });
-  return list.sort(function (a, b) { return b.points - a.points || b.won - a.won || a.team.localeCompare(b.team); });
+  // KNLTB ya publica la posición con sus desempates; si no la hay, por puntos
+  return list.sort(function (a, b) { return ((a.pos || 99) - (b.pos || 99)) || b.points - a.points || b.won - a.won || a.team.localeCompare(b.team); });
 }
 function renderStandings() {
   document.getElementById("standings").innerHTML = sortedStandings().map(function (x, i) {
-    return '<tr' + (x.team === US ? ' class="us"' : '') + '><td class="pos">' + (i + 1) + '</td><td class="team">' + esc(x.team) + '</td>' +
+    return '<tr' + (x.team === US ? ' class="us"' : '') + '><td class="pos">' + (x.pos || i + 1) + '</td><td class="team">' + esc(x.team) + '</td>' +
       '<td class="n">' + x.played + '</td><td class="n">' + x.won + '</td><td class="n">' + (x.drawn || 0) + '</td><td class="n">' + x.lost + '</td><td class="n"><b>' + x.points + '</b></td></tr>';
   }).join("");
   var any = (state.standings || []).some(function (x) { return x.played > 0; });
-  document.querySelector('#clasificacion .fineprint').textContent = any ? t("tab.fineUpd") : t("tab.fine");
+  var ok = state.sync && state.sync.last_ok;
+  document.querySelector('#clasificacion .fineprint').textContent = ok ? t("knltb.synced", { when: fmtStamp(ok) }) + (any ? "" : " · " + t("tab.fine")) : t("tab.fine");
 }
 
 /* ───────────── Plantilla ───────────── */
@@ -579,7 +599,12 @@ function computeStats() {
   var per = {}, pairs = {}, team = { pj: 0, w: 0, l: 0, sw: 0, sl: 0, gw: 0, gl: 0 };
   function add(o, rs, sets) {
     o.pj++; if (rs.won) o.w++; else o.l++;
-    sets.forEach(function (x) { if (x[0] > x[1]) o.sw++; else if (x[1] > x[0]) o.sl++; o.gw += +x[0]; o.gl += +x[1]; });
+    sets.forEach(function (x, k) {
+      if (x[0] > x[1]) o.sw++; else if (x[1] > x[0]) o.sl++;
+      // Súper tie-break (3.er set a 10): KNLTB lo cuenta como un juego para la ganadora
+      if (k === 2 && Math.max(x[0], x[1]) >= 10) { o.gw += x[0] > x[1] ? 1 : 0; o.gl += x[1] > x[0] ? 1 : 0; }
+      else { o.gw += +x[0]; o.gl += +x[1]; }
+    });
   }
   function blank() { return { pj: 0, w: 0, l: 0, sw: 0, sl: 0, gw: 0, gl: 0 }; }
   ROUNDS.forEach(function (m) {
@@ -957,7 +982,8 @@ function myGames() {
     pairsOf(m.r).forEach(function (pr, i) {
       if (!state.uid || (pr[0] !== state.uid && pr[1] !== state.uid)) return;
       var rs = resultsOf(m.r)[i] || {}, d = roundDoc(m.r) || {};
-      var g = { m: m, i: i, partnerId: pr[0] === state.uid ? pr[1] : pr[0], rs: rs, d: d };
+      var k = pr[0] === state.uid ? 1 : 0;
+      var g = { m: m, i: i, partnerId: pr[k], partnerName: rs.names && rs.names[k], rs: rs, d: d };
       var hasRes = rs.won === true || rs.won === false;
       if (hasRes || parse(m.date) < t0) done.push(g); else up.push(g);
     });
@@ -974,86 +1000,19 @@ function gameHtml(g, past) {
   } else right = '<a class="btn small" href="' + routeUrl(m.venue) + '">' + esc(t("route")) + '</a>';
   var team = (past && typeof g.d.us === "number" && typeof g.d.them === "number") ? ' · ' + esc(t("prof.team")) + ' <b>' + g.d.us + '–' + g.d.them + '</b>' : '';
   return '<div class="mm">' +
-    '<div><div class="mm-title">' + SLOTS[g.i] + ' · ' + esc(t("me.vsTeam")) + ' ' + esc(rival) + '</div>' +
+    '<div><div class="mm-title">' + esc(g.rs.code || SLOTS[g.i]) + ' · ' + esc(t("me.vsTeam")) + ' ' + esc(rival) + '</div>' +
     (rivalNames(g.rs) ? '<div class="mm-meta">' + esc(t("adm.rivalPair")) + ': <b>' + esc(rivalNames(g.rs)) + '</b></div>' : '') +
     (!past ? meetHtml(m) : '') +
     '<div class="mm-meta">' + esc(t("round")) + ' ' + m.r + ' · <b>' + esc(fmtDate(m.date, true)) + '</b>' + (past ? '' : ' · <b>' + esc(timeStr(m)) + '</b>') + ' · ' + esc(isHome ? t("home") : t("away")) + ' · ' + esc(m.venue.name) + team + '</div></div>' +
     right +
-    '<div class="partner" style="grid-column:1/-1">' + (partner ? miniHtml(partner) + '<span><span class="label">' + esc(t("me.partner")) + '</span><br>' + esc(fullName(partner)) + (partner.side ? ' · ' + esc(sideLabel(partner.side)) : '') + '</span>' : '<span class="muted">' + esc(t("me.partnerTbc")) + '</span>') + '</div>' +
+    '<div class="partner" style="grid-column:1/-1">' + (partner ? miniHtml(partner) + '<span><span class="label">' + esc(t("me.partner")) + '</span><br>' + esc(fullName(partner)) + (partner.side ? ' · ' + esc(sideLabel(partner.side)) : '') + '</span>' : g.partnerName ? '<span><span class="label">' + esc(t("me.partner")) + '</span><br>' + esc(g.partnerName) + '</span>' : '<span class="muted">' + esc(t("me.partnerTbc")) + '</span>') + '</div>' +
     (past ? '' : '<div class="ack-row">' + (ackValid(state.uid, m.r) ? '<span class="ack ok">✓ ' + esc(t("ack.done")) + '</span>' : '<button type="button" class="btn small solid" data-ack="' + m.r + '">' + esc(t("ack.btn")) + '</button><span class="hint">' + esc(t("ack.hint")) + '</span>') + '</div>') +
     (past ? '' : '<div class="cal-btns"><a class="btn small" href="' + esc(googleCalUrl(g)) + '" target="_blank" rel="noopener">' + esc(t("cal.google")) + '</a>' +
       '<button type="button" class="btn small" data-ics="' + m.r + '-' + g.i + '">' + esc(t("cal.apple")) + '</button></div>') +
-    pairResultHtml(g) +
     '</div>';
 }
 
-/* ───────────── Resultado apuntado por la propia pareja ───────────── */
 function hasResult(rs) { return rs && (rs.won === true || rs.won === false); }
-function canEnterResult(g) {
-  if (parse(g.m.date) > today0()) return false;
-  return !hasResult(g.rs) || (!!g.rs.by && !g.rs.reviewed);
-}
-function pairResultHtml(g) {
-  var rs = g.rs || {}, key = g.m.r + "-" + g.i, out = "";
-  if (rs.by && !rs.reviewed) {
-    var who = state.players[rs.by] ? state.players[rs.by].firstName : "";
-    out += '<div class="res-pend" style="grid-column:1/-1">⏳ ' + esc(t("res.pending", { name: who })) + '</div>';
-  }
-  if (!canEnterResult(g)) return out;
-  return out + '<div class="res-entry" style="grid-column:1/-1"><button type="button" class="btn small' + (hasResult(rs) ? '' : ' solid') + '" data-res="' + key + '">' +
-    esc(t(hasResult(rs) ? "res.edit" : "res.enter")) + '</button><div class="res-form" id="rf-' + key + '" hidden></div></div>';
-}
-function wirePairResults(root) {
-  root.querySelectorAll("[data-res]").forEach(function (b) {
-    b.addEventListener("click", function () {
-      var k = b.getAttribute("data-res").split("-").map(Number), r = k[0], i = k[1];
-      var box = document.getElementById("rf-" + r + "-" + i);
-      if (!box.hidden) { box.hidden = true; return; }
-      var m = ROUNDS.filter(function (x) { return x.r === r; })[0]; if (!m) return;
-      var rs = resultsOf(r)[i] || {}, sets = setsOf(rs), rv = Array.isArray(rs.rivals) ? rs.rivals : ["", ""];
-      var team = m.home === US ? m.away : m.home, id = "pr-" + r + "-" + i;
-      box.innerHTML = '<span class="label">' + esc(t("adm.sets")) + '</span><div class="set-row">' +
-        [0, 1, 2].map(function (s2) {
-          var v = sets[s2] || ["", ""];
-          return '<div class="set-box"><span class="set-n">' + (s2 + 1) + '</span>' +
-            '<input type="text" inputmode="numeric" maxlength="1" class="set-in" id="' + id + '-s' + s2 + 'a" aria-label="' + esc(t("adm.set")) + ' ' + (s2 + 1) + ' · ' + esc(t("adm.us")) + '" value="' + esc(v[0]) + '">' +
-            '<span class="set-dash">–</span>' +
-            '<input type="text" inputmode="numeric" maxlength="1" class="set-in" id="' + id + '-s' + s2 + 'b" aria-label="' + esc(t("adm.set")) + ' ' + (s2 + 1) + ' · ' + esc(t("adm.them")) + '" value="' + esc(v[1]) + '"></div>';
-        }).join("") + '</div>' +
-        '<span class="label">' + esc(t("adm.rivalPair")) + ' <small>' + esc(team) + '</small></span><div class="rv-row">' +
-          '<select id="' + id + '-r0" aria-label="' + esc(t("adm.rivalPair")) + ' 1">' + rivalOpts(team, rv[0]) + '</select>' +
-          '<select id="' + id + '-r1" aria-label="' + esc(t("adm.rivalPair")) + ' 2">' + rivalOpts(team, rv[1]) + '</select></div>' +
-        '<div class="form-actions" style="margin:0"><button type="button" class="btn small solid" data-res-save>' + esc(t("res.save")) + '</button>' +
-          '<button type="button" class="btn small" data-res-cancel>' + esc(t("f.cancel")) + '</button><span class="status" role="status" aria-live="polite"></span></div>' +
-        '<p class="hint" style="margin:0">' + esc(t("res.hint")) + '</p>';
-      box.hidden = false;
-      var st = box.querySelector(".status");
-      box.querySelector("[data-res-cancel]").addEventListener("click", function () { box.hidden = true; });
-      box.querySelector("[data-res-save]").addEventListener("click", function () {
-        var out = [], bad = false;
-        [0, 1, 2].forEach(function (s2) {
-          var a = document.getElementById(id + "-s" + s2 + "a").value.trim(), c = document.getElementById(id + "-s" + s2 + "b").value.trim();
-          if (a === "" && c === "") return;
-          if (!/^[0-7]$/.test(a) || !/^[0-7]$/.test(c)) { bad = true; return; }
-          out.push([+a, +c]);
-        });
-        if (bad || !out.length) { st.textContent = t("res.errSets"); st.className = "status bad"; return; }
-        var rivals = [document.getElementById(id + "-r0").value, document.getElementById(id + "-r1").value];
-        var btn = this; btn.disabled = true; st.textContent = t("f.saving"); st.className = "status";
-        state.sb.rpc("submit_pair_result", { p_r: r, p_i: i, p_sets: out, p_rivals: rivals }).then(function (res) {
-          btn.disabled = false;
-          if (res.error) {
-            var msg = res.error.message || "";
-            st.textContent = /too early/.test(msg) ? t("res.errEarly") : /locked/.test(msg) ? t("res.errLocked") : t("f.errSave");
-            st.className = "status bad"; return;
-          }
-          st.textContent = t("res.saved"); st.className = "status";
-          loadData();
-        }).catch(function () { btn.disabled = false; st.textContent = t("f.errSave"); st.className = "status bad"; });
-      });
-    });
-  });
-}
 
 /* ───────────── Partidos en el calendario (Google / Apple / Outlook) ───────────── */
 var MATCH_HOURS = 2; // duración aproximada de cada partido en el calendario
@@ -1174,7 +1133,6 @@ function renderMe() {
   root.querySelectorAll("[data-ptab]").forEach(function (b) {
     b.addEventListener("click", function () { state.profTab = b.getAttribute("data-ptab"); renderMe(); });
   });
-  wirePairResults(root);
   var eb = document.getElementById("edit-btn");
   if (eb) {
   document.getElementById("edit-btn").addEventListener("click", function () { state.editing = true; formMounted = false; renderMe(); });
@@ -1666,7 +1624,7 @@ function renderAdmin() {
     });
   } else mb.hidden = true;
 
-  renderStandingsEditor();
+  renderSyncStatus();
   var list = document.getElementById("admin-list");
   if (!players.length) { list.innerHTML = '<p class="muted">' + esc(t("adm.empty")) + '</p>'; return; }
   // No repintar una jornada que alguien está editando
@@ -1701,42 +1659,28 @@ function renderAdmin() {
       '<div class="meet-edit"><div class="field"><label for="a' + m.r + '-mt">' + esc(t("meet.time")) + '</label><input type="time" id="a' + m.r + '-mt" value="' + esc(d.meetTime || "") + '"></div>' +
         '<div class="field"><label for="a' + m.r + '-mp">' + esc(t("meet.place")) + '</label><input type="text" id="a' + m.r + '-mp" maxlength="80" placeholder="' + esc(t("meet.placePh")) + '" value="' + esc(d.meetPlace || "") + '"></div></div>' +
       pairs.map(function (pr, i) {
-        var rs = resultsOf(m.r)[i] || {}, rv = Array.isArray(rs.rivals) ? rs.rivals : ["", ""];
-        var id = "a" + m.r + "-" + i;
-        return '<div class="dd-card"><span class="dd-tag">' + SLOTS[i] + '</span><div class="dd-lines">' +
+        var rs = resultsOf(m.r)[i] || {}, id = "a" + m.r + "-" + i;
+        var unlinked = [0, 1].filter(function (k) { return !pr[k] && rs.names && rs.names[k]; }).map(function (k) { return rs.names[k]; });
+        return '<div class="dd-card"><span class="dd-tag">' + esc(rs.code || SLOTS[i]) + '</span><div class="dd-lines">' +
           '<div class="dd-line"><span class="label">' + esc(t("adm.ourPair")) + '</span>' +
             '<select id="' + id + '-0" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.ourPair")) + ' 1">' + opts(pr[0]) + '</select>' +
             '<select id="' + id + '-1" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.ourPair")) + ' 2">' + opts(pr[1]) + '</select>' + ackLineHtml(m.r, pr) + '</div>' +
-          '<div class="dd-vs" aria-hidden="true">' + esc(t("next.vs")) + '</div>' +
-          '<div class="dd-line"><span class="label">' + esc(t("adm.rivalPair")) + '<small>' + esc(rival) + '</small></span>' +
-            '<select class="rv-sel" id="' + id + '-r0" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.rivalPair")) + ' 1">' + rivalOpts(rival, rv[0]) + '</select>' +
-            '<select class="rv-sel" id="' + id + '-r1" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.rivalPair")) + ' 2">' + rivalOpts(rival, rv[1]) + '</select></div>' +
-          (rs.by && !rs.reviewed ? '<div class="res-pend">⏳ ' + esc(t("adm.pairRes", { name: state.players[rs.by] ? state.players[rs.by].firstName : "" })) + '</div>' : '') +
-          '<div class="dd-sets"><span class="label">' + esc(t("adm.sets")) + '</span><div class="set-row">' +
-            [0, 1, 2].map(function (k) {
-              var sv = setsOf(rs)[k] || ["", ""];
-              return '<div class="set-box"><span class="set-n">' + (k + 1) + '</span>' +
-                '<input type="text" inputmode="numeric" maxlength="2" class="set-in" id="' + id + '-s' + k + 'a" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.set")) + ' ' + (k + 1) + ' · ' + esc(t("adm.us")) + '" value="' + esc(sv[0]) + '">' +
-                '<span class="set-dash">–</span>' +
-                '<input type="text" inputmode="numeric" maxlength="2" class="set-in" id="' + id + '-s' + k + 'b" aria-label="' + SLOTS[i] + ' · ' + esc(t("adm.set")) + ' ' + (k + 1) + ' · ' + esc(t("adm.them")) + '" value="' + esc(sv[1]) + '"></div>';
-            }).join("") +
-            '<span class="res p dd-auto" id="' + id + '-auto">—</span></div></div>' +
+          (unlinked.length ? '<p class="hint" style="margin:0">' + esc(t("adm.unlinked", { names: unlinked.join(", ") })) + '</p>' : '') +
+          knltbRubberHtml(rs) +
         '</div></div>';
       }).join("") +
-      '<div class="admin-total" id="a' + m.r + '-total"></div>' +
+      knltbTotalsHtml(d) +
       '<div class="form-actions"><button type="button" class="btn small solid" data-save>' + esc(t("adm.save")) + '</button>' +
         '<a class="btn small wa" href="' + esc(waUrl(m)) + '" target="_blank" rel="noopener" data-wa>' + esc(t("wa.share")) + '</a>' +
         '<button type="button" class="btn small" data-notify>' + esc(t("push.lineupBtn")) + '</button><span class="status" role="status" aria-live="polite"></span></div></div>';
-    el.addEventListener("input", function () { adminDirty[m.r] = true; updateRoundTotals(m.r, el); });
+    el.addEventListener("input", function () { adminDirty[m.r] = true; });
     el.addEventListener("change", function () {
       adminDirty[m.r] = true;
-      var ids = Array.prototype.map.call(el.querySelectorAll(".dd-line select:not(.dd-out):not(.rv-sel)"), function (s) { return s.value; }).filter(Boolean);
-      var dup = ids.length !== new Set(ids).size;
+      var dup = lineupError(readPairs(m.r, el));
       var stx = el.querySelector(".status"); stx.textContent = dup ? t("adm.dup") : ""; stx.className = "status" + (dup ? " bad" : "");
     });
     el.querySelector("[data-save]").addEventListener("click", function () { saveRound(m.r, el); });
     el.querySelector("[data-notify]").addEventListener("click", function () { notifyLineup(m.r, el, this); });
-    updateRoundTotals(m.r, el);
     frag.appendChild(el);
   });
   list.innerHTML = ""; list.appendChild(frag);
@@ -1744,57 +1688,32 @@ function renderAdmin() {
   var fxBox = document.getElementById("fixtures-edit");
   if (!fxBox.contains(document.activeElement)) renderFixturesEditor();
 }
-/* Desplegable de rivales (como el de nuestras jugadoras). Si hay un nombre guardado que ya no está en KNLTB, se conserva. */
-function rivalOpts(team, cur) {
-  var list = (state.rivals[team] || []).slice(), html = '<option value="">—</option>', seen = false;
-  list.forEach(function (x) {
-    if (x.name === cur) seen = true;
-    html += '<option value="' + esc(x.name) + '"' + (x.name === cur ? " selected" : "") + '>' + esc(x.name) + (x.rating ? " · " + esc(x.rating) : "") + '</option>';
-  });
-  if (cur && !seen) html += '<option value="' + esc(cur) + '" selected>' + esc(cur) + '</option>';
-  return html;
-}
 /* Sets: [[nosotras, rival], ...] a partir de lo guardado (o de un texto antiguo "6-4 6-3") */
 function setsOf(rs) {
   if (rs && Array.isArray(rs.sets)) return rs.sets;
   if (rs && rs.score) return rs.score.split(/\s+/).map(function (x) { var m = x.match(/^(\d{1,2})-(\d{1,2})$/); return m ? [m[1], m[2]] : null; }).filter(Boolean);
   return [];
 }
-function readSets(r, i, el) {
-  var sets = [], bad = false;
-  [0, 1, 2].forEach(function (k) {
-    var a = el.querySelector("#a" + r + "-" + i + "-s" + k + "a").value.trim(), b = el.querySelector("#a" + r + "-" + i + "-s" + k + "b").value.trim();
-    if (a === "" && b === "") return;
-    if (!/^\d{1,2}$/.test(a) || !/^\d{1,2}$/.test(b)) { bad = true; return; }
-    sets.push([+a, +b]);
-  });
-  return { sets: sets, bad: bad };
+// Resultado de una partida tal como lo publica KNLTB (solo lectura)
+function knltbRubberHtml(rs) {
+  var has = hasResult(rs) || (rs.sets && rs.sets.length);
+  var rv = rivalNames(rs);
+  if (!has && !rv) return '';
+  var cls = rs.won === true ? "w" : rs.won === false ? "l" : "p";
+  return '<div class="dd-knltb"><span class="label">' + esc(t("adm.knltbRes")) + '</span>' +
+    '<span>' + (rv ? esc(t("next.vs")) + ' <b>' + esc(rv) + '</b>' : '') + (rs.score ? ' · ' + esc(rs.score) : '') + '</span>' +
+    (has ? '<span class="res ' + cls + '">' + esc(t("res." + cls)) + '</span>' : '') + (rs.status ? '<span class="muted">' + esc(rs.status) + '</span>' : '') + '</div>';
 }
-// Al mejor de 3 sets: gana quien llega a 2 sets
-function matchOutcome(sets) {
-  var w = 0, l = 0;
-  sets.forEach(function (x) { if (x[0] > x[1]) w++; else if (x[1] > x[0]) l++; });
-  return { setsW: w, setsL: l, won: w >= 2 ? true : l >= 2 ? false : null };
+function knltbTotalsHtml(d) {
+  var k = d && d.knltb;
+  if (!k || !k.partijen) return '<p class="hint" style="margin:0">' + esc(t("adm.resAuto")) + '</p>';
+  var tot = function (p, label) { return p ? '<div class="tot"><b>' + p[0] + '–' + p[1] + '</b><span>' + esc(t(label)) + '</span></div>' : ''; };
+  return '<div class="admin-total"><span class="label">' + esc(t("adm.score")) + ' · KNLTB</span>' +
+    tot(k.partijen, "adm.matches") + tot(k.sets, "adm.setsTot") + tot(k.games, "adm.games") +
+    (k.message ? '<span class="status">' + esc(k.message) + '</span>' : '') + '</div>';
 }
-function updateRoundTotals(r, el) {
-  var tot = { pw: 0, pl: 0, sw: 0, sl: 0, gw: 0, gl: 0 }, anyBad = false;
-  [0, 1, 2, 3].forEach(function (i) {
-    var rd = readSets(r, i, el), oc = matchOutcome(rd.sets);
-    if (rd.bad) anyBad = true;
-    var chip = el.querySelector("#a" + r + "-" + i + "-auto");
-    chip.className = "res dd-auto " + (oc.won === true ? "w" : oc.won === false ? "l" : "p");
-    chip.textContent = oc.won === true ? t("res.w") : oc.won === false ? t("res.l") : "—";
-    if (oc.won === true) tot.pw++; if (oc.won === false) tot.pl++;
-    tot.sw += oc.setsW; tot.sl += oc.setsL;
-    rd.sets.forEach(function (x) { tot.gw += x[0]; tot.gl += x[1]; });
-  });
-  el.querySelector("#a" + r + "-total").innerHTML =
-    '<span class="label">' + esc(t("adm.score")) + '</span>' +
-    '<div class="tot"><b>' + tot.pw + '–' + tot.pl + '</b><span>' + esc(t("adm.matches")) + '</span></div>' +
-    '<div class="tot"><b>' + tot.sw + '–' + tot.sl + '</b><span>' + esc(t("adm.setsTot")) + '</span></div>' +
-    '<div class="tot"><b>' + tot.gw + '–' + tot.gl + '</b><span>' + esc(t("adm.games")) + '</span></div>' +
-    (anyBad ? '<span class="status bad">' + esc(t("adm.badSet")) + '</span>' : '');
-  return { tot: tot, bad: anyBad };
+function readPairs(r, el) {
+  return [0, 1, 2, 3].map(function (i) { return [el.querySelector("#a" + r + "-" + i + "-0").value || null, el.querySelector("#a" + r + "-" + i + "-1").value || null]; });
 }
 var adminOpen = {};
 var admFilter = { rival: "", round: "", from: "", to: "" };
@@ -1923,35 +1842,14 @@ function applyAdminFilters() {
   var c = document.getElementById("flt-count");
   if (c) c.textContent = shown ? t("flt.count", { n: shown, total: all.length }) : t("flt.none");
 }
-var standDirty = false;
-function renderStandingsEditor() {
+function renderSyncStatus() {
   var box = document.getElementById("standings-edit");
-  if (standDirty) return;
-  var cols = [["played", "tab.p"], ["won", "tab.w"], ["drawn", "tab.d"], ["lost", "tab.l"], ["points", "tab.pts"]];
-  box.innerHTML = '<div class="admin-head"><h3>' + esc(t("tab.title")) + '</h3><span class="hint">' + esc(t("std.hint")) + '</span></div>' +
-    '<div class="table-wrap"><table class="std-edit"><thead><tr><th>' + esc(t("tab.team")) + '</th>' + cols.map(function (c) { return '<th class="n">' + esc(t(c[1])) + '</th>'; }).join("") + '</tr></thead><tbody>' +
-    sortedStandings().map(function (x) {
-      return '<tr data-team="' + esc(x.team) + '"><td class="team">' + esc(x.team) + '</td>' + cols.map(function (c) {
-        return '<td class="n"><input type="text" inputmode="numeric" maxlength="3" data-col="' + c[0] + '" aria-label="' + esc(x.team) + ' · ' + esc(t(c[1])) + '" value="' + (x[c[0]] || 0) + '"></td>';
-      }).join("") + '</tr>';
-    }).join("") + '</tbody></table></div>' +
-    '<div class="form-actions"><button type="button" class="btn small solid" id="std-save">' + esc(t("std.save")) + '</button><a class="btn small" href="https://mijnknltb.toernooi.nl/league/29119B50-5DBF-428B-A636-B16B52242F5C/draw/361" target="_blank" rel="noopener">' + esc(t("std.knltb")) + '</a><span class="status" id="std-status" role="status" aria-live="polite"></span></div>';
-  box.oninput = function () { standDirty = true; };
-  document.getElementById("std-save").addEventListener("click", function () {
-    var st = document.getElementById("std-status"), rowsOut = [], bad = false;
-    box.querySelectorAll("tr[data-team]").forEach(function (tr) {
-      var row = { team: tr.getAttribute("data-team"), updated_at: new Date().toISOString() };
-      tr.querySelectorAll("input[data-col]").forEach(function (inp) { var v = inp.value.trim() || "0"; if (!/^\d{1,3}$/.test(v)) bad = true; row[inp.getAttribute("data-col")] = +v; });
-      rowsOut.push(row);
-    });
-    if (bad) { st.textContent = t("f.errForm"); st.className = "status bad"; return; }
-    st.textContent = t("f.saving"); st.className = "status";
-    state.sb.from("standings").upsert(rowsOut).then(function (res) {
-      if (res.error) throw res.error;
-      standDirty = false; state.standings = rowsOut; renderStandings(); renderStandingsEditor();
-      var s2 = document.getElementById("std-status"); if (s2) s2.textContent = t("av.saved");
-    }).catch(function () { st.textContent = t("f.errSave"); st.className = "status bad"; });
-  });
+  var sy = state.sync || {};
+  var bad = sy.error && (!sy.last_ok || Date.now() - Date.parse(sy.last_ok) > 36 * 3600e3);
+  box.innerHTML = '<div class="admin-head"><h3>' + esc(t("knltb.title")) + '</h3><span class="hint">' + esc(t("knltb.auto")) + '</span></div>' +
+    '<p style="margin:0">' + (sy.last_ok ? esc(t("knltb.synced", { when: fmtStamp(sy.last_ok) })) : esc(t("knltb.never"))) + '</p>' +
+    (bad ? '<p class="status bad" style="margin:6px 0 0">' + esc(t("knltb.err")) + '</p>' : '') +
+    '<div class="form-actions"><a class="btn small" href="https://mijnknltb.toernooi.nl/league/29119B50-5DBF-428B-A636-B16B52242F5C/draw/361" target="_blank" rel="noopener">' + esc(t("std.knltb")) + '</a></div>';
 }
 function availSummaryHtml(m) {
   var lists = { yes: [], maybe: [], no: [], none: [] };
@@ -1968,28 +1866,17 @@ function availSummaryHtml(m) {
   return '<div class="avs">' + row("yes") + row("maybe") + row("no") + row("none") + extra + '</div>';
 }
 function saveRound(r, el) {
-  var pairs = [0, 1, 2, 3].map(function (i) { return [el.querySelector("#a" + r + "-" + i + "-0").value || null, el.querySelector("#a" + r + "-" + i + "-1").value || null]; });
-  var flat = [].concat.apply([], pairs).filter(Boolean);
+  var pairs = readPairs(r, el);
   var st = el.querySelector(".status");
-  if (flat.length !== new Set(flat).size) { st.textContent = t("adm.dup"); st.className = "status bad"; return; }
-  var calc = updateRoundTotals(r, el);
-  if (calc.bad) { st.textContent = t("adm.badSet"); st.className = "status bad"; return; }
-  var results = [0, 1, 2, 3].map(function (i) {
-    var sets = readSets(r, i, el).sets, oc = matchOutcome(sets);
-    var rv = [0, 1].map(function (k) { return el.querySelector("#a" + r + "-" + i + "-r" + k).value.trim().slice(0, 80); });
-    var prevRs = resultsOf(r)[i] || {}, o = { sets: sets, score: sets.map(function (x) { return x[0] + "-" + x[1]; }).join(" "), won: oc.won, rivals: rv };
-    if (prevRs.by) { o.by = prevRs.by; o.at = prevRs.at; o.reviewed = true; } // al guardar la capitana, el resultado de la pareja queda revisado
-    return o;
-  });
-  // Resultado de la jornada = partidos ganados y perdidos (se calcula solo)
-  var played = calc.tot.pw + calc.tot.pl;
-  var us = played ? calc.tot.pw : null, them = played ? calc.tot.pl : null;
-  var body = { pairs: pairs, results: results, us: us, them: them, sets: [calc.tot.sw, calc.tot.sl], games: [calc.tot.gw, calc.tot.gl], updatedAt: new Date().toISOString() };
+  if (lineupError(pairs)) { st.textContent = t("adm.dup"); st.className = "status bad"; return; }
+  // Los resultados no se tocan aquí: llegan solos desde KNLTB
+  var prev0 = roundDoc(r) || {};
+  var body = { pairs: pairs, results: prev0.results || [], us: prev0.us, them: prev0.them, knltb: prev0.knltb || null, updatedAt: new Date().toISOString() };
   var meetTime = el.querySelector("#a" + r + "-mt").value || null, meetPlace = el.querySelector("#a" + r + "-mp").value.trim().slice(0, 80) || null;
   body.meetTime = meetTime || ""; body.meetPlace = meetPlace || "";
   var btn = el.querySelector("[data-save]"); btn.disabled = true; st.textContent = t("f.saving"); st.className = "status";
   // Si otra capitana ha guardado esta jornada desde que la abriste, no se pisa su trabajo: se avisa y se ofrece recargar
-  var prev = roundDoc(r), row = { pairs: pairs, results: results, us: us, them: them, meet_time: meetTime, meet_place: meetPlace };
+  var prev = roundDoc(r), row = { pairs: pairs, meet_time: meetTime, meet_place: meetPlace };
   var req = (prev && prev.updatedAt)
     ? state.sb.from("rounds").update(row).eq("r", r).eq("updated_at", prev.updatedAt).select("updated_at,updated_by")
     : state.sb.from("rounds").insert(Object.assign({ r: r }, row)).select("updated_at,updated_by");
@@ -2142,7 +2029,8 @@ function loadData() {
   var q = {
     rounds: sb.from("rounds").select("*"),
     fixtures: sb.from("fixtures").select("*").order("r"),
-    standings: sb.from("standings").select("*")
+    standings: sb.from("standings").select("*"),
+    sync: sb.from("knltb_sync").select("last_run,last_ok,error").eq("id", 1).maybeSingle()
   };
   if (state.uid) {
     q.players = sb.from("players").select("id,first_name,last_name,side,hand,country,region,region_name,photo_path,birthday,updated_at");
@@ -2161,10 +2049,11 @@ function loadData() {
     var res = {}; keys.forEach(function (k, i) { res[k] = arr[i]; });
     function rows(k) { return (res[k] && !res[k].error && res[k].data) || []; }
     if (res.rounds.error) throw res.rounds.error;
-    var rounds = {}; rows("rounds").forEach(function (row) { rounds["r" + row.r] = { pairs: row.pairs, results: row.results, us: row.us, them: row.them, meetTime: row.meet_time || "", meetPlace: row.meet_place || "", updatedAt: row.updated_at || null, updatedBy: row.updated_by || null }; });
+    var rounds = {}; rows("rounds").forEach(function (row) { rounds["r" + row.r] = { pairs: row.pairs, results: row.results, us: row.us, them: row.them, meetTime: row.meet_time || "", meetPlace: row.meet_place || "", knltb: row.knltb || null, updatedAt: row.updated_at || null, updatedBy: row.updated_by || null }; });
     state.rounds = rounds;
     if (res.fixtures && !res.fixtures.error) { state.fixtureRows = res.fixtures.data || []; applyFixtures(state.fixtureRows, true); }
     state.standings = rows("standings");
+    state.sync = (res.sync && !res.sync.error && res.sync.data) || null;
     if (state.uid) {
       if (res.players.error || res.roles.error) throw (res.players.error || res.roles.error);
       var roles = rows("roles");
@@ -2220,7 +2109,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-07-01";
+var APP_VERSION = "2026-11-07-02";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
