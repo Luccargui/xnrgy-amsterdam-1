@@ -723,19 +723,28 @@ function availHtml() {
         '<div class="av-btns" role="group" aria-label="' + esc(t("av.title")) + ' · ' + esc(t("round")) + ' ' + m.r + '">' + btn("yes") + btn("maybe") + btn("no") + '</div>' + car + '</div>';
     }).join("") + '<span class="status" id="av-status" role="status" aria-live="polite"></span></div>';
 }
-function saveAvail(r, patch) {
-  var cur = availOf(state.uid, r) || {};
-  var row = { user_id: state.uid, r: r, status: cur.status || null, transport: cur.transport || null, seats: cur.seats || null, from_place: cur.from_place || null, updated_at: new Date().toISOString() };
+// uid: de quién es la disponibilidad (por defecto, de una misma); stEl: dónde enseñar "Guardado"
+function saveAvail(r, patch, uid, stEl) {
+  uid = uid || state.uid;
+  var cur = availOf(uid, r) || {};
+  var row = { user_id: uid, r: r, status: cur.status || null, transport: cur.transport || null, seats: cur.seats || null, from_place: cur.from_place || null, updated_at: new Date().toISOString() };
   Object.keys(patch).forEach(function (k) { row[k] = patch[k]; });
   if (row.status === "no") { row.transport = null; row.seats = null; row.from_place = null; }
   if (row.transport !== "driver") row.seats = null;
   if (row.transport === "driver" && !row.seats) row.seats = 3;
   if (row.transport !== "driver" && row.transport !== "needs") row.from_place = null;
-  state.avail[state.uid + ":" + r] = row;
+  var before = state.avail[uid + ":" + r];
+  state.avail[uid + ":" + r] = row;
+  var st = stEl || document.getElementById("av-status");
   return state.sb.from("availability").upsert(row).then(function (res) {
     if (res.error) throw res.error;
-    var st = document.getElementById("av-status"); if (st) { st.textContent = t("av.saved"); st.className = "status"; }
-  }).catch(function () { var st = document.getElementById("av-status"); if (st) { st.textContent = t("f.errSave"); st.className = "status bad"; } });
+    if (st) { st.textContent = t("av.saved"); st.className = "status"; }
+    return true;
+  }).catch(function () {
+    if (before) state.avail[uid + ":" + r] = before; else delete state.avail[uid + ":" + r];
+    if (st) { st.textContent = t("f.errSave"); st.className = "status bad"; }
+    return false;
+  });
 }
 function wireAvail(root) {
   root.querySelectorAll("[data-av]").forEach(function (b) {
@@ -820,7 +829,7 @@ function appHtml() {
   return '<div class="p-sec" id="avisos" style="scroll-margin-top:80px"><h3>' + esc(t("app.title")) + '</h3>' + parts.join("") + '</div>';
 }
 /* Qué avisos quiere recibir cada jugadora (vale para todos sus dispositivos) */
-function prefKinds() { return ["lineup", "reminder"].concat(canManage() ? ["requests"] : []); }
+function prefKinds() { return ["lineup", "reminder"].concat(canManage() ? ["requests", "avail"] : []); }
 function prefsHtml() {
   var pr = state.prefs || {};
   return '<fieldset class="prefs"><legend class="label">' + esc(t("push.prefsT")) + '</legend>' + prefKinds().map(function (k) {
@@ -833,9 +842,9 @@ function bindPrefs() {
   document.querySelectorAll("[data-pref]").forEach(function (cb) {
     cb.addEventListener("change", function () {
       var st = document.getElementById("pref-status"), k = cb.getAttribute("data-pref");
-      state.prefs = Object.assign({ lineup: true, reminder: true, requests: true }, state.prefs || {});
+      state.prefs = Object.assign({ lineup: true, reminder: true, requests: true, avail: true }, state.prefs || {});
       state.prefs[k] = cb.checked;
-      var row = { user_id: state.uid, lineup: state.prefs.lineup, reminder: state.prefs.reminder, requests: state.prefs.requests, updated_at: new Date().toISOString() };
+      var row = { user_id: state.uid, lineup: state.prefs.lineup, reminder: state.prefs.reminder, requests: state.prefs.requests, avail: state.prefs.avail, updated_at: new Date().toISOString() };
       state.sb.from("notification_prefs").upsert(row).then(function (res) {
         if (res.error) throw res.error;
         st.textContent = t("av.saved"); st.className = "status";
@@ -1655,7 +1664,7 @@ function renderAdmin() {
         '<span class="sum-chips"><span class="chip' + (filled === 4 ? " ok" : "") + '">' + esc(t("sum.lineup", { n: filled })) + '</span>' +
         (hasScore ? '<span class="chip ' + (d.us > d.them ? "w" : d.us < d.them ? "l" : "") + '">' + d.us + '–' + d.them + '</span>' : '') +
         '<span class="caret" aria-hidden="true">›</span></span></summary><div class="admin-body">' +
-      availSummaryHtml(m) +
+      availSummaryHtml(m) + availEditHtml(m) +
       '<div class="meet-edit"><div class="field"><label for="a' + m.r + '-mt">' + esc(t("meet.time")) + '</label><input type="time" id="a' + m.r + '-mt" value="' + esc(d.meetTime || "") + '"></div>' +
         '<div class="field"><label for="a' + m.r + '-mp">' + esc(t("meet.place")) + '</label><input type="text" id="a' + m.r + '-mp" maxlength="80" placeholder="' + esc(t("meet.placePh")) + '" value="' + esc(d.meetPlace || "") + '"></div></div>' +
       pairs.map(function (pr, i) {
@@ -1680,6 +1689,7 @@ function renderAdmin() {
       var stx = el.querySelector(".status"); stx.textContent = dup ? t("adm.dup") : ""; stx.className = "status" + (dup ? " bad" : "");
     });
     el.querySelector("[data-save]").addEventListener("click", function () { saveRound(m.r, el); });
+    wireAvailEdit(m, el);
     el.querySelector("[data-notify]").addEventListener("click", function () { notifyLineup(m.r, el, this); });
     frag.appendChild(el);
   });
@@ -1850,6 +1860,35 @@ function renderSyncStatus() {
     '<p style="margin:0">' + (sy.last_ok ? esc(t("knltb.synced", { when: fmtStamp(sy.last_ok) })) : esc(t("knltb.never"))) + '</p>' +
     (bad ? '<p class="status bad" style="margin:6px 0 0">' + esc(t("knltb.err")) + '</p>' : '') +
     '<div class="form-actions"><a class="btn small" href="https://mijnknltb.toernooi.nl/league/29119B50-5DBF-428B-A636-B16B52242F5C/draw/361" target="_blank" rel="noopener">' + esc(t("std.knltb")) + '</a></div>';
+}
+var avEditOpen = {};
+function availEditHtml(m) {
+  return '<details class="av-edit"' + (avEditOpen[m.r] ? " open" : "") + '><summary>' + esc(t("adm.avEdit")) + '</summary>' +
+    '<p class="hint" style="margin:8px 0 10px">' + esc(t("adm.avEditHint")) + '</p>' +
+    sortedPlayers().map(function (x) {
+      var a = availOf(x.id, m.r) || {};
+      return '<div class="av-staff"><span class="av-name">' + esc(fullName(x.p)) + '</span><div class="av-btns" role="group" aria-label="' + esc(fullName(x.p)) + '">' +
+        ["yes", "maybe", "no"].map(function (v) {
+          return '<button type="button" class="av-btn av-' + v + '" data-sav="' + esc(x.id) + '" data-v="' + v + '" aria-pressed="' + (a.status === v) + '">' + esc(t("avs." + v)) + '</button>';
+        }).join("") + '</div></div>';
+    }).join("") + '<span class="status" role="status" aria-live="polite"></span></details>';
+}
+function wireAvailEdit(m, el) {
+  var box = el.querySelector(".av-edit");
+  if (!box) return;
+  box.addEventListener("toggle", function () { avEditOpen[m.r] = box.open; });
+  box.querySelectorAll("[data-sav]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var uid = b.getAttribute("data-sav"), st = box.querySelector(".status");
+      var group = box.querySelectorAll('[data-sav="' + uid + '"]');
+      group.forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      saveAvail(m.r, { status: b.getAttribute("data-v") }, uid, st).then(function (ok) {
+        if (!ok) { var a = availOf(uid, m.r) || {}; group.forEach(function (x) { x.setAttribute("aria-pressed", String(a.status === x.getAttribute("data-v"))); }); return; }
+        // Solo se refresca el resumen: así no se pierde una alineación a medio editar
+        var sum = el.querySelector(".avs"); if (sum) sum.outerHTML = availSummaryHtml(m);
+      });
+    });
+  });
 }
 function availSummaryHtml(m) {
   var lists = { yes: [], maybe: [], no: [], none: [] };
@@ -2041,7 +2080,7 @@ function loadData() {
     q.avail = sb.from("availability").select("*");
     q.caltoken = sb.from("calendar_tokens").select("token");
     q.acks = sb.from("lineup_ack").select("r,user_id,seen_at");
-    q.prefs = sb.from("notification_prefs").select("lineup,reminder,requests");
+    q.prefs = sb.from("notification_prefs").select("lineup,reminder,requests,avail");
   }
   var keys = Object.keys(q);
   loading = Promise.all(keys.map(function (k) { return q[k]; })).then(function (arr) {
@@ -2065,7 +2104,7 @@ function loadData() {
       state.avail = {}; rows("avail").forEach(function (x) { state.avail[x.user_id + ":" + x.r] = x; });
       state.calToken = (rows("caltoken")[0] || {}).token || null;
       state.acks = {}; rows("acks").forEach(function (x) { state.acks[x.user_id + ":" + x.r] = x.seen_at; });
-      state.prefs = rows("prefs")[0] || { lineup: true, reminder: true, requests: true };
+      state.prefs = rows("prefs")[0] || { lineup: true, reminder: true, requests: true, avail: true };
       var reqRows = rows("requests");
       state.requests = reqRows.filter(function (x) { return x.user_id !== state.uid && !state.roles[x.user_id]; });
       state.myRequest = reqRows.filter(function (x) { return x.user_id === state.uid; })[0] || null;
@@ -2109,7 +2148,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-07-02";
+var APP_VERSION = "2026-11-07-03";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();

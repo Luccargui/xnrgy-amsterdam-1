@@ -656,3 +656,10 @@ body.authed .hero-grid { grid-template-columns: 1fr; }
 /* Resultado de cada partida leído de KNLTB (panel de capitanas, solo lectura) */
 .dd-knltb { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
 .dd-knltb .label { width: 100%; }
+
+/* Disponibilidad que marcan las responsables por otra jugadora */
+.av-edit { border: 1px solid var(--line); padding: 12px 14px; }
+.av-edit > summary { cursor: pointer; font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.av-staff { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.av-staff .av-btn { padding: 6px 10px; font-size: 12px; }
+@media (max-width: 480px) { .av-staff { grid-template-columns: 1fr; } }
