@@ -18,7 +18,7 @@ Email del equipo: team@xnrgyams1.com e info@xnrgyams1.com (reenvío de Porkbun a
 | `flags/`, `flags-index.json`, `regions.json` | Banderas (una imagen por país/región) y lista de regiones |
 | `fonts/` | Fuentes Barlow y Barlow Condensed servidas desde la web (sin Google Fonts) · SIL Open Font License |
 | `og-image.jpg` | Imagen que se ve al compartir el enlace en WhatsApp y redes |
-| `favicon.svg`, `*.png`, `site.webmanifest` | Icono de la web y de la app en el móvil |
+| `favicon.svg`, `*.png`, `site.webmanifest` | Icono de la web y de la app en el móvil (se generan con `python3 tools/make-icons.py`) |
 | `vendor/` | Librería de Supabase |
 | `supabase-setup.sql` | Crea las tablas, los roles (dueña, capitanas, jugadoras), las solicitudes de acceso y las reglas de seguridad |
 | `supabase-owner.sql` | Te hace dueña de la web (se ejecuta una vez) |

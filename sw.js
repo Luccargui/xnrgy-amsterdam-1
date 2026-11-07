@@ -7,8 +7,8 @@ self.addEventListener("push", function (e) {
   try { d = e.data ? e.data.json() : {}; } catch (err) { d = { title: "XNRGY Amsterdam 1", body: e.data ? e.data.text() : "" }; }
   e.waitUntil(self.registration.showNotification(d.title || "XNRGY Amsterdam 1", {
     body: d.body || "",
-    icon: "icon-192.png",
-    badge: "badge-72.png",
+    icon: "icon-192.png?v=2",
+    badge: "badge-72.png?v=2",
     tag: d.tag || undefined,
     renotify: !!d.tag,
     data: { url: d.url || "./" }
