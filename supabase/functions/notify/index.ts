@@ -160,14 +160,16 @@ Deno.serve(async (req) => {
     if (!m) return json({ error: "round" }, 400);
     const { data: round } = await sb.from("rounds").select("pairs,meet_time,meet_place").eq("r", m.r).maybeSingle();
     const pairs: (string | null)[][] = round?.pairs || [];
-    const ids = pairs.flat().filter((x): x is string => !!x);
+    // Las jugadoras de la plantilla KNLTB sin cuenta ("ext:<nombre>") no reciben avisos, pero sí salen como compañeras
+    const ids = pairs.flat().filter((x): x is string => !!x && /^[0-9a-f-]{36}$/i.test(x));
     const { data: players } = await sb.from("players").select("id,first_name").in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
     const first = new Map((players || []).map((p) => [p.id, p.first_name]));
     const sent = await sendTo([...new Set(ids)], (lang, u) => {
       // Una jugadora puede jugar dos partidas: se nombran todas con su compañera
       const mine = pairs.map((p, i) => ({ p, i })).filter((x) => x.p && x.p.includes(u)).map((x) => {
         const partnerId = x.p.find((y) => y && y !== u);
-        return { slot: SLOTS[x.i] || "", partner: String((partnerId && first.get(partnerId)) || T[lang].partnerTbd) };
+        const extName = partnerId && partnerId.startsWith("ext:") ? partnerId.slice(4).split(" ")[0] : "";
+        return { slot: SLOTS[x.i] || "", partner: String((partnerId && first.get(partnerId)) || extName || T[lang].partnerTbd) };
       });
       const meet = [round?.meet_time, round?.meet_place].filter(Boolean).join(", ");
       const when = [fmtDate(m.date, lang) + " " + (m.time || T[lang].tbc), meet ? fill(T[lang].meet, { meet }) : ""].filter(Boolean).join(" · ");

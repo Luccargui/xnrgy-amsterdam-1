@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       const isHome = m.home === US, rival = isHome ? m.away : m.home;
       const desc = [
         `${tx.round} ${m.r} · ${SLOTS[i]} · ${isHome ? tx.home : tx.away}`,
-        `${tx.partner}: ${partnerId && names[partnerId] ? names[partnerId] : tx.tbd}`,
+        `${tx.partner}: ${partnerId && names[partnerId] ? names[partnerId] : partnerId && partnerId.startsWith("ext:") ? partnerId.slice(4) : tx.tbd}`,
         rivals ? `${tx.rivals}: ${rivals}` : "",
         d.meet_time || d.meet_place ? `${tx.meet}: ${[d.meet_time, d.meet_place].filter(Boolean).join(" · ")}` : "",
         m.time ? "" : tx.tbc,

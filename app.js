@@ -109,10 +109,9 @@ function waText(m) {
   var ml = meetLine(m); if (ml) L.push("", t("meet.title") + ": " + ml);
   L.push("", "*" + t("cal.lineup") + "*");
   pairsOf(m.r).forEach(function (pr, i) {
-    var a = state.players[pr[0]], b = state.players[pr[1]];
-    if (!a && !b) return;
-    var rv = rivalNames(resultsOf(m.r)[i]);
-    L.push(SLOTS[i] + ": " + [a ? fullName(a) : "—", b ? fullName(b) : "—"].join(" / ") + (rv ? " " + t("next.vs") + " " + rv : ""));
+    if (!pr[0] && !pr[1]) return;
+    var rs = resultsOf(m.r)[i] || {}, rv = rivalNames(rs);
+    L.push(SLOTS[i] + ": " + [slotName(pr[0], rs, 0), slotName(pr[1], rs, 1)].join(" / ") + (rv ? " " + t("next.vs") + " " + rv : ""));
   });
   if (!isHome) { var cars = carsText(m.r); if (cars.length) { L.push(""); cars.forEach(function (x) { L.push(x); }); } }
   L.push("", location.origin + location.pathname + "#mis-partidos");
@@ -158,10 +157,36 @@ function rivalNames(rs) { return (rs && Array.isArray(rs.rivals)) ? rs.rivals.fi
 function fmtStamp(ts) {
   try { return new Intl.DateTimeFormat(LOCALE[lang], { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(ts)); } catch (e) { return ts; }
 }
-// Nombre de cada jugadora de una partida: la de la web si está enlazada, o el que publica KNLTB
+// Jugadoras de la plantilla de KNLTB que aún no tienen cuenta: se alinean con el id "ext:<nombre KNLTB>"
+var EXT = "ext:";
+function isExt(id) { return typeof id === "string" && id.indexOf(EXT) === 0; }
+function extName(id) { return isExt(id) ? id.slice(EXT.length) : ""; }
+// Ficha de la web que corresponde a una jugadora de la plantilla KNLTB (sin acentos, por nombre y primer apellido)
+function findRegistered(k) {
+  var first = norm(k.name.split(" ")[0]), sur = norm(k.surname);
+  var hit = Object.keys(state.players || {}).filter(function (id) { var n = norm(fullName(state.players[id])); return n.indexOf(first) >= 0 && n.indexOf(sur) >= 0; });
+  return hit[0] || null;
+}
+function rosterWithoutAccount() { return KNLTB_PLAYERS.filter(function (k) { return !findRegistered(k); }); }
+// Cuando una jugadora alineada sin cuenta se registra, sus alineaciones pasan a su ficha
+function linkExtPairs() {
+  Object.keys(state.rounds || {}).forEach(function (key) {
+    var d = state.rounds[key];
+    if (!Array.isArray(d.pairs)) return;
+    d.pairs = d.pairs.map(function (pr) {
+      return (pr || []).map(function (id) {
+        if (!isExt(id)) return id;
+        var k = KNLTB_PLAYERS.filter(function (x) { return x.name === extName(id); })[0];
+        return (k && findRegistered(k)) || id;
+      });
+    });
+  });
+}
+// Nombre de cada jugadora de una partida: la de la web si está enlazada, la de la plantilla KNLTB o el que publica KNLTB
 function slotName(id, rs, k) {
   var p = id && state.players[id];
   if (p) return fullName(p);
+  if (isExt(id)) return extName(id);
   return (rs && Array.isArray(rs.names) && rs.names[k]) || "—";
 }
 // En la liga una jugadora puede jugar dos partidas por jornada, pero no dos veces en la misma pareja
@@ -992,7 +1017,7 @@ function myGames() {
       if (!state.uid || (pr[0] !== state.uid && pr[1] !== state.uid)) return;
       var rs = resultsOf(m.r)[i] || {}, d = roundDoc(m.r) || {};
       var k = pr[0] === state.uid ? 1 : 0;
-      var g = { m: m, i: i, partnerId: pr[k], partnerName: rs.names && rs.names[k], rs: rs, d: d };
+      var g = { m: m, i: i, partnerId: pr[k], partnerName: isExt(pr[k]) ? extName(pr[k]) : rs.names && rs.names[k], rs: rs, d: d };
       var hasRes = rs.won === true || rs.won === false;
       if (hasRes || parse(m.date) < t0) done.push(g); else up.push(g);
     });
@@ -1642,11 +1667,17 @@ function renderAdmin() {
   var optsFor = function (r) {
     var groups = { yes: [], maybe: [], none: [], no: [] };
     players.forEach(function (x) { var a = availOf(x.id, r); groups[a && a.status ? a.status : "none"].push(x); });
+    var ext = rosterWithoutAccount();
     return function (sel) {
+      // Si la jugadora sin cuenta ya estaba alineada y luego salió de la lista, se conserva
+      var extOpts = ext.map(function (k) { return EXT + k.name; });
+      if (isExt(sel) && extOpts.indexOf(sel) < 0) extOpts.push(sel);
       return '<option value="">' + esc(t("adm.pick")) + '</option>' + ["yes", "maybe", "none", "no"].map(function (g) {
         if (!groups[g].length) return "";
         return '<optgroup label="' + esc(t("avg." + g)) + '">' + groups[g].map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === sel ? " selected" : "") + '>' + esc(fullName(x.p)) + '</option>'; }).join("") + '</optgroup>';
-      }).join("");
+      }).join("") + (extOpts.length ? '<optgroup label="' + esc(t("adm.noAccount")) + '">' + extOpts.map(function (v) {
+        return '<option value="' + esc(v) + '"' + (v === sel ? " selected" : "") + '>' + esc(extName(v)) + '</option>';
+      }).join("") + '</optgroup>' : '');
     };
   };
   var frag = document.createDocumentFragment();
@@ -1902,7 +1933,9 @@ function availSummaryHtml(m) {
     extra = '<div class="avs-row"><span class="avs-k">' + esc(t("car.drivers")) + ' · ' + dr.length + '</span><span>' + (dr.length ? esc(dr.join(", ")) : "—") + '</span></div>' +
       '<div class="avs-row"><span class="avs-k">' + esc(t("car.needsList")) + ' · ' + nd.length + '</span><span>' + (nd.length ? esc(nd.join(", ")) : "—") + '</span></div>';
   }
-  return '<div class="avs">' + row("yes") + row("maybe") + row("no") + row("none") + extra + '</div>';
+  var noAcc = rosterWithoutAccount().map(function (k) { return k.name; });
+  var noAccRow = noAcc.length ? '<div class="avs-row"><span class="avs-k">' + esc(t("adm.noAccount")) + ' · ' + noAcc.length + '</span><span>' + esc(noAcc.join(", ")) + '</span></div>' : '';
+  return '<div class="avs">' + row("yes") + row("maybe") + row("no") + row("none") + noAccRow + extra + '</div>';
 }
 function saveRound(r, el) {
   var pairs = readPairs(r, el);
@@ -2101,6 +2134,7 @@ function loadData() {
       state.rivals = {}; rows("rivals").forEach(function (x) { (state.rivals[x.team] = state.rivals[x.team] || []).push(x); });
       rows("contacts").forEach(function (c) { if (players[c.id]) { players[c.id].phone = c.phone; players[c.id].email = c.email; players[c.id].knltb = c.knltb; } });
       state.players = players;
+      linkExtPairs();
       state.avail = {}; rows("avail").forEach(function (x) { state.avail[x.user_id + ":" + x.r] = x; });
       state.calToken = (rows("caltoken")[0] || {}).token || null;
       state.acks = {}; rows("acks").forEach(function (x) { state.acks[x.user_id + ":" + x.r] = x.seen_at; });
@@ -2148,7 +2182,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-07-03";
+var APP_VERSION = "2026-11-08-01";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();
