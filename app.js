@@ -73,9 +73,12 @@ function applyFixtures(rows, cache) {
 try { applyFixtures(JSON.parse(localStorage.getItem("xnrgy-fixtures") || "null")); } catch (e) {}
 var STANDINGS = ["GAASPERPARK 1", "HEALTHCITY HOENDERDAAL 2", "LEISURE WORLD PADEL 1", "NIJKERK 1", "PLAZA PADEL AMERSFOORT 1", "STROKEL 1", "VLTV 3", US];
 var KNLTB_PLAYERS = [
-  { name: "Lucia Carrera Guillén", surname: "Carrera", level: "9 · 9,0000" },
-  { name: "Irviani Gerard", surname: "Gerard", level: "9 · 9,7205" },
-  { name: "Roseline Isabel Moro Huesca Schmit", surname: "Moro", level: "9 · 9,1265", captain: true }
+  { name: "Lucia Carrera Guillén", surname: "Carrera", level: "9 · 9,2966" },
+  { name: "Zehra Savas", surname: "Savas", level: "9 · 9,1832" },
+  { name: "Irviani Gerard", surname: "Gerard", level: "9 · 9,5368" },
+  { name: "Roseline Isabel Moro Huesca Schmit", surname: "Moro", level: "9 · 9,0562", captain: true },
+  { name: "Helen Bai", surname: "Bai", level: "9 · 9,3000" },
+  { name: "Celia Urra", surname: "Urra", level: "9 · 9,1500" }
 ];
 var SLOTS = ["DD1", "DD2", "DD3", "DD4"];
 
@@ -164,21 +167,38 @@ function extName(id) { return isExt(id) ? id.slice(EXT.length) : ""; }
 // Ficha de la web que corresponde a una jugadora de la plantilla KNLTB (sin acentos, por nombre y primer apellido)
 function findRegistered(k) {
   var first = norm(k.name.split(" ")[0]), sur = norm(k.surname);
+  if (!first || !sur) return null;
   var hit = Object.keys(state.players || {}).filter(function (id) { var n = norm(fullName(state.players[id])); return n.indexOf(first) >= 0 && n.indexOf(sur) >= 0; });
   return hit[0] || null;
 }
 function rosterWithoutAccount() { return KNLTB_PLAYERS.filter(function (k) { return !findRegistered(k); }); }
+function rosterOf(name) { return KNLTB_PLAYERS.filter(function (x) { return x.name === name; })[0] || null; }
+// Un nombre de KNLTB -> la ficha de la web si la tiene; si no, "ext:<nombre>"
+function extToId(name) {
+  var w = name.split(" "), k = rosterOf(name) || { name: name, surname: w.length > 1 ? w[w.length - 1] : "" };
+  return findRegistered(k) || (EXT + name);
+}
+// Quién jugó en el hueco k de una partida: la alineación guardada o, si no está enlazada, el nombre que publica KNLTB
+function slotId(pr, rs, k) {
+  var id = pr && pr[k];
+  if (id && !isExt(id) && state.players[id]) return id;
+  var nm = isExt(id) ? extName(id) : (rs && Array.isArray(rs.names) && rs.names[k]) || "";
+  return nm ? extToId(nm) : null;
+}
+function idName(id) { var p = state.players[id]; return p ? fullName(p) : extName(id); }
+function idPerson(id) {
+  var p = state.players[id]; if (p) return p;
+  var n = extName(id), k = rosterOf(n), w = n.split(" ");
+  return { firstName: w[0], lastName: k ? k.surname : (w[1] || "") };
+}
+function idShort(id) { return shortName(idPerson(id)); }
 // Cuando una jugadora alineada sin cuenta se registra, sus alineaciones pasan a su ficha
 function linkExtPairs() {
   Object.keys(state.rounds || {}).forEach(function (key) {
     var d = state.rounds[key];
     if (!Array.isArray(d.pairs)) return;
     d.pairs = d.pairs.map(function (pr) {
-      return (pr || []).map(function (id) {
-        if (!isExt(id)) return id;
-        var k = KNLTB_PLAYERS.filter(function (x) { return x.name === extName(id); })[0];
-        return (k && findRegistered(k)) || id;
-      });
+      return (pr || []).map(function (id) { return isExt(id) ? extToId(extName(id)) : id; });
     });
   });
 }
@@ -639,7 +659,7 @@ function computeStats() {
       if (rs.won !== true && rs.won !== false) return;
       var sets = setsOf(rs).map(function (x) { return [+x[0], +x[1]]; });
       add(team, rs, sets);
-      var ids = (pr[i] || []).filter(function (id) { return id && state.players[id]; });
+      var ids = [slotId(pr[i], rs, 0), slotId(pr[i], rs, 1)].filter(Boolean);
       ids.forEach(function (id) { add(per[id] = per[id] || blank(), rs, sets); });
       if (ids.length === 2) { var k = ids.slice().sort().join("|"); add(pairs[k] = pairs[k] || blank(), rs, sets); }
     });
@@ -671,9 +691,9 @@ function renderStats() {
   box.innerHTML =
     '<div class="st-tiles">' + tiles.map(function (x) { return '<div class="st-tile ' + x[2] + '"><b>' + x[1] + '</b><span>' + esc(t("st.t." + x[0])) + '</span></div>'; }).join("") + '</div>' +
     '<div class="st-block"><h3 class="st-h">' + esc(t("st.players")) + '</h3><div class="table-wrap"><table class="st-tbl">' + head.replace("{who}", esc(t("st.player"))) + '<tbody>' +
-      players.map(function (x, i) { return row(i, esc(fullName(state.players[x.id])), x.o, x.id === state.uid); }).join("") + '</tbody></table></div></div>' +
+      players.map(function (x, i) { return row(i, esc(idName(x.id)), x.o, x.id === state.uid); }).join("") + '</tbody></table></div></div>' +
     (prs.length ? '<div class="st-block"><h3 class="st-h">' + esc(t("st.pairs")) + '</h3><div class="table-wrap"><table class="st-tbl">' + head.replace("{who}", esc(t("st.pair"))) + '<tbody>' +
-      prs.map(function (x, i) { return row(i, esc(shortName(state.players[x.ids[0]])) + ' &amp; ' + esc(shortName(state.players[x.ids[1]])), x.o, x.ids.indexOf(state.uid) >= 0); }).join("") + '</tbody></table></div></div>' : '') +
+      prs.map(function (x, i) { return row(i, esc(idShort(x.ids[0])) + ' &amp; ' + esc(idShort(x.ids[1])), x.o, x.ids.indexOf(state.uid) >= 0); }).join("") + '</tbody></table></div></div>' : '') +
     '<p class="fineprint">' + esc(t("st.fine")) + '</p>';
 }
 
@@ -681,9 +701,11 @@ function renderStats() {
 function playerMatches(id) {
   var out = [];
   ROUNDS.forEach(function (m) {
+    var res = resultsOf(m.r);
     pairsOf(m.r).forEach(function (pr, i) {
-      if (!pr || (pr[0] !== id && pr[1] !== id)) return;
-      out.push({ m: m, i: i, partnerId: pr[0] === id ? pr[1] : pr[0], rs: resultsOf(m.r)[i] || {} });
+      var rs = res[i] || {}, a = slotId(pr, rs, 0), b = slotId(pr, rs, 1);
+      if (a !== id && b !== id) return;
+      out.push({ m: m, i: i, partnerId: a === id ? b : a, rs: rs });
     });
   });
   return out;
@@ -693,8 +715,8 @@ function openPlayer(id) {
   var dlg = document.getElementById("pl-dlg");
   var S = computeStats(), o = S.per[id] || { pj: 0, w: 0, l: 0, sw: 0, sl: 0, gw: 0, gl: 0 };
   var partners = Object.keys(S.pairs).filter(function (k) { return k.split("|").indexOf(id) >= 0; }).map(function (k) {
-    var other = k.split("|").filter(function (x) { return x !== id; })[0]; return { p: state.players[other], o: S.pairs[k] };
-  }).filter(function (x) { return x.p; }).sort(function (a, b) { return byPerf({ o: a.o }, { o: b.o }); });
+    var other = k.split("|").filter(function (x) { return x !== id; })[0]; return { id: other, p: idPerson(other), o: S.pairs[k] };
+  }).sort(function (a, b) { return byPerf({ o: a.o }, { o: b.o }); });
   var games = playerMatches(id);
   dlg.innerHTML = '<div class="dlg-in"><button type="button" class="dlg-x" aria-label="' + esc(t("pl.close")) + '">✕</button>' +
     '<div class="dlg-top"><div class="dlg-photo"><div class="photo">' + photoHtml(p) + '</div>' + kitHtml(p, true) + '</div>' +
@@ -706,12 +728,12 @@ function openPlayer(id) {
     '<div class="dlg-stats">' + [["st.t.pj", o.pj, ""], ["st.t.w", o.w, "w"], ["st.t.l", o.l, "l"], ["st.t.pct", pct(o) + "%", ""]].map(function (x) {
       return '<div class="st-tile ' + x[2] + '"><b>' + x[1] + '</b><span>' + esc(t(x[0])) + '</span></div>'; }).join("") + '</div>' +
     (partners.length ? '<h3 class="st-h">' + esc(t("pl.partners")) + '</h3><ul class="dlg-list">' + partners.map(function (x) {
-      return '<li><span class="partner">' + miniHtml(x.p) + '<b>' + esc(fullName(x.p)) + '</b></span><span class="muted">' + x.o.pj + ' ' + esc(t("st.pj")) + ' · ' + x.o.w + ' ' + esc(t("st.w")) + ' · ' + pct(x.o) + '%</span></li>';
+      return '<li><span class="partner">' + miniHtml(x.p) + '<b>' + esc(idName(x.id)) + '</b></span><span class="muted">' + x.o.pj + ' ' + esc(t("st.pj")) + ' · ' + x.o.w + ' ' + esc(t("st.w")) + ' · ' + pct(x.o) + '%</span></li>';
     }).join("") + '</ul>' : '') +
     '<h3 class="st-h">' + esc(t("pl.matches")) + '</h3>' + (games.length ? '<ul class="dlg-list">' + games.map(function (g) {
-      var rival = g.m.home === US ? g.m.away : g.m.home, partner = g.partnerId && state.players[g.partnerId];
+      var rival = g.m.home === US ? g.m.away : g.m.home, partner = g.partnerId ? idName(g.partnerId) : "";
       var res = hasResult(g.rs) ? '<span class="res ' + (g.rs.won ? "w" : "l") + '">' + esc(t(g.rs.won ? "res.w" : "res.l")) + (g.rs.score ? ' ' + esc(g.rs.score) : '') + '</span>' : '<span class="muted">' + esc(fmtDate(g.m.date, false)) + '</span>';
-      return '<li><span><b>' + esc(t("round")) + ' ' + g.m.r + ' · ' + SLOTS[g.i] + '</b> · ' + esc(rival) + (partner ? '<br><span class="muted">' + esc(t("me.partner")) + ': ' + esc(fullName(partner)) + '</span>' : '') + '</span>' + res + '</li>';
+      return '<li><span><b>' + esc(t("round")) + ' ' + g.m.r + ' · ' + SLOTS[g.i] + '</b> · ' + esc(rival) + (partner ? '<br><span class="muted">' + esc(t("me.partner")) + ': ' + esc(partner) + '</span>' : '') + '</span>' + res + '</li>';
     }).join("") + '</ul>' : '<p class="muted" style="margin:0">' + esc(t("pl.noMatches")) + '</p>') +
     '</div>';
   dlg.setAttribute("aria-labelledby", "pl-dlg-t");
@@ -2182,7 +2204,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-08-01";
+var APP_VERSION = "2026-11-15-01";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();

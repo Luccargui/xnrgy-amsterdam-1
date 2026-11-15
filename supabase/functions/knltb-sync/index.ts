@@ -123,8 +123,9 @@ function buildRound(tm: ReturnType<typeof parseTeamMatch>, id: number, listHome:
     us: final && part ? part[0] : null, them: final && part ? part[1] : null,
     knltb: { id, final, message: tm.message || listMsg || "", points: flip(tm.points), partijen: part, sets: flip(tm.sets), games: flip(tm.games) },
   };
-  // Con resultados, las parejas son las que de verdad jugaron
-  if (started) row.pairs = [0, 1, 2, 3].map((i) => results[i] ? [results[i].players[0] || null, results[i].players[1] || null] : [null, null]);
+  // Con resultados, las parejas son las que de verdad jugaron; las que no tienen cuenta quedan como "ext:<nombre KNLTB>"
+  const slot = (x: (typeof results)[number], k: number) => x.players[k] || (x.names[k] ? "ext:" + x.names[k] : null);
+  if (started) row.pairs = [0, 1, 2, 3].map((i) => results[i] ? [slot(results[i], 0), slot(results[i], 1)] : [null, null]);
   return { row, unmatched };
 }
 
