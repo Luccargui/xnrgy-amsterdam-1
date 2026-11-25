@@ -62,8 +62,11 @@ function fixtureFromRow(x) {
   var isHome = x.home === US;
   var v = { name: x.venue_name || "", street: x.venue_street || "", city: x.venue_city || "" };
   if (isHome && !v.name && !v.street) v = HOME_VENUE;
-  return { r: x.r, date: x.date, time: x.time || null, home: x.home, away: x.away, venue: v };
+  return { r: x.r, date: x.date, time: x.time || null, home: x.home, away: x.away, venue: v,
+    moved: !!x.moved, knltbDate: x.knltb_date || null, knltbTime: x.knltb_time || null };
 }
+// Etiqueta "Nueva fecha" cuando el equipo ha cambiado la fecha que publica KNLTB
+function movedTag(m, cls) { return m.moved ? '<span class="' + (cls || "chip moved") + '">' + esc(t("fx.moved")) + '</span>' : ''; }
 function applyFixtures(rows, cache) {
   if (!rows || !rows.length) return;
   var list = rows.map(fixtureFromRow).sort(function (a, b) { return (a.date < b.date ? -1 : a.date > b.date ? 1 : a.r - b.r); });
@@ -524,7 +527,7 @@ function renderNext() {
   vs.innerHTML = '<span class="team' + (isHome ? "" : " them") + '">' + esc(m.home) + '</span><span class="sep">' + esc(t("next.vs")) + '</span><span class="team' + (isHome ? " them" : "") + '">' + esc(m.away) + '</span>';
   count.textContent = "";
   startCountdown(m);
-  meta.innerHTML = '<span>' + esc(t("round")) + ' <b>' + m.r + '</b></span><span><b>' + esc(fmtDate(m.date)) + '</b></span><span><b>' + esc(timeStr(m)) + '</b></span>' +
+  meta.innerHTML = '<span>' + esc(t("round")) + ' <b>' + m.r + '</b></span><span><b>' + esc(fmtDate(m.date)) + '</b>' + (m.moved ? ' ' + movedTag(m, "moved-tag") : '') + '</span><span><b>' + esc(timeStr(m)) + '</b></span>' +
     '<span><b>' + esc(isHome ? t("home") : t("away")) + '</b> · ' + esc(m.venue.name) + '</span>' +
     '<a class="route" href="' + routeUrl(m.venue) + '">' + esc(t("route")) + ' →</a>';
 }
@@ -554,7 +557,7 @@ function renderRounds() {
     var chip = mine ? '<span class="chip me">' + esc(t("cal.you")) + '</span>' : '<span class="chip' + (isHome ? " home" : "") + '">' + esc(isHome ? t("home") : t("away")) + '</span>';
     return '<details class="round' + (m === nx ? " is-next" : "") + '" data-r="' + m.r + '"' + (openRounds[m.r] ? " open" : "") + '>' +
       '<summary><span class="r-num">' + esc(t("round")) + ' ' + m.r + '</span>' +
-      '<span class="r-date">' + esc(fmtDate(m.date)) + '<small>' + parse(m.date).getFullYear() + '</small></span>' +
+      '<span class="r-date">' + esc(fmtDate(m.date)) + '<small>' + parse(m.date).getFullYear() + (m.moved ? ' · ' + esc(t("fx.moved")) : '') + '</small></span>' +
       '<span class="r-match"><span class="vsw">' + esc(t("next.vs")) + '</span> ' + esc(rival) + '</span>' + chip + score + '<span class="caret" aria-hidden="true">›</span></summary>' +
       '<div class="r-body">' +
         '<div class="venue"><span class="label">' + esc(t("venue")) + ' · ' + esc(isHome ? t("home") : t("away")) + '</span>' +
@@ -1714,10 +1717,10 @@ function renderAdmin() {
     var hasScore = typeof d.us === "number" && typeof d.them === "number";
     el.innerHTML = '<summary class="admin-sum"><span class="admin-sum-t"><span class="sum-title">' + esc(t("round")) + ' ' + m.r + ' · ' + esc(rival) + '</span>' +
         '<span class="muted">' + esc(fmtDate(m.date)) + ' · ' + esc(timeStr(m)) + '</span></span>' +
-        '<span class="sum-chips"><span class="chip' + (filled === 4 ? " ok" : "") + '">' + esc(t("sum.lineup", { n: filled })) + '</span>' +
+        '<span class="sum-chips">' + movedTag(m) + '<span class="chip' + (filled === 4 ? " ok" : "") + '">' + esc(t("sum.lineup", { n: filled })) + '</span>' +
         (hasScore ? '<span class="chip ' + (d.us > d.them ? "w" : d.us < d.them ? "l" : "") + '">' + d.us + '–' + d.them + '</span>' : '') +
         '<span class="caret" aria-hidden="true">›</span></span></summary><div class="admin-body">' +
-      availSummaryHtml(m) + availEditHtml(m) +
+      dateEditHtml(m, d) + availSummaryHtml(m) + availEditHtml(m) +
       '<div class="meet-edit"><div class="field"><label for="a' + m.r + '-mt">' + esc(t("meet.time")) + '</label><input type="time" id="a' + m.r + '-mt" value="' + esc(d.meetTime || "") + '"></div>' +
         '<div class="field"><label for="a' + m.r + '-mp">' + esc(t("meet.place")) + '</label><input type="text" id="a' + m.r + '-mp" maxlength="80" placeholder="' + esc(t("meet.placePh")) + '" value="' + esc(d.meetPlace || "") + '"></div></div>' +
       pairs.map(function (pr, i) {
@@ -1743,6 +1746,7 @@ function renderAdmin() {
     });
     el.querySelector("[data-save]").addEventListener("click", function () { saveRound(m.r, el); });
     wireAvailEdit(m, el);
+    wireDateEdit(m, el);
     el.querySelector("[data-notify]").addEventListener("click", function () { notifyLineup(m.r, el, this); });
     frag.appendChild(el);
   });
@@ -1750,6 +1754,50 @@ function renderAdmin() {
   renderAdminFilters(); applyAdminFilters();
   var fxBox = document.getElementById("fixtures-edit");
   if (!fxBox.contains(document.activeElement)) renderFixturesEditor();
+}
+/* Cambiar la fecha de una jornada. Se guarda en fixtures; la sincronización con KNLTB la respeta
+   hasta que KNLTB publique una fecha distinta de la que tenía. */
+function whenStr(date, time) { return fmtDate(date, true) + " · " + timeStr({ time: time }); }
+function dateEditHtml(m, d) {
+  if (d.knltb && d.knltb.final) return "";
+  var id = "a" + m.r + "-dt";
+  return '<div class="date-edit"><div class="date-line"><span><b>' + esc(whenStr(m.date, m.time)) + '</b></span>' + movedTag(m) +
+      '<button type="button" class="linkbtn" data-dt-open aria-expanded="false" aria-controls="' + id + '">' + esc(t("dt.change")) + '</button></div>' +
+    (m.moved && m.knltbDate ? '<p class="hint" style="margin:0">' + esc(t("dt.knltb", { when: whenStr(m.knltbDate, m.knltbTime) })) +
+      ' <button type="button" class="linkbtn" data-dt-reset>' + esc(t("dt.reset")) + '</button></p>' : '') +
+    '<div class="date-form" id="' + id + '" hidden><div class="date-fields">' +
+      '<div class="field"><label for="' + id + '-d">' + esc(t("fx.date")) + '</label><input type="date" id="' + id + '-d" value="' + esc(m.date) + '"></div>' +
+      '<div class="field"><label for="' + id + '-t">' + esc(t("fx.time")) + '</label><input type="time" id="' + id + '-t" value="' + esc(m.time || "") + '"></div></div>' +
+      '<p class="hint" style="margin:0">' + esc(t("dt.hint")) + '</p>' +
+      '<div class="form-actions"><button type="button" class="btn small solid" data-dt-save>' + esc(t("dt.save")) + '</button>' +
+        '<button type="button" class="btn small" data-dt-cancel>' + esc(t("dt.cancel")) + '</button></div></div>' +
+    '<span class="dt-status" role="status" aria-live="polite"></span></div>';
+}
+function wireDateEdit(m, el) {
+  var box = el.querySelector(".date-edit"); if (!box) return;
+  // Los cambios de fecha no cuentan como cambios sin guardar de la alineación
+  ["input", "change"].forEach(function (ev) { box.addEventListener(ev, function (e) { e.stopPropagation(); }); });
+  var form = box.querySelector(".date-form"), st = box.querySelector(".dt-status"), open = box.querySelector("[data-dt-open]");
+  function toggle(show) { form.hidden = !show; open.setAttribute("aria-expanded", show ? "true" : "false"); if (show) form.querySelector("input").focus(); }
+  open.addEventListener("click", function () { st.textContent = ""; toggle(form.hidden); });
+  box.querySelector("[data-dt-cancel]").addEventListener("click", function () { toggle(false); st.textContent = ""; });
+  function save(date, time, btn) {
+    if (!/^\d{4}-\d\d-\d\d$/.test(date || "") || (time && !/^\d\d:\d\d$/.test(time))) { st.textContent = t("dt.err"); st.className = "dt-status bad"; return; }
+    btn.disabled = true; st.textContent = t("f.saving"); st.className = "dt-status";
+    state.sb.from("fixtures").update({ date: date, time: time || null, updated_at: new Date().toISOString() }).eq("r", m.r).select("r").then(function (res) {
+      if (res.error || !res.data || !res.data.length) throw res.error || new Error("denied");
+      fxDraft = null; fxDirty = false;
+      return loadData();
+    }).then(function () {
+      var s2 = document.querySelector('.admin-round[data-r="' + m.r + '"] .dt-status');
+      if (s2) { s2.textContent = t("dt.saved"); s2.className = "dt-status"; }
+    }).catch(function () { btn.disabled = false; st.textContent = t("f.errSave"); st.className = "dt-status bad"; });
+  }
+  box.querySelector("[data-dt-save]").addEventListener("click", function () {
+    save(form.querySelector('input[type="date"]').value, form.querySelector('input[type="time"]').value, this);
+  });
+  var back = box.querySelector("[data-dt-reset]");
+  if (back) back.addEventListener("click", function () { save(m.knltbDate, m.knltbTime || "", this); });
 }
 /* Sets: [[nosotras, rival], ...] a partir de lo guardado (o de un texto antiguo "6-4 6-3") */
 function setsOf(rs) {
@@ -1781,23 +1829,23 @@ function readPairs(r, el) {
 var adminOpen = {};
 var admFilter = { rival: "", round: "", from: "", to: "" };
 /* ───────────── Calendario editable (capitana y managers) ───────────── */
-var fxDraft = null;
+var fxDraft = null, fxDirty = false;
 function fxRowsFromRounds() {
   return ROUNDS.map(function (m) {
     return { r: m.r, date: m.date, time: m.time || "", home: m.home === US, rival: m.home === US ? m.away : m.home,
-      venue_name: m.venue.name || "", venue_street: m.venue.street || "", venue_city: m.venue.city || "" };
+      venue_name: m.venue.name || "", venue_street: m.venue.street || "", venue_city: m.venue.city || "", moved: !!m.moved };
   });
 }
 function renderFixturesEditor() {
   var box = document.getElementById("fixtures-edit");
-  if (!fxDraft) fxDraft = fxRowsFromRounds();
+  if (!fxDraft || !fxDirty) fxDraft = fxRowsFromRounds();
   var teams = STANDINGS.filter(function (x) { return x !== US; });
   var open = box.open;
   box.innerHTML = '<summary class="admin-sum"><span class="admin-sum-t"><span class="sum-title">' + esc(t("fx.title")) + '</span><span class="muted">' + esc(t("fx.sub", { n: fxDraft.length })) + '</span></span><span class="caret" aria-hidden="true">›</span></summary>' +
     '<div class="fx-body"><p class="hint" style="margin:0">' + esc(t("fx.hint")) + '</p>' +
     fxDraft.map(function (x, k) {
       var id = "fx" + k, rivals = teams.indexOf(x.rival) >= 0 || !x.rival ? teams : teams.concat([x.rival]);
-      return '<div class="fx-row" data-k="' + k + '"><div class="fx-head"><b>' + esc(t("round")) + ' ' + x.r + '</b>' +
+      return '<div class="fx-row" data-k="' + k + '"><div class="fx-head"><b>' + esc(t("round")) + ' ' + x.r + '</b>' + (x.moved ? movedTag(x) : '') +
         '<button type="button" class="linkbtn" data-fx-del="' + k + '">' + esc(t("fx.remove")) + '</button></div>' +
         '<div class="fx-grid">' +
           '<div class="field"><label for="' + id + '-d">' + esc(t("fx.date")) + '</label><input type="date" id="' + id + '-d" data-f="date" value="' + esc(x.date) + '"></div>' +
@@ -1818,6 +1866,7 @@ function renderFixturesEditor() {
     var k = +row.getAttribute("data-k");
     row.querySelectorAll("[data-f]").forEach(function (el) {
       el.addEventListener("change", function () {
+        fxDirty = true;
         var f = el.getAttribute("data-f"), v = el.value;
         if (f === "home") {
           fxDraft[k].home = v === "1";
@@ -1831,15 +1880,16 @@ function renderFixturesEditor() {
       var k = +b.getAttribute("data-fx-del"), x = fxDraft[k], st = document.getElementById("fx-status");
       var used = pairsOf(x.r).some(function (pr) { return pr && (pr[0] || pr[1]); });
       if (used) { st.textContent = t("fx.errUsed", { r: x.r }); st.className = "status bad"; return; }
-      fxDraft.splice(k, 1); renderFixturesEditor();
+      fxDirty = true; fxDraft.splice(k, 1); renderFixturesEditor();
     });
   });
   document.getElementById("fx-add").addEventListener("click", function () {
     var next = fxDraft.reduce(function (a, x) { return Math.max(a, x.r); }, 0) + 1;
+    fxDirty = true;
     fxDraft.push({ r: next, date: "", time: "", home: true, rival: "", venue_name: HOME_VENUE.name, venue_street: HOME_VENUE.street, venue_city: HOME_VENUE.city });
     renderFixturesEditor();
   });
-  document.getElementById("fx-reset").addEventListener("click", function () { fxDraft = null; renderFixturesEditor(); });
+  document.getElementById("fx-reset").addEventListener("click", function () { fxDraft = null; fxDirty = false; renderFixturesEditor(); });
   document.getElementById("fx-save").addEventListener("click", function () {
     var st = document.getElementById("fx-status"), btn = this;
     var bad = fxDraft.filter(function (x) { return !/^\d{4}-\d\d-\d\d$/.test(x.date) || !x.rival || (x.time && !/^\d\d:\d\d$/.test(x.time)); });
@@ -1856,7 +1906,7 @@ function renderFixturesEditor() {
       return gone.length ? state.sb.from("fixtures").delete().in("r", gone) : { error: null };
     }).then(function (res) {
       if (res.error) throw res.error;
-      btn.disabled = false; fxDraft = null;
+      btn.disabled = false; fxDraft = null; fxDirty = false;
       return loadData();
     }).then(function () { var s2 = document.getElementById("fx-status"); if (s2) { s2.textContent = t("fx.saved"); s2.className = "status"; } })
       .catch(function () { btn.disabled = false; st.textContent = t("f.errSave"); st.className = "status bad"; });
@@ -2204,7 +2254,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-15-01";
+var APP_VERSION = "2026-11-25-01";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();

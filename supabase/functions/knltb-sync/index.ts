@@ -152,14 +152,15 @@ async function sync(force: boolean) {
     info.standings = table.length;
 
     const ours = parseDrawMatches(draw).filter((m) => m.round && (up(m.home) === US || up(m.away) === US));
-    // Fecha y hora de cada jornada tal como las publica KNLTB
-    const { data: fx } = await sb.from("fixtures").select("r,date,time");
+    // Fecha y hora de cada jornada tal como las publica KNLTB. Si el equipo ha cambiado la fecha en la web,
+    // se respeta hasta que KNLTB publique una fecha distinta de la que tenía (entonces manda KNLTB)
+    const { data: fx } = await sb.from("fixtures").select("r,date,time,knltb_date,knltb_time");
     for (const m of ours) {
       const f = (fx || []).find((x: any) => x.r === m.round);
       if (!f || !m.datetime) continue;
       const [d, t] = m.datetime.split(" ");
-      if (f.date !== d || (f.time || null) !== (t || null)) {
-        await sb.from("fixtures").update({ date: d, time: t || null, updated_at: now }).eq("r", m.round);
+      if ((f.knltb_date || null) !== d || (f.knltb_time || null) !== (t || null)) {
+        await sb.from("fixtures").update({ knltb_date: d, knltb_time: t || null, date: d, time: t || null, updated_at: now }).eq("r", m.round);
         info.fixtures++;
       }
     }
@@ -169,7 +170,9 @@ async function sync(force: boolean) {
     const { data: rounds } = await sb.from("rounds").select("r,pairs,results,us,them,knltb");
     const checked: Record<string, string> = detail.checked || {};
     const due = ours.filter((m) => {
-      if (!m.datetime || m.datetime.slice(0, 10) > today) return false;
+      // Vale la fecha de KNLTB o la que haya puesto el equipo, la que llegue antes
+      const own = (fx || []).find((x: any) => x.r === m.round)?.date || null;
+      if (!m.datetime || (m.datetime.slice(0, 10) > today && !(own && own <= today))) return false;
       const rd = (rounds || []).find((x: any) => x.r === m.round);
       const final = !!(rd && rd.knltb && rd.knltb.final);
       const ageDays = (Date.parse(today) - Date.parse(m.datetime.slice(0, 10))) / 864e5;

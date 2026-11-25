@@ -663,3 +663,16 @@ body.authed .hero-grid { grid-template-columns: 1fr; }
 .av-staff { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
 .av-staff .av-btn { padding: 6px 10px; font-size: 12px; }
 @media (max-width: 480px) { .av-staff { grid-template-columns: 1fr; } }
+
+/* Cambiar la fecha de una jornada (Alinear) */
+.date-edit { display: grid; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.date-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.date-form { display: grid; gap: 10px; }
+.date-form[hidden] { display: none; }
+.date-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.dt-status { font-size: 14px; color: var(--muted); }
+.dt-status:empty { display: none; }
+.dt-status.bad { color: var(--loss); }
+.chip.moved, .moved-tag { border-color: var(--text); color: var(--text); }
+.moved-tag { font-family: var(--display); font-weight: 700; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; padding: 2px 8px; border: 1px solid; margin-left: 4px; white-space: nowrap; vertical-align: middle; }
+.fx-head .chip { margin: 0 auto 0 10px; }
