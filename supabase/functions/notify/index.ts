@@ -5,6 +5,7 @@
 //  POST {action:"reminder"}      + cabecera x-cron-secret     -> recordatorio de disponibilidad (lo lanza pg_cron cada día)
 //  POST {action:"new_request", name} + cabecera x-cron-secret -> aviso a capitana y managers de una solicitud nueva (lo lanza la base de datos)
 //  POST {action:"avail_change", user_id, r, old, new, by} + cabecera x-cron-secret -> aviso a las responsables cuando cambia una disponibilidad ya guardada
+//  POST {action:"date_change", r, reset, by} + cabecera x-cron-secret -> aviso al equipo cuando cambia la fecha u hora de una jornada (lo lanza la base de datos)
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import { generateVapid, sendPush, type Vapid } from "./webpush.ts";
 
@@ -16,10 +17,10 @@ const STAFF = ["owner", "captain", "manager"];
 const REMIND_DAYS = 4; // días antes de la jornada
 const LOC: Record<string, string> = { es: "es-ES", en: "en-GB", tr: "tr-TR", nl: "nl-NL" };
 const T: Record<string, Record<string, string>> = {
-  es: { lineupT: "Alineación jornada {r} · vs {rival}", lineupB: "Juegas {slot} con {partner}. {when}.", partnerTbd: "compañera por decidir", reminderT: "¿Juegas el {date}?", reminderB: "Jornada {r} vs {rival}. Marca tu disponibilidad para que la capitana pueda hacer la alineación.", reqT: "Nueva solicitud de acceso", reqB: "{name} quiere unirse al equipo. Acéptala o recházala desde la portada.", testT: "Avisos activados", testB: "Así te llegarán las alineaciones y los recordatorios del equipo.", tbc: "hora por confirmar", meet: "Quedada {meet}", lineupB2: "Juegas {list}. {when}.", pairItem: "{slot} con {partner}", and: " y ", avT: "Disponibilidad · jornada {r} vs {rival}", avB: "{name}: {from} → {to}.", avBy: "{by} ha cambiado la de {name}: {from} → {to}.", s_yes: "puede", s_maybe: "quizá", s_no: "no puede", s_none: "sin responder" },
-  en: { lineupT: "Line-up round {r} · vs {rival}", lineupB: "You play {slot} with {partner}. {when}.", partnerTbd: "partner to be decided", reminderT: "Are you playing on {date}?", reminderB: "Round {r} vs {rival}. Mark your availability so the captain can set the line-up.", reqT: "New account request", reqB: "{name} wants to join the team. Approve or reject her from the home page.", testT: "Notifications on", testB: "This is how team line-ups and reminders will reach you.", tbc: "time to be confirmed", meet: "Meet-up {meet}", lineupB2: "You play {list}. {when}.", pairItem: "{slot} with {partner}", and: " and ", avT: "Availability · round {r} vs {rival}", avB: "{name}: {from} → {to}.", avBy: "{by} changed {name}'s: {from} → {to}.", s_yes: "can play", s_maybe: "maybe", s_no: "can't play", s_none: "no answer" },
-  tr: { lineupT: "{r}. hafta kadrosu · {rival}", lineupB: "{partner} ile {slot} oynuyorsun. {when}.", partnerTbd: "partner belli değil", reminderT: "{date} günü oynuyor musun?", reminderB: "{r}. hafta, rakip {rival}. Kaptanın kadroyu kurabilmesi için uygunluğunu işaretle.", reqT: "Yeni erişim isteği", reqB: "{name} takıma katılmak istiyor. Ana sayfadan onayla veya reddet.", testT: "Bildirimler açık", testB: "Takım kadroları ve hatırlatmalar sana böyle gelecek.", tbc: "saat belli değil", meet: "Buluşma {meet}", lineupB2: "{list} oynuyorsun. {when}.", pairItem: "{partner} ile {slot}", and: " ve ", avT: "Uygunluk · {r}. hafta, rakip {rival}", avB: "{name}: {from} → {to}.", avBy: "{by}, {name} için değiştirdi: {from} → {to}.", s_yes: "oynayabilir", s_maybe: "belki", s_no: "oynayamaz", s_none: "yanıt yok" },
-  nl: { lineupT: "Opstelling ronde {r} · tegen {rival}", lineupB: "Je speelt {slot} met {partner}. {when}.", partnerTbd: "partner nog niet bekend", reminderT: "Speel je op {date}?", reminderB: "Ronde {r} tegen {rival}. Geef je beschikbaarheid door zodat de aanvoerder de opstelling kan maken.", reqT: "Nieuwe toegangsaanvraag", reqB: "{name} wil bij het team. Keur goed of wijs af vanaf de startpagina.", testT: "Meldingen aan", testB: "Zo krijg je de opstellingen en herinneringen van het team.", tbc: "tijd nog niet bekend", meet: "Verzamelen {meet}", lineupB2: "Je speelt {list}. {when}.", pairItem: "{slot} met {partner}", and: " en ", avT: "Beschikbaarheid · ronde {r} tegen {rival}", avB: "{name}: {from} → {to}.", avBy: "{by} heeft die van {name} gewijzigd: {from} → {to}.", s_yes: "kan", s_maybe: "misschien", s_no: "kan niet", s_none: "geen antwoord" },
+  es: { lineupT: "Alineación jornada {r} · vs {rival}", lineupB: "Juegas {slot} con {partner}. {when}.", partnerTbd: "compañera por decidir", reminderT: "¿Juegas el {date}?", reminderB: "Jornada {r} vs {rival}. Marca tu disponibilidad para que la capitana pueda hacer la alineación.", reqT: "Nueva solicitud de acceso", reqB: "{name} quiere unirse al equipo. Acéptala o recházala desde la portada.", testT: "Avisos activados", testB: "Así te llegarán las alineaciones y los recordatorios del equipo.", tbc: "hora por confirmar", meet: "Quedada {meet}", lineupB2: "Juegas {list}. {when}.", pairItem: "{slot} con {partner}", and: " y ", avT: "Disponibilidad · jornada {r} vs {rival}", avB: "{name}: {from} → {to}.", avBy: "{by} ha cambiado la de {name}: {from} → {to}.", s_yes: "puede", s_maybe: "quizá", s_no: "no puede", s_none: "sin responder", dtT: "Jornada {r} vs {rival}: cambio de fecha", dtB: "Ahora es el {when}. Vuelve a marcar tu disponibilidad.", tmT: "Jornada {r} vs {rival}: cambio de hora", tmB: "Ahora es el {when}." },
+  en: { lineupT: "Line-up round {r} · vs {rival}", lineupB: "You play {slot} with {partner}. {when}.", partnerTbd: "partner to be decided", reminderT: "Are you playing on {date}?", reminderB: "Round {r} vs {rival}. Mark your availability so the captain can set the line-up.", reqT: "New account request", reqB: "{name} wants to join the team. Approve or reject her from the home page.", testT: "Notifications on", testB: "This is how team line-ups and reminders will reach you.", tbc: "time to be confirmed", meet: "Meet-up {meet}", lineupB2: "You play {list}. {when}.", pairItem: "{slot} with {partner}", and: " and ", avT: "Availability · round {r} vs {rival}", avB: "{name}: {from} → {to}.", avBy: "{by} changed {name}'s: {from} → {to}.", s_yes: "can play", s_maybe: "maybe", s_no: "can't play", s_none: "no answer", dtT: "Round {r} vs {rival}: date changed", dtB: "It's now on {when}. Please mark your availability again.", tmT: "Round {r} vs {rival}: time changed", tmB: "It's now on {when}." },
+  tr: { lineupT: "{r}. hafta kadrosu · {rival}", lineupB: "{partner} ile {slot} oynuyorsun. {when}.", partnerTbd: "partner belli değil", reminderT: "{date} günü oynuyor musun?", reminderB: "{r}. hafta, rakip {rival}. Kaptanın kadroyu kurabilmesi için uygunluğunu işaretle.", reqT: "Yeni erişim isteği", reqB: "{name} takıma katılmak istiyor. Ana sayfadan onayla veya reddet.", testT: "Bildirimler açık", testB: "Takım kadroları ve hatırlatmalar sana böyle gelecek.", tbc: "saat belli değil", meet: "Buluşma {meet}", lineupB2: "{list} oynuyorsun. {when}.", pairItem: "{partner} ile {slot}", and: " ve ", avT: "Uygunluk · {r}. hafta, rakip {rival}", avB: "{name}: {from} → {to}.", avBy: "{by}, {name} için değiştirdi: {from} → {to}.", s_yes: "oynayabilir", s_maybe: "belki", s_no: "oynayamaz", s_none: "yanıt yok", dtT: "{r}. hafta, rakip {rival}: tarih değişti", dtB: "Yeni tarih: {when}. Uygunluğunu yeniden işaretle.", tmT: "{r}. hafta, rakip {rival}: saat değişti", tmB: "Yeni saat: {when}." },
+  nl: { lineupT: "Opstelling ronde {r} · tegen {rival}", lineupB: "Je speelt {slot} met {partner}. {when}.", partnerTbd: "partner nog niet bekend", reminderT: "Speel je op {date}?", reminderB: "Ronde {r} tegen {rival}. Geef je beschikbaarheid door zodat de aanvoerder de opstelling kan maken.", reqT: "Nieuwe toegangsaanvraag", reqB: "{name} wil bij het team. Keur goed of wijs af vanaf de startpagina.", testT: "Meldingen aan", testB: "Zo krijg je de opstellingen en herinneringen van het team.", tbc: "tijd nog niet bekend", meet: "Verzamelen {meet}", lineupB2: "Je speelt {list}. {when}.", pairItem: "{slot} met {partner}", and: " en ", avT: "Beschikbaarheid · ronde {r} tegen {rival}", avB: "{name}: {from} → {to}.", avBy: "{by} heeft die van {name} gewijzigd: {from} → {to}.", s_yes: "kan", s_maybe: "misschien", s_no: "kan niet", s_none: "geen antwoord", dtT: "Ronde {r} tegen {rival}: nieuwe datum", dtB: "Het is nu op {when}. Geef je beschikbaarheid opnieuw door.", tmT: "Ronde {r} tegen {rival}: nieuwe tijd", tmB: "Het is nu op {when}." },
 };
 const fill = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(v[k] ?? ""));
 const cors = {
@@ -89,7 +90,7 @@ const rivalOf = (m: Round) => (m.home === US ? m.away : m.home);
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "method" }, 405);
-  let body: { action?: string; r?: number; name?: string; user_id?: string; old?: string | null; new?: string | null; by?: string | null } = {};
+  let body: { action?: string; r?: number; name?: string; user_id?: string; old?: string | null; new?: string | null; by?: string | null; reset?: boolean } = {};
   try { body = await req.json(); } catch { /* vacío */ }
 
   if (body.action === "vapid") return json({ publicKey: (await vapid()).publicKey });
@@ -142,6 +143,26 @@ Deno.serve(async (req) => {
       url: SITE + "#alineaciones", tag: "avail-change-" + m.r + "-" + who,
     }), "avail");
     return json({ sent, to: to.length });
+  }
+
+  if (body.action === "date_change") {
+    const s = await secret("cron");
+    if (!s || req.headers.get("x-cron-secret") !== s) return json({ error: "forbidden" }, 403);
+    const m = (await loadRounds()).find((x) => x.r === Number(body.r));
+    if (!m || m.date < amsToday()) return json({ sent: 0, note: "past or unknown round" });
+    const by = body.by ? String(body.by) : null, reset = !!body.reset;
+    const { data: roles } = await sb.from("team_roles").select("user_id");
+    const to = (roles || []).map((x) => x.user_id).filter((id) => id !== by);
+    // Si cambia el día, la disponibilidad se ha borrado y se pide de nuevo; si solo cambia la hora, solo se avisa
+    const sent = await sendTo(to, (lang) => {
+      const when = fmtDate(m.date, lang) + " " + (m.time || T[lang].tbc);
+      return {
+        title: fill(reset ? T[lang].dtT : T[lang].tmT, { r: m.r, rival: rivalOf(m) }),
+        body: fill(reset ? T[lang].dtB : T[lang].tmB, { when }),
+        url: SITE + (reset ? "#mi-disponibilidad" : "#mis-partidos"), tag: "date-" + m.r,
+      };
+    }, "reminder");
+    return json({ sent, to: to.length, reset });
   }
 
   const uid = await userFrom(req);
