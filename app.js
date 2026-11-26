@@ -131,7 +131,7 @@ function countryName(cc) {
 function initials(a, b) { return ((a || "?")[0] + ((b || "")[0] || "")).toUpperCase(); }
 function fullName(p) { return p ? (p.firstName + " " + p.lastName).trim() : ""; }
 // La ficha se crea al aprobarla, pero el perfil no está completo hasta que ella pone país y región
-function hasProfile(p) { return !!(p && p.country && p.region); }
+function hasProfile(p) { return !!(p && p.firstName && p.lastName); }
 function today0() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
 function roundDoc(r) { return state.rounds["r" + r] || null; }
 function meetLine(m) {
@@ -260,14 +260,20 @@ function flagsHtml(p) {
 }
 function flagData(code) { return flagUrl(code); }
 // Franja bajo la foto: bandera del país (izquierda) y de la región (derecha) ocupando todo el recuadro
+// Con dos nacionalidades salen dos filas: país y región de cada una
 function kitHtml(p, withCaption) {
   if (!p) return "";
-  var cn = p.country ? countryName(p.country) : "", ri = p.country ? regionInfo(p.country, p.region) : { name: "", hasFlag: false };
-  var rn = p.regionName || ri.name || "";
-  var c = p.country ? flagData(p.country) : null, r = (p.region && ri.hasFlag) ? flagData(p.country + "-" + p.region) : null;
-  var label = [cn, rn].filter(Boolean).join(" · ");
-  var inner = (c ? '<img src="' + c + '" alt="" title="' + esc(cn) + '">' : '') + (r ? '<img src="' + r + '" alt="" title="' + esc(rn) + '">' : '');
-  return '<div class="kit' + (inner ? '' : ' empty') + '"' + (label ? ' role="img" aria-label="' + esc(label) + '"' : ' aria-hidden="true"') + '>' + inner + '</div>' +
+  function nat(cc, rc, rn0) {
+    if (!cc) return null;
+    var cn = countryName(cc), ri = regionInfo(cc, rc), rn = rc ? (rn0 || ri.name || "") : "";
+    var c = flagData(cc), r = (rc && ri.hasFlag) ? flagData(cc + "-" + rc) : null;
+    return { label: [cn, rn].filter(Boolean).join(" · "),
+      imgs: (c ? '<img src="' + c + '" alt="" title="' + esc(cn) + '">' : '') + (r ? '<img src="' + r + '" alt="" title="' + esc(rn) + '">' : '') };
+  }
+  var ns = [nat(p.country, p.region, p.regionName), nat(p.country2, p.region2, p.region2Name)].filter(Boolean);
+  var label = ns.map(function (x) { return x.label; }).join(" / ");
+  var inner = ns.length > 1 ? ns.map(function (x) { return '<div class="kit-row">' + x.imgs + '</div>'; }).join("") : (ns[0] ? ns[0].imgs : "");
+  return '<div class="kit' + (ns.length > 1 ? ' two' : '') + (inner ? '' : ' empty') + '"' + (label ? ' role="img" aria-label="' + esc(label) + '"' : ' aria-hidden="true"') + '>' + inner + '</div>' +
     (withCaption && label ? '<div class="kit-cap">' + esc(label) + '</div>' : "");
 }
 /* ───────────── Fotos (Supabase Storage, bucket privado) ───────────── */
@@ -1284,8 +1290,10 @@ var authTab = "login";
 function mountLogin(root) {
   if (root.querySelector("#lf") && root.getAttribute("data-tab") === authTab && root.getAttribute("data-lang") === lang) {
     // No se repinta mientras escribe; si los países llegan después, se rellenan sin borrar nada
-    var cs = root.querySelector("#f-country");
-    if (cs && cs.options.length < 2 && state.regions) cs.innerHTML = countryOptions(cs.value);
+    ["#f-country", "#f-country2"].forEach(function (sel) {
+      var cs = root.querySelector(sel);
+      if (cs && cs.options.length < 2 && state.regions) cs.innerHTML = countryOptions(cs.value);
+    });
     return;
   }
   root.setAttribute("data-tab", authTab); root.setAttribute("data-lang", lang);
@@ -1359,7 +1367,8 @@ function mountLogin(root) {
     if (firstBad) { bad(t("f.errForm")); firstBad.focus(); return; }
     if (!f.querySelector("#l-consent").checked) { bad(t("su.errConsent")); f.querySelector("#l-consent").focus(); return; }
     // La ficha viaja con la cuenta y se crea sola cuando el equipo la aprueba
-    var profile = { country: v.country, region: v.region, region_name: regionInfo(v.country, v.region).name || null, side: v.side || null, hand: v.hand || null,
+    var profile = { country: v.country || null, region: v.region || null, region_name: v.region ? regionInfo(v.country, v.region).name || null : null,
+      country2: v.country2 || null, region2: v.region2 || null, region2_name: v.region2 ? regionInfo(v.country2, v.region2).name || null : null, side: v.side || null, hand: v.hand || null,
       birthday: v.birthday || null, phone: v.phone || null, knltb: v.knltb || null };
     btn.disabled = true; st.textContent = t("su.sending"); st.className = "status";
     getCaptcha().then(function (cap) { return state.sb.auth.signUp({ email: email, password: pass, options: { captchaToken: cap, emailRedirectTo: location.origin + location.pathname, data: { first_name: v.firstName, last_name: v.lastName, privacy_version: PRIVACY_VERSION, lang: lang, privacy_accepted_at: new Date().toISOString(), profile: profile } } }); }).then(function (res) {
@@ -1464,19 +1473,27 @@ function field(id, key, type, val, extra) {
     (extra && extra.hint ? '<span class="hint" id="h-' + id + '">' + esc(t(extra.hint)) + '</span>' : '') +
     '<span class="err" id="e-' + id + '"></span></div>';
 }
+// País y región de una nacionalidad ("" la primera, "2" la segunda); los dos son opcionales
+function natFieldsHtml(n, cc, rc) {
+  var opt = ' <span class="opt">(' + esc(t("f.optional")) + ')</span>';
+  return '<div class="field"><label for="f-country' + n + '">' + esc(t(n ? "f.country2" : "f.country")) + opt + '</label>' +
+      '<input type="search" class="opt-search" id="s-country' + n + '" autocomplete="xnrgy-search" placeholder="' + esc(t("f.searchCountry")) + '" aria-label="' + esc(t("f.searchCountry")) + '" aria-controls="f-country' + n + '">' +
+      '<select id="f-country' + n + '" name="xnrgy_bc' + n + '" autocomplete="xnrgy-birth-country' + (n ? "-2" : "") + '" aria-describedby="e-country' + n + '">' + countryOptions(cc) + '</select><span class="err" id="e-country' + n + '"></span></div>' +
+    '<div class="field"><label for="f-region' + n + '">' + esc(t(n ? "f.region2" : "f.region")) + opt + '</label>' +
+      '<input type="search" class="opt-search" id="s-region' + n + '" autocomplete="xnrgy-search" placeholder="' + esc(t("f.searchRegion")) + '" aria-label="' + esc(t("f.searchRegion")) + '" aria-controls="f-region' + n + '">' +
+      '<select id="f-region' + n + '" name="xnrgy_br' + n + '" autocomplete="xnrgy-birth-region' + (n ? "-2" : "") + '" aria-describedby="e-region' + n + '">' + regionOptions(cc, rc) + '</select><span class="err" id="e-region' + n + '"></span></div>';
+}
 // Campos de la ficha de jugadora: los usan "Mis datos" y el formulario de registro
 function profileFieldsHtml(me, o) {
   me = me || {}; o = o || {};
   return (o.names === false ? '' :
       field("first", "f.first", "text", me.firstName, { required: true, attrs: ' autocomplete="given-name" maxlength="60"' }) +
       field("last", "f.last", "text", me.lastName, { required: true, attrs: ' autocomplete="family-name" maxlength="80"' })) +
-    '<div class="field"><label for="f-country">' + esc(t("f.country")) + ' <span class="req" aria-hidden="true">*</span></label>' +
-      '<input type="search" class="opt-search" id="s-country" autocomplete="xnrgy-search" placeholder="' + esc(t("f.searchCountry")) + '" aria-label="' + esc(t("f.searchCountry")) + '" aria-controls="f-country">' +
-      '<select id="f-country" name="xnrgy_bc" autocomplete="xnrgy-birth-country" required aria-describedby="e-country">' + countryOptions(me.country) + '</select><span class="err" id="e-country"></span></div>' +
-    '<div class="field"><label for="f-region">' + esc(t("f.region")) + ' <span class="req" aria-hidden="true">*</span></label>' +
-      '<input type="search" class="opt-search" id="s-region" autocomplete="xnrgy-search" placeholder="' + esc(t("f.searchRegion")) + '" aria-label="' + esc(t("f.searchRegion")) + '" aria-controls="f-region">' +
-      '<select id="f-region" name="xnrgy_br" autocomplete="xnrgy-birth-region" required aria-describedby="e-region">' + regionOptions(me.country, me.region) + '</select><span class="err" id="e-region"></span></div>' +
-    '<div class="field full"><span class="hint">' + esc(t("f.regionHint")) + '</span> <span class="hint" id="pf-flagnote"></span></div>' +
+    natFieldsHtml("", me.country, me.region) +
+    '<div class="nat2" id="nat2"' + (me.country2 ? '' : ' hidden') + '>' + natFieldsHtml("2", me.country2, me.region2) +
+      '<div class="field full"><button type="button" class="linkbtn" id="nat2-remove">− ' + esc(t("f.nat2Remove")) + '</button></div></div>' +
+    '<div class="field full"><button type="button" class="linkbtn" id="nat2-add"' + (me.country2 ? ' hidden' : '') + '>+ ' + esc(t("f.nat2Add")) + '</button>' +
+      '<span class="hint" style="display:block;margin-top:6px">' + esc(t("f.regionHint")) + '</span> <span class="hint" id="pf-flagnote"></span></div>' +
     field("birthday", "f.birthday", "date", me.birthday, { attrs: ' autocomplete="bday" min="1930-01-01" max="2025-12-31"' }) +
     field("phone", "f.phone", "tel", me.phone, { attrs: ' autocomplete="tel" maxlength="25" placeholder="+31 6 12345678"' }) +
     (o.email === false ? '' : field("email", "f.email", "email", me.email, { attrs: ' autocomplete="email" maxlength="120"' })) +
@@ -1486,16 +1503,22 @@ function profileFieldsHtml(me, o) {
 }
 // Buscadores de país y región y aviso de banderas; devuelve la función que repinta las banderas
 function wireProfileFields(f) {
+  var box2 = f.querySelector("#nat2"), add2 = f.querySelector("#nat2-add"), rem2 = f.querySelector("#nat2-remove");
+  var N = ["", "2"].map(function (n) { return { n: n, c: f["xnrgy_bc" + n], r: f["xnrgy_br" + n], sC: f.querySelector("#s-country" + n), sR: f.querySelector("#s-region" + n) }; });
   function paintFlags() {
-    var cc = f.xnrgy_bc.value, rc = f.xnrgy_br.value, ri = cc ? regionInfo(cc, rc) : { name: "", hasFlag: true };
+    var p = { firstName: f.first.value, lastName: f.last.value }, noFlag = false;
+    N.forEach(function (x) {
+      if (x.n && box2.hidden) return;
+      var cc = x.c.value, rc = x.r.value, ri = cc ? regionInfo(cc, rc) : { name: "", hasFlag: true };
+      if (cc && rc && !ri.hasFlag) noFlag = true;
+      p["country" + x.n] = cc; p["region" + x.n] = rc; p["region" + x.n + "Name"] = ri.name;
+    });
+    p.regionName = p.regionName || ""; if (p.country2 !== undefined) p.region2Name = p.region2Name || "";
     var kit = document.getElementById("pf-kit");
-    if (kit) kit.innerHTML = kitHtml({ country: cc, region: rc, regionName: ri.name, firstName: f.first.value, lastName: f.last.value }, false);
+    if (kit) kit.innerHTML = kitHtml(p, false);
     var note = document.getElementById("pf-flagnote");
-    if (note) note.textContent = (cc && rc && !ri.hasFlag) ? t("f.noRegionFlag") : "";
+    if (note) note.textContent = noFlag ? t("f.noRegionFlag") : "";
   }
-  var sC = document.getElementById("s-country"), sR = document.getElementById("s-region");
-  function pickCountry() { sR.value = ""; f.xnrgy_br.innerHTML = regionOptions(f.xnrgy_bc.value, ""); paintFlags(); }
-  f.xnrgy_bc.addEventListener("change", pickCountry);
   function wireSearch(input, select, build, onPick) {
     input.addEventListener("input", function () {
       var cur = select.value;
@@ -1512,19 +1535,33 @@ function wireProfileFields(f) {
       } else if (ev.key === "ArrowDown") { ev.preventDefault(); select.focus(); }
     });
   }
-  wireSearch(sC, f.xnrgy_bc, function (sel, q) { return countryOptions(sel, q); }, pickCountry);
-  wireSearch(sR, f.xnrgy_br, function (sel, q) { return regionOptions(f.xnrgy_bc.value, sel, q); }, paintFlags);
-  f.xnrgy_br.addEventListener("change", paintFlags);
+  N.forEach(function (x) {
+    function pickCountry() { x.sR.value = ""; x.r.innerHTML = regionOptions(x.c.value, ""); paintFlags(); }
+    x.c.addEventListener("change", pickCountry);
+    wireSearch(x.sC, x.c, function (sel, q) { return countryOptions(sel, q); }, pickCountry);
+    wireSearch(x.sR, x.r, function (sel, q) { return regionOptions(x.c.value, sel, q); }, paintFlags);
+    x.r.addEventListener("change", paintFlags);
+  });
+  add2.addEventListener("click", function () { box2.hidden = false; add2.hidden = true; N[1].sC.focus(); paintFlags(); });
+  rem2.addEventListener("click", function () {
+    var x = N[1]; x.c.innerHTML = countryOptions(""); x.r.innerHTML = regionOptions("", ""); x.sC.value = ""; x.sR.value = "";
+    setErr("country2", "", x.c); box2.hidden = true; add2.hidden = false; add2.focus(); paintFlags();
+  });
   paintFlags();
   return paintFlags;
 }
 function readProfile(f) {
-  return {
+  var v = {
     firstName: f.first.value.trim(), lastName: f.last.value.trim(), phone: f.phone.value.trim(), email: f.email ? f.email.value.trim() : "",
     knltb: f.knltb.value.replace(/\s/g, ""), side: (f.querySelector('input[name=side]:checked') || {}).value || "",
-    hand: (f.querySelector('input[name=hand]:checked') || {}).value || "", country: f.xnrgy_bc.value, region: f.xnrgy_br.value,
-    birthday: f.birthday.value || ""
+    hand: (f.querySelector('input[name=hand]:checked') || {}).value || "", birthday: f.birthday.value || ""
   };
+  var box2 = f.querySelector("#nat2"), use2 = !!(f.xnrgy_bc2 && box2 && !box2.hidden);
+  v.country = f.xnrgy_bc.value; v.region = v.country ? f.xnrgy_br.value : "";
+  v.country2 = use2 ? f.xnrgy_bc2.value : ""; v.region2 = v.country2 ? f.xnrgy_br2.value : "";
+  // Si solo se rellena la segunda, pasa a ser la primera
+  if (!v.country && v.country2) { v.country = v.country2; v.region = v.region2; v.country2 = ""; v.region2 = ""; }
+  return v;
 }
 // Marca los errores junto a cada campo y devuelve el primero que falla (o null)
 function checkProfile(f, v) {
@@ -1532,8 +1569,7 @@ function checkProfile(f, v) {
   function check(id, ok, msg, el) { setErr(id, ok ? "" : msg, el); if (!ok && !bad) bad = el || document.getElementById("f-" + id); }
   check("first", !!v.firstName, t("f.errRequired"), f.first);
   check("last", !!v.lastName, t("f.errRequired"), f.last);
-  check("country", !!v.country, t("f.errRequired"), f.xnrgy_bc);
-  check("region", !!v.region, t("f.errRequired"), f.xnrgy_br);
+  if (f.xnrgy_bc2) check("country2", !v.country2 || v.country2 !== v.country, t("f.errSameCountry"), f.xnrgy_bc2);
   // Opcionales: solo se comprueban si están rellenos
   check("birthday", !v.birthday || /^(19[3-9]\d|20[0-2]\d)-\d\d-\d\d$/.test(v.birthday), t("f.errBirthday"), f.birthday);
   check("phone", !v.phone || (v.phone.replace(/\D/g, "").length >= 9 && v.phone.length <= 25), t("f.errPhone"), f.phone);
@@ -1608,7 +1644,8 @@ function saveProfile(f) {
   var bad = checkProfile(f, v);
   var st = document.getElementById("pf-status");
   if (bad) { st.textContent = t("f.errForm"); st.className = "status bad"; bad.focus(); return; }
-  v.regionName = regionInfo(v.country, v.region).name;
+  v.regionName = v.region ? regionInfo(v.country, v.region).name : "";
+  v.region2Name = v.region2 ? regionInfo(v.country2, v.region2).name : "";
   var old = state.players[state.uid] || {}, oldPath = old.photoPath || null;
   v.photo = formPhoto || null;
   v.photoPath = formPhoto ? oldPath : null;
@@ -2158,11 +2195,13 @@ function loadRegions() {
 /* Columnas de Supabase (snake_case) <-> objetos de la página */
 function fromRow(r) {
   return { firstName: r.first_name, lastName: r.last_name, side: r.side, hand: r.hand,
-    country: r.country, region: r.region, regionName: r.region_name, photo: null, photoPath: r.photo_path || null, birthday: r.birthday || "", updatedAt: r.updated_at };
+    country: r.country, region: r.region, regionName: r.region_name,
+    country2: r.country2 || null, region2: r.region2 || null, region2Name: r.region2_name || null, photo: null, photoPath: r.photo_path || null, birthday: r.birthday || "", updatedAt: r.updated_at };
 }
 function toRow(v) {
   return { id: state.uid, first_name: v.firstName, last_name: v.lastName, side: v.side || null, hand: v.hand || null,
-    country: v.country, region: v.region, region_name: v.regionName || null, photo: null, photo_path: v.photoPath || null, birthday: v.birthday || null, updated_at: v.updatedAt };
+    country: v.country || null, region: v.region || null, region_name: v.regionName || null,
+    country2: v.country2 || null, region2: v.region2 || null, region2_name: v.region2Name || null, photo: null, photo_path: v.photoPath || null, birthday: v.birthday || null, updated_at: v.updatedAt };
 }
 // Teléfono, email y KNLTB van aparte: solo los leen ella misma, la dueña y las capitanas
 function toContact(v) { return { id: state.uid, phone: v.phone || null, email: v.email || null, knltb: v.knltb || null, updated_at: v.updatedAt }; }
@@ -2177,7 +2216,7 @@ function loadData() {
     sync: sb.from("knltb_sync").select("last_run,last_ok,error").eq("id", 1).maybeSingle()
   };
   if (state.uid) {
-    q.players = sb.from("players").select("id,first_name,last_name,side,hand,country,region,region_name,photo_path,birthday,updated_at");
+    q.players = sb.from("players").select("id,first_name,last_name,side,hand,country,region,region_name,country2,region2,region2_name,photo_path,birthday,updated_at");
     q.roles = sb.from("team_roles").select("*");
     q.requests = sb.from("join_requests").select("*").order("created_at");
     q.contacts = sb.from("player_contacts").select("*");
@@ -2254,7 +2293,7 @@ function syncEmailLang() {
     state.langSyncing = null;
   }).catch(function () { state.langSyncing = null; });
 }
-var APP_VERSION = "2026-11-26-01";
+var APP_VERSION = "2026-11-26-02";
 function checkVersion() {
   fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
     v = (v || "").trim();

@@ -676,3 +676,11 @@ body.authed .hero-grid { grid-template-columns: 1fr; }
 .chip.moved, .moved-tag { border-color: var(--text); color: var(--text); }
 .moved-tag { font-family: var(--display); font-weight: 700; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; padding: 2px 8px; border: 1px solid; margin-left: 4px; white-space: nowrap; vertical-align: middle; }
 .fx-head .chip { margin: 0 auto 0 10px; }
+
+/* Segunda nacionalidad: sus campos entran en la misma rejilla del formulario */
+.nat2 { display: contents; }
+.nat2[hidden] { display: none; }
+/* Franja de banderas con dos nacionalidades: una fila por cada una */
+.kit.two { grid-auto-flow: row; grid-template-rows: none; grid-auto-rows: auto; grid-auto-columns: auto; aspect-ratio: auto; }
+.kit.two .kit-row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; grid-template-rows: 100%; aspect-ratio: 4 / 1; overflow: hidden; min-width: 0; }
+.kit.two .kit-row + .kit-row { border-top: 1px solid var(--line); }
